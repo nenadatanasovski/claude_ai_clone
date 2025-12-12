@@ -945,7 +945,7 @@
       "Step 4: Click a suggested prompt",
       "Step 5: Verify it populates the input field"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
