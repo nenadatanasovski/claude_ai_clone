@@ -99,6 +99,10 @@ function App() {
   const [currentBranch, setCurrentBranch] = useState(null) // Currently selected branch path
   const [showSettingsModal, setShowSettingsModal] = useState(false)
   const [theme, setTheme] = useState('light') // 'light', 'dark', or 'auto'
+  const [fontSize, setFontSize] = useState(() => {
+    const saved = localStorage.getItem('fontSize')
+    return saved ? Number(saved) : 16
+  }) // Font size in pixels (12-24)
   const messagesEndRef = useRef(null)
   const chatContainerRef = useRef(null)
   const textareaRef = useRef(null)
@@ -169,6 +173,11 @@ function App() {
       return () => mediaQuery.removeEventListener('change', handleChange)
     }
   }, [theme])
+
+  // Save font size setting to localStorage
+  useEffect(() => {
+    localStorage.setItem('fontSize', fontSize.toString())
+  }, [fontSize])
 
   // Reload conversations when project changes
   useEffect(() => {
@@ -2185,7 +2194,7 @@ function App() {
                               </div>
                             </div>
                           ) : (
-                            <div className="prose dark:prose-invert prose-sm max-w-none">
+                            <div className="prose dark:prose-invert prose-sm max-w-none" style={{ fontSize: `${fontSize}px` }}>
                               <ReactMarkdown
                                 remarkPlugins={[remarkGfm]}
                                 rehypePlugins={[rehypeHighlight]}
@@ -3287,6 +3296,30 @@ function App() {
                         )}
                       </div>
                     </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Font Size Section */}
+              <div className="mb-6">
+                <h3 className="text-lg font-medium mb-3">Font Size</h3>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <label className="block text-sm font-medium">Message text size</label>
+                    <span className="text-sm text-gray-600 dark:text-gray-400">{fontSize}px</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="12"
+                    max="24"
+                    value={fontSize}
+                    onChange={(e) => setFontSize(Number(e.target.value))}
+                    className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700 accent-claude-orange"
+                  />
+                  <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400">
+                    <span>Small (12px)</span>
+                    <span>Medium (16px)</span>
+                    <span>Large (24px)</span>
                   </div>
                 </div>
               </div>

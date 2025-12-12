@@ -594,7 +594,7 @@
       "Step 6: Verify message text gets smaller",
       "Step 7: Verify the setting persists after reload"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
