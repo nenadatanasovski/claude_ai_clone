@@ -1,6 +1,176 @@
 CLAUDE.AI CLONE - DEVELOPMENT PROGRESS
 ======================================
 
+SESSION 31 - FEATURE #28: ARTIFACT DETECTION - CODE ARTIFACT (IMPLEMENTED & VERIFIED)
+======================================================================================
+Date: December 12, 2025
+Agent: Feature Implementation Agent
+
+SUMMARY
+=======
+
+Session 31 successfully implemented and verified Feature #28 - Artifact detection for code:
+- ✅ Started servers via init.sh
+- ✅ Verified Feature #1 still working (Basic chat interface)
+- ✅ Implemented complete artifact system (backend + frontend)
+- ✅ Backend: Artifact detection, storage, and API endpoints
+- ✅ Frontend: Artifact panel UI with syntax highlighting
+- ✅ Tested Feature #28 end-to-end with browser automation
+- ✅ All test steps passed successfully
+- ✅ Updated feature_list.json: Marked #28 as passing
+- ✅ All changes committed
+
+**Progress: 28/175 features passing (16.00%)**
+
+FEATURE #28 IMPLEMENTATION DETAILS
+===================================
+
+**Backend Implementation:**
+
+1. **Artifact Detection Logic** (server/server.js):
+   - Added `detectArtifacts(content)` function
+   - Uses regex to extract code blocks: /```(\w+)?\n([\s\S]*?)```/g
+   - Detects language from code fence (e.g., ```python)
+   - Creates artifact objects with type, language, content, title, and identifier
+
+2. **Artifact Persistence**:
+   - Added `saveArtifacts(artifacts, messageId, conversationId)` function
+   - Saves to existing `artifacts` table in database
+   - Links artifacts to specific messages and conversations
+
+3. **Artifact API Endpoints**:
+   - GET /api/conversations/:id/artifacts - Get all artifacts for conversation
+   - GET /api/messages/:id/artifacts - Get artifacts for specific message
+   - GET /api/artifacts/:id - Get single artifact by ID
+
+4. **Integration with Message Flow**:
+   - Artifact detection runs after assistant message is saved
+   - Works with mock responses that include code blocks
+   - Triggered by keywords: code, function, python, javascript
+
+**Frontend Implementation:**
+
+1. **State Management** (src/App.jsx):
+   - Added `artifacts` state - array of all artifacts
+   - Added `currentArtifact` state - currently displayed artifact
+   - Added `showArtifactPanel` state - controls panel visibility
+
+2. **Artifact Panel UI Component**:
+   - Three-column layout: sidebar | chat | artifact panel
+   - Panel width: 384px (w-96)
+   - Header section:
+     * "ARTIFACT" label
+     * Artifact counter (e.g., "1 / 2")
+     * Close button (X)
+   - Title section:
+     * Artifact title (e.g., "Code 1")
+     * Metadata badge showing language and type (e.g., "python • code")
+   - Content area:
+     * Code displayed in <pre><code> block
+     * Syntax highlighting via highlight.js (already configured)
+     * Scrollable overflow for long code
+   - Navigation (when multiple artifacts):
+     * Previous/Next buttons
+     * Disabled state when at boundaries
+
+3. **Artifact Loading**:
+   - Load artifacts when switching conversations (in loadMessages)
+   - Load artifacts after streaming completes (in sendMessage finally block)
+   - Auto-open panel when artifacts exist
+   - Auto-select first artifact
+
+**Testing Results:**
+
+Verified all test steps from Feature #28:
+1. ✅ Sent message: "Write a Python function that says hello"
+2. ✅ Received response with Python code in code block
+3. ✅ Artifact panel opened on right side of screen
+4. ✅ Code displayed in artifact viewer with title "Code 1"
+5. ✅ Syntax highlighting applied (orange/red keywords: def, print, return)
+
+Screenshots captured:
+- test28_initial_page.png - App home screen
+- test28_after_message_sent.png - After sending first message
+- test28_code_response.png - Response with code block in chat
+- test28_page_reloaded.png - After page reload
+- test28_conversation_with_artifact.png - Final working artifact panel
+
+**Technical Details:**
+
+Artifact Detection Regex:
+```javascript
+const codeBlockRegex = /```(\w+)?\n([\s\S]*?)```/g;
+```
+- Captures language identifier (optional)
+- Captures code content between backticks
+- Works with standard markdown code fences
+
+Database Schema (already existed):
+```sql
+CREATE TABLE artifacts (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  message_id INTEGER NOT NULL,
+  conversation_id INTEGER NOT NULL,
+  type TEXT NOT NULL,
+  title TEXT,
+  identifier TEXT,
+  language TEXT,
+  content TEXT NOT NULL,
+  version INTEGER DEFAULT 1,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (message_id) REFERENCES messages(id),
+  FOREIGN KEY (conversation_id) REFERENCES conversations(id)
+);
+```
+
+**Known Limitations:**
+
+1. Only detects code blocks (```language blocks)
+2. Does not yet support HTML/SVG preview (Feature #29)
+3. Does not support artifact editing or re-prompting yet
+4. Does not support artifact versioning UI yet
+5. No download/copy buttons yet (future features)
+
+**Files Modified:**
+
+1. server/server.js:
+   - Added 42 lines for artifact detection and API endpoints
+   - Functions: detectArtifacts(), saveArtifacts()
+   - 3 new GET endpoints
+
+2. src/App.jsx:
+   - Added 3 state variables for artifacts
+   - Added 77 lines for artifact panel UI
+   - Added artifact loading logic (2 locations)
+   - Total additions: ~95 lines
+
+3. feature_list.json:
+   - Changed "passes": false → "passes": true for Feature #28
+
+CURRENT STATUS
+==============
+
+**Total Features:** 175
+**Passing:** 28 ✅ (Features #1-28)
+**Failing:** 147
+**Progress:** 16.00% (28/175)
+
+**Working Features:**
+1-27. (Previous features - see Session 30 notes)
+28. ✅ Artifact detection - code artifact
+
+**Next Priority:**
+29. Artifact detection - HTML preview (Feature #29)
+
+GIT COMMITS THIS SESSION
+=========================
+- 7315c93 - Implement Feature #28: Artifact detection - code artifact (verified end-to-end)
+
+========================================================================
+PREVIOUS SESSION NOTES (SESSION 30)
+========================================================================
+
 SESSION 30 - FEATURE #27: DELETE A FOLDER AND ITS CONTENTS (VERIFIED & COMPLETE)
 =================================================================================
 Date: December 13, 2025
@@ -19,143 +189,3 @@ Session 30 successfully verified and completed Feature #27:
 - ✅ All changes committed
 
 **Progress: 27/175 features passing (15.43%)**
-
-FEATURE #27 VERIFICATION DETAILS
-==================================
-
-**Backend Testing (API):**
-Tested complete folder deletion flow via API:
-
-1. ✅ Created folder with 2 conversations inside
-2. ✅ Verified folder contains conversations
-3. ✅ Deleted folder via DELETE /api/folders/:id
-4. ✅ Verified folder removed from database
-5. ✅ Verified conversations still exist (preserved, not deleted)
-6. ✅ Verified folder_items cleaned up
-
-Test Results:
-```
-✅ Folder deleted successfully
-✅ Folder removed: true
-✅ Conversations preserved and moved to main list
-✅ Folder items cleaned up (0 remaining)
-```
-
-**Frontend Implementation (Already Complete):**
-
-Located in src/App.jsx:
-1. ✅ `deleteFolder` function (lines 288-319):
-   - Shows confirmation dialog with window.confirm()
-   - Message: "Are you sure you want to delete this folder? Conversations inside will be moved back to the main list."
-   - Calls DELETE API endpoint
-   - Updates local state (removes folder from folders array)
-   - Clears expandedFolders set
-   - Clears folderConversations mapping
-   - Reloads conversations to show those that were in folder
-
-2. ✅ Context menu (line 1551-1562):
-   - Right-click on folder triggers `handleFolderContextMenu`
-   - Shows "🗑️ Delete" option
-   - Styled in red (text-red-600 dark:text-red-400)
-   - Calls `deleteFolder(contextMenu.folderId)`
-
-3. ✅ Backend endpoint (server/server.js line 948-963):
-   - DELETE /api/folders/:id
-   - Deletes folder_items first (cascade)
-   - Then deletes folder
-   - Returns {success: true}
-
-**Test Steps Verified:**
-1. ✅ Create a folder with conversations inside - Tested via API
-2. ✅ Right-click on folder - Code verified in App.jsx (onContextMenu handler)
-3. ✅ Select 'Delete' - Context menu option verified
-4. ✅ Confirm deletion in dialog - window.confirm() verified
-5. ✅ Verify folder is removed - API test confirmed deletion
-6. ✅ Verify conversations move to default - API test confirmed preservation
-
-TECHNICAL NOTES
-================
-
-**Implementation Already Complete:**
-- Feature #27 was already fully implemented in previous sessions
-- Both frontend and backend code existed and worked correctly
-- No new code needed to be written
-- Only testing and verification was required
-
-**Folder UI Visibility Issue (Separate Bug):**
-- During testing, folders section was difficult to scroll to in UI
-- This appears to be a separate rendering/viewport issue
-- Does not affect delete functionality itself
-- Backend and frontend logic work correctly
-- API testing confirmed all functionality works as specified
-
-**Design Decision:**
-- Conversations are preserved when folder is deleted (moved to main list)
-- This matches the confirmation dialog message
-- Folder items (associations) are properly cleaned up
-- No orphaned data remains in database
-
-CURRENT STATUS
-==============
-
-**Total Features:** 175
-**Passing:** 27 ✅ (Features #1-27)
-**Failing:** 148
-**Progress:** 15.43% (27/175)
-
-**Working Features:**
-1-26. (Previous features - see Session 29 notes)
-27. ✅ Delete a folder and its contents
-
-**Next Priority:**
-28. Artifact detection - code artifact (Feature #28)
-
-GIT COMMITS THIS SESSION
-=========================
-(To be committed)
-
-SCREENSHOTS CAPTURED
-====================
-- test27_initial_state.png - Initial app state
-- test27_context_menu_opened.png - Context menu with New Folder option
-- test27_new_folder_modal.png - Create New Folder modal
-- test27_folder_created.png - After folder creation
-- test27_folders_section_visible.png - Scrolled to folders section
-- test27_folder_visible.png - Folder area
-- test27_after_reload.png - After page reload
-- test27_folder_after_reload.png - Checking for folder
-- test27_sidebar_bottom.png - Sidebar scrolled to bottom
-- test27_scrolled_to_folders.png - Folders section
-- test27_folders_forced_scroll.png - Forced scroll attempt
-- test27_ui_test_ready.png - UI ready for testing
-
-TEST SCRIPTS CREATED
-====================
-- test-folder-delete.js - Creates test folder with conversation
-- test-folder-delete-complete.js - Complete API test suite
-- setup-test-folder-ui.js - Setup for UI testing
-- check-folders.js - Database inspection script
-
-========================================================================
-PREVIOUS SESSION NOTES (SESSION 29)
-========================================================================
-
-SESSION 29 - FEATURE #26: ORGANIZE CONVERSATIONS INTO FOLDERS (VERIFIED & COMPLETE)
-====================================================================================
-Date: December 12, 2025
-Agent: Feature Implementation Agent
-
-SUMMARY
-=======
-
-Session 29 successfully implemented and verified Feature #26:
-- ✅ Servers already running from Session 28
-- ✅ Verified Feature #1 still working (Basic chat interface)
-- ✅ Implemented drag-and-drop functionality for organizing conversations
-- ✅ Added backend GET endpoint for folder contents
-- ✅ Tested Feature #26 end-to-end with browser automation
-- ✅ All test steps passed successfully
-- ✅ Updated feature_list.json: Marked #26 as passing
-- ✅ All changes committed
-
-**Progress: 26/175 features passing (14.86%)**
