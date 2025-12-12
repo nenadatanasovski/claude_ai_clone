@@ -212,7 +212,7 @@
       "Step 5: Create new conversations",
       "Step 6: Verify the pinned conversation stays at the top"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",

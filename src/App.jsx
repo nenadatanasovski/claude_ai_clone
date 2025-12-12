@@ -58,6 +58,7 @@ function App() {
   const [selectedModel, setSelectedModel] = useState('claude-sonnet-4-20250514')
   const [isModelDropdownOpen, setIsModelDropdownOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
+  const [contextMenu, setContextMenu] = useState(null) // { conversationId, x, y }
   const messagesEndRef = useRef(null)
   const chatContainerRef = useRef(null)
   const textareaRef = useRef(null)
@@ -65,6 +66,7 @@ function App() {
   const streamReaderRef = useRef(null)
   const abortControllerRef = useRef(null)
   const modelDropdownRef = useRef(null)
+  const contextMenuRef = useRef(null)
 
   // Model options
   const models = [
@@ -126,6 +128,20 @@ function App() {
       textarea.style.height = `${newHeight}px`
     }
   }, [inputValue])
+
+  // Close context menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (contextMenu && contextMenuRef.current && !contextMenuRef.current.contains(e.target)) {
+        closeContextMenu()
+      }
+    }
+
+    if (contextMenu) {
+      document.addEventListener('mousedown', handleClickOutside)
+      return () => document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [contextMenu])
 
   const loadConversations = async (searchTerm = '') => {
     try {
@@ -412,6 +428,44 @@ function App() {
     }
   }
 
+  const togglePinConversation = async (conversationId) => {
+    try {
+      const conversation = conversations.find(conv => conv.id === conversationId)
+      if (!conversation) return
+
+      const newPinnedState = !conversation.is_pinned
+
+      const response = await fetch(`${API_BASE}/conversations/${conversationId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ is_pinned: newPinnedState })
+      })
+
+      if (response.ok) {
+        // Update local state
+        setConversations(conversations.map(conv =>
+          conv.id === conversationId ? { ...conv, is_pinned: newPinnedState } : conv
+        ))
+      }
+    } catch (error) {
+      console.error('Error toggling pin:', error)
+    }
+  }
+
+  const handleContextMenu = (e, conversationId) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setContextMenu({
+      conversationId,
+      x: e.clientX,
+      y: e.clientY
+    })
+  }
+
+  const closeContextMenu = () => {
+    setContextMenu(null)
+  }
+
   return (
     <div className={isDark ? 'dark' : ''}>
       <div className="min-h-screen bg-white dark:bg-[#1A1A1A] text-gray-900 dark:text-gray-100">
@@ -510,18 +564,84 @@ function App() {
             <div className="space-y-2">
               {conversations.length > 0 && (
                 <>
-                  <div className="text-sm font-medium text-gray-500 dark:text-gray-400 px-2">
-                    Conversations
-                  </div>
-                  {conversations.map(conv => (
-                    <div
-                      key={conv.id}
-                      onClick={() => setCurrentConversationId(conv.id)}
-                      className={`group relative px-2 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800
-                        cursor-pointer text-sm ${
-                          conv.id === currentConversationId ? 'bg-gray-100 dark:bg-gray-800' : ''
-                        }`}
-                    >
+                  {/* Pinned Conversations */}
+                  {conversations.filter(c => c.is_pinned).length > 0 && (
+                    <>
+                      <div className="text-sm font-medium text-gray-500 dark:text-gray-400 px-2">
+                        Pinned
+                      </div>
+                      {conversations.filter(c => c.is_pinned).map(conv => (
+                        <div
+                          key={conv.id}
+                          onClick={() => setCurrentConversationId(conv.id)}
+                          onContextMenu={(e) => handleContextMenu(e, conv.id)}
+                          className={`group relative px-2 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800
+                            cursor-pointer text-sm ${
+                              conv.id === currentConversationId ? 'bg-gray-100 dark:bg-gray-800' : ''
+                            }`}
+                        >
+                          {editingConversationId === conv.id ? (
+                            <input
+                              ref={editInputRef}
+                              type="text"
+                              value={editingTitle}
+                              onChange={(e) => setEditingTitle(e.target.value)}
+                              onKeyDown={(e) => handleTitleKeyDown(e, conv.id)}
+                              onBlur={() => saveConversationTitle(conv.id)}
+                              onClick={(e) => e.stopPropagation()}
+                              className="w-full px-1 py-0.5 bg-white dark:bg-gray-900 border border-claude-orange
+                                rounded focus:outline-none text-sm"
+                            />
+                          ) : (
+                            <>
+                              <div
+                                onClick={(e) => startEditingConversation(conv, e)}
+                                className="truncate pr-6"
+                              >
+                                📌 {conv.title}
+                              </div>
+                              <button
+                                onClick={(e) => deleteConversation(conv.id, e)}
+                                className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100
+                                  p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition-opacity"
+                                title="Delete conversation"
+                              >
+                                <svg
+                                  width="16"
+                                  height="16"
+                                  viewBox="0 0 24 24"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  strokeWidth="2"
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                >
+                                  <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2M10 11v6M14 11v6" />
+                                </svg>
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      ))}
+                    </>
+                  )}
+
+                  {/* Regular Conversations */}
+                  {conversations.filter(c => !c.is_pinned).length > 0 && (
+                    <>
+                      <div className="text-sm font-medium text-gray-500 dark:text-gray-400 px-2">
+                        Conversations
+                      </div>
+                      {conversations.filter(c => !c.is_pinned).map(conv => (
+                        <div
+                          key={conv.id}
+                          onClick={() => setCurrentConversationId(conv.id)}
+                          onContextMenu={(e) => handleContextMenu(e, conv.id)}
+                          className={`group relative px-2 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800
+                            cursor-pointer text-sm ${
+                              conv.id === currentConversationId ? 'bg-gray-100 dark:bg-gray-800' : ''
+                            }`}
+                        >
                       {editingConversationId === conv.id ? (
                         <input
                           ref={editInputRef}
@@ -565,6 +685,8 @@ function App() {
                       )}
                     </div>
                   ))}
+                    </>
+                  )}
                 </>
               )}
             </div>
@@ -715,6 +837,67 @@ function App() {
             </div>
           </main>
         </div>
+
+        {/* Context Menu */}
+        {contextMenu && (
+          <div
+            ref={contextMenuRef}
+            style={{
+              position: 'fixed',
+              top: `${contextMenu.y}px`,
+              left: `${contextMenu.x}px`,
+              zIndex: 1000
+            }}
+            className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700
+              rounded-lg shadow-lg py-1 min-w-[160px]"
+          >
+            <button
+              onClick={() => {
+                togglePinConversation(contextMenu.conversationId)
+                closeContextMenu()
+              }}
+              className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700
+                flex items-center gap-2"
+            >
+              {conversations.find(c => c.id === contextMenu.conversationId)?.is_pinned ? (
+                <>
+                  <span>📌</span>
+                  <span>Unpin</span>
+                </>
+              ) : (
+                <>
+                  <span>📌</span>
+                  <span>Pin</span>
+                </>
+              )}
+            </button>
+            <button
+              onClick={() => {
+                const conv = conversations.find(c => c.id === contextMenu.conversationId)
+                if (conv) {
+                  startEditingConversation(conv, { stopPropagation: () => {} })
+                }
+                closeContextMenu()
+              }}
+              className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700
+                flex items-center gap-2"
+            >
+              <span>✏️</span>
+              <span>Rename</span>
+            </button>
+            <button
+              onClick={() => {
+                deleteConversation(contextMenu.conversationId, { stopPropagation: () => {} })
+                closeContextMenu()
+              }}
+              className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700
+                text-red-600 dark:text-red-400 flex items-center gap-2"
+            >
+              <span>🗑️</span>
+              <span>Delete</span>
+            </button>
+          </div>
+        )}
       </div>
     </div>
   )
