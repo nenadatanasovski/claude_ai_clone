@@ -97,6 +97,8 @@ function App() {
   const [editedMessageContent, setEditedMessageContent] = useState('')
   const [branches, setBranches] = useState([]) // Conversation branches
   const [currentBranch, setCurrentBranch] = useState(null) // Currently selected branch path
+  const [showSettingsModal, setShowSettingsModal] = useState(false)
+  const [theme, setTheme] = useState('light') // 'light', 'dark', or 'auto'
   const messagesEndRef = useRef(null)
   const chatContainerRef = useRef(null)
   const textareaRef = useRef(null)
@@ -145,6 +147,28 @@ function App() {
     loadProjects()
     loadFolders()
   }, [])
+
+  // Handle theme changes
+  useEffect(() => {
+    const applyTheme = () => {
+      if (theme === 'auto') {
+        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
+        setIsDark(prefersDark)
+      } else {
+        setIsDark(theme === 'dark')
+      }
+    }
+
+    applyTheme()
+
+    // Listen for system theme changes when in auto mode
+    if (theme === 'auto') {
+      const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
+      const handleChange = () => applyTheme()
+      mediaQuery.addEventListener('change', handleChange)
+      return () => mediaQuery.removeEventListener('change', handleChange)
+    }
+  }, [theme])
 
   // Reload conversations when project changes
   useEffect(() => {
@@ -1753,11 +1777,16 @@ function App() {
 
               <button
                 type="button"
-                onClick={() => setIsDark(!isDark)}
+                onClick={() => setShowSettingsModal(true)}
                 className="px-3 py-1.5 rounded-lg border border-gray-300 dark:border-gray-700
-                  hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                  hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors flex items-center gap-2"
+                title="Settings"
               >
-                {isDark ? '☀️' : '🌙'}Dark
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+                <span className="text-sm">Settings</span>
               </button>
             </div>
           </div>
@@ -3166,6 +3195,109 @@ function App() {
                     text-white rounded-lg transition-colors"
                 >
                   Create Project
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Settings Modal */}
+        {showSettingsModal && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+            <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+              <h2 className="text-xl font-semibold mb-4">Settings</h2>
+
+              {/* Appearance Section */}
+              <div className="mb-6">
+                <h3 className="text-lg font-medium mb-3">Appearance</h3>
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium mb-2">Theme</label>
+                  <div className="space-y-2">
+                    <button
+                      type="button"
+                      onClick={() => setTheme('light')}
+                      className={`w-full text-left px-4 py-3 rounded-lg border transition-colors ${
+                        theme === 'light'
+                          ? 'border-claude-orange bg-orange-50 dark:bg-orange-900/20'
+                          : 'border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <span className="text-2xl">☀️</span>
+                          <div>
+                            <div className="font-medium">Light</div>
+                            <div className="text-sm text-gray-600 dark:text-gray-400">Light mode theme</div>
+                          </div>
+                        </div>
+                        {theme === 'light' && (
+                          <svg className="w-5 h-5 text-claude-orange" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                          </svg>
+                        )}
+                      </div>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setTheme('dark')}
+                      className={`w-full text-left px-4 py-3 rounded-lg border transition-colors ${
+                        theme === 'dark'
+                          ? 'border-claude-orange bg-orange-50 dark:bg-orange-900/20'
+                          : 'border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <span className="text-2xl">🌙</span>
+                          <div>
+                            <div className="font-medium">Dark</div>
+                            <div className="text-sm text-gray-600 dark:text-gray-400">Dark mode theme</div>
+                          </div>
+                        </div>
+                        {theme === 'dark' && (
+                          <svg className="w-5 h-5 text-claude-orange" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                          </svg>
+                        )}
+                      </div>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setTheme('auto')}
+                      className={`w-full text-left px-4 py-3 rounded-lg border transition-colors ${
+                        theme === 'auto'
+                          ? 'border-claude-orange bg-orange-50 dark:bg-orange-900/20'
+                          : 'border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <span className="text-2xl">🌓</span>
+                          <div>
+                            <div className="font-medium">Auto</div>
+                            <div className="text-sm text-gray-600 dark:text-gray-400">Match system preferences</div>
+                          </div>
+                        </div>
+                        {theme === 'auto' && (
+                          <svg className="w-5 h-5 text-claude-orange" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                          </svg>
+                        )}
+                      </div>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-3 mt-6">
+                <button
+                  onClick={() => setShowSettingsModal(false)}
+                  className="px-4 py-2 bg-claude-orange hover:bg-claude-orange-hover
+                    text-white rounded-lg transition-colors"
+                >
+                  Done
                 </button>
               </div>
             </div>
