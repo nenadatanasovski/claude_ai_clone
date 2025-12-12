@@ -124,7 +124,7 @@
       "Step 6: Press Enter to send",
       "Step 7: Verify the message is sent with both lines"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
