@@ -1136,7 +1136,7 @@ app.get('/api/conversations/:id/artifacts', (req, res) => {
 // PUT update a message
 app.put('/api/messages/:id', (req, res) => {
   try {
-    const { content } = req.body;
+    const { content, createBranch } = req.body;
     const messageId = req.params.id;
 
     if (!content) {
@@ -1149,7 +1149,45 @@ app.put('/api/messages/:id', (req, res) => {
       return res.status(404).json({ error: 'Message not found' });
     }
 
-    // Update the message
+    // If createBranch is true, we need to handle branching
+    if (createBranch) {
+      // Get all messages in this conversation
+      const allMessages = dbHelpers.prepare(`
+        SELECT * FROM messages
+        WHERE conversation_id = ?
+        ORDER BY id ASC
+      `).all(message.conversation_id);
+
+      // Find the index of this message
+      const messageIndex = allMessages.findIndex(m => m.id === parseInt(messageId));
+
+      // Check if there are messages after this one (meaning we're editing in the middle)
+      const hasMessagesAfter = messageIndex < allMessages.length - 1;
+
+      if (hasMessagesAfter) {
+        // This is a branch point - create a new message instead of updating
+        // The new message will have the same parent as the original
+        const newMessage = dbHelpers.prepare(`
+          INSERT INTO messages (conversation_id, role, content, created_at, parent_message_id)
+          VALUES (?, ?, ?, CURRENT_TIMESTAMP, ?)
+        `).run(
+          message.conversation_id,
+          message.role,
+          content,
+          message.parent_message_id
+        );
+
+        const createdMessage = dbHelpers.prepare('SELECT * FROM messages WHERE id = ?').get(newMessage.lastInsertRowid);
+
+        return res.json({
+          message: createdMessage,
+          branched: true,
+          originalMessageId: messageId
+        });
+      }
+    }
+
+    // If not branching or it's the last message, just update normally
     dbHelpers.prepare(`
       UPDATE messages
       SET content = ?, edited_at = CURRENT_TIMESTAMP
@@ -1159,10 +1197,62 @@ app.put('/api/messages/:id', (req, res) => {
     // Get the updated message
     const updatedMessage = dbHelpers.prepare('SELECT * FROM messages WHERE id = ?').get(messageId);
 
-    res.json(updatedMessage);
+    res.json({ message: updatedMessage, branched: false });
   } catch (error) {
     console.error('Error updating message:', error);
     res.status(500).json({ error: 'Failed to update message' });
+  }
+});
+
+// GET branches for a conversation - returns all possible message paths
+app.get('/api/conversations/:id/branches', (req, res) => {
+  try {
+    const conversationId = req.params.id;
+
+    // Get all messages in the conversation
+    const allMessages = dbHelpers.prepare(`
+      SELECT * FROM messages
+      WHERE conversation_id = ?
+      ORDER BY id ASC
+    `).all(conversationId);
+
+    // Build a tree structure to identify branches
+    // A branch occurs when multiple messages share the same parent_message_id
+    const branches = [];
+    const messagesByParent = {};
+
+    // Group messages by their parent
+    allMessages.forEach(msg => {
+      const parentId = msg.parent_message_id || 'root';
+      if (!messagesByParent[parentId]) {
+        messagesByParent[parentId] = [];
+      }
+      messagesByParent[parentId].push(msg);
+    });
+
+    // Find branch points (parents with multiple children)
+    Object.entries(messagesByParent).forEach(([parentId, children]) => {
+      if (children.length > 1) {
+        branches.push({
+          parentId: parentId === 'root' ? null : parseInt(parentId),
+          branches: children.map(child => ({
+            messageId: child.id,
+            content: child.content.substring(0, 100), // Preview
+            createdAt: child.created_at,
+            role: child.role
+          }))
+        });
+      }
+    });
+
+    res.json({
+      branches,
+      allMessages,
+      messagesByParent
+    });
+  } catch (error) {
+    console.error('Error fetching branches:', error);
+    res.status(500).json({ error: 'Failed to fetch branches' });
   }
 });
 

@@ -543,7 +543,7 @@
       "Step 5: Verify you can switch between branches",
       "Step 6: Verify each branch maintains its own context"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",

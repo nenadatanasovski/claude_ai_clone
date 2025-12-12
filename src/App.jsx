@@ -95,6 +95,8 @@ function App() {
   const [messageArtifacts, setMessageArtifacts] = useState({}) // Map of message ID to artifacts array
   const [editingMessageId, setEditingMessageId] = useState(null)
   const [editedMessageContent, setEditedMessageContent] = useState('')
+  const [branches, setBranches] = useState([]) // Conversation branches
+  const [currentBranch, setCurrentBranch] = useState(null) // Currently selected branch path
   const messagesEndRef = useRef(null)
   const chatContainerRef = useRef(null)
   const textareaRef = useRef(null)
@@ -280,6 +282,9 @@ function App() {
         setShowArtifactPanel(false)
         setCurrentArtifact(null)
       }
+
+      // Load branches for this conversation
+      loadBranches(conversationId)
     } catch (error) {
       console.error('Error loading messages:', error)
     }
@@ -1047,14 +1052,19 @@ function App() {
     }
 
     try {
-      // Update the message in the backend
+      // Find the message in the messages array
+      const messageIndex = messages.findIndex(m => m.id === messageId)
+      const hasMessagesAfter = messageIndex < messages.length - 1
+
+      // Update the message in the backend with branching flag
       const response = await fetch(`${API_BASE}/messages/${messageId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          content: editedMessageContent
+          content: editedMessageContent,
+          createBranch: hasMessagesAfter // Create a branch if there are messages after this one
         })
       })
 
@@ -1062,24 +1072,146 @@ function App() {
         throw new Error('Failed to update message')
       }
 
-      // Update the message in local state
-      setMessages(prev => prev.map(msg =>
-        msg.id === messageId
-          ? { ...msg, content: editedMessageContent }
-          : msg
-      ))
+      const data = await response.json()
 
       // Exit edit mode
       setEditingMessageId(null)
       setEditedMessageContent('')
 
-      // Reload the conversation to ensure consistency
-      if (currentConversationId) {
-        loadMessages(currentConversationId)
+      if (data.branched) {
+        // If branching occurred, we need to:
+        // 1. Remove all messages after the edited one
+        // 2. Add the new branch message
+        // 3. Trigger a new AI response
+        const messagesBeforeEdit = messages.slice(0, messageIndex)
+        setMessages([...messagesBeforeEdit, data.message])
+
+        // If it was a user message, trigger a new AI response
+        if (data.message.role === 'user') {
+          // Send the edited message to get a new response
+          await sendMessageWithContent(data.message.content, data.message.id)
+        }
+
+        // Load branches for this conversation
+        loadBranches(currentConversationId)
+      } else {
+        // Normal update without branching
+        setMessages(prev => prev.map(msg =>
+          msg.id === messageId
+            ? { ...msg, content: editedMessageContent }
+            : msg
+        ))
+
+        // Reload the conversation to ensure consistency
+        if (currentConversationId) {
+          loadMessages(currentConversationId)
+        }
       }
     } catch (error) {
       console.error('Error updating message:', error)
       alert('Failed to update message')
+    }
+  }
+
+  // Load branches for a conversation
+  const loadBranches = async (conversationId) => {
+    try {
+      const response = await fetch(`${API_BASE}/conversations/${conversationId}/branches`)
+      if (response.ok) {
+        const data = await response.json()
+        setBranches(data.branches)
+      }
+    } catch (error) {
+      console.error('Error loading branches:', error)
+    }
+  }
+
+  // Helper function to send a message from an edited message
+  const sendMessageWithContent = async (content, parentMessageId) => {
+    if (!currentConversationId) return
+
+    setIsLoading(true)
+    setIsStreaming(true)
+
+    try {
+      const controller = new AbortController()
+      abortControllerRef.current = controller
+
+      const response = await fetch(`${API_BASE}/conversations/${currentConversationId}/messages`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          role: 'user',
+          content: content,
+          model: selectedModel,
+          parentMessageId: parentMessageId
+        }),
+        signal: controller.signal
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to send message')
+      }
+
+      const reader = response.body.getReader()
+      const decoder = new TextDecoder()
+      let accumulatedText = ''
+      let currentMessageId = null
+
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+
+        const chunk = decoder.decode(value, { stream: true })
+        const lines = chunk.split('\n')
+
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            try {
+              const data = JSON.parse(line.slice(6))
+
+              if (data.type === 'message_start') {
+                currentMessageId = data.messageId
+                setMessages(prev => [...prev, {
+                  id: currentMessageId,
+                  role: 'assistant',
+                  content: '',
+                  conversation_id: currentConversationId,
+                  created_at: new Date().toISOString()
+                }])
+              } else if (data.type === 'content_block_delta' && data.delta?.text) {
+                accumulatedText += data.delta.text
+                setMessages(prev => prev.map(msg =>
+                  msg.id === currentMessageId
+                    ? { ...msg, content: accumulatedText }
+                    : msg
+                ))
+              } else if (data.type === 'message_stop') {
+                // Load artifacts if any
+                if (currentMessageId) {
+                  loadMessageArtifacts(currentMessageId)
+                }
+              }
+            } catch (e) {
+              // Skip invalid JSON
+            }
+          }
+        }
+      }
+
+      loadConversations()
+    } catch (error) {
+      if (error.name === 'AbortError') {
+        console.log('Request aborted')
+      } else {
+        console.error('Error sending message:', error)
+      }
+    } finally {
+      setIsLoading(false)
+      setIsStreaming(false)
+      abortControllerRef.current = null
     }
   }
 
@@ -1925,8 +2057,54 @@ function App() {
                               : 'bg-transparent'
                           }`}
                         >
-                          <div className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
-                            {message.role === 'user' ? 'You' : 'Claude'}
+                          <div className="flex items-center justify-between mb-1">
+                            <div className="text-xs font-medium text-gray-500 dark:text-gray-400">
+                              {message.role === 'user' ? 'You' : 'Claude'}
+                            </div>
+                            {/* Branch indicator */}
+                            {(() => {
+                              const messageBranch = branches.find(b =>
+                                b.branches.some(branch => branch.messageId === message.id) ||
+                                (b.parentId && idx > 0 && messages[idx - 1]?.id === b.parentId)
+                              )
+                              if (messageBranch && messageBranch.branches.length > 1) {
+                                const currentBranchIndex = messageBranch.branches.findIndex(b => b.messageId === message.id)
+                                return (
+                                  <div className="flex items-center gap-1 text-xs">
+                                    <span className="text-gray-500 dark:text-gray-400">
+                                      Branch {currentBranchIndex + 1}/{messageBranch.branches.length}
+                                    </span>
+                                    <div className="flex gap-0.5">
+                                      {messageBranch.branches.map((branch, branchIdx) => (
+                                        <button
+                                          key={branch.messageId}
+                                          onClick={async () => {
+                                            // Switch to this branch by reloading messages up to this point
+                                            // and then following this branch
+                                            const messagesBeforeBranch = messages.slice(0, idx)
+                                            const branchMessage = await fetch(`${API_BASE}/conversations/${currentConversationId}/messages`).then(r => r.json())
+                                            const targetMessage = branchMessage.find(m => m.id === branch.messageId)
+                                            if (targetMessage) {
+                                              // Reload conversation to show this branch
+                                              loadMessages(currentConversationId)
+                                            }
+                                          }}
+                                          className={`w-6 h-6 rounded text-xs font-medium transition-colors ${
+                                            branchIdx === currentBranchIndex
+                                              ? 'bg-[#CC785C] text-white'
+                                              : 'bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-300 dark:hover:bg-gray-600'
+                                          }`}
+                                          title={`Switch to branch ${branchIdx + 1}: ${branch.content.substring(0, 50)}...`}
+                                        >
+                                          {branchIdx + 1}
+                                        </button>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )
+                              }
+                              return null
+                            })()}
                           </div>
                           {/* Display images if present */}
                           {message.images && message.images.length > 0 && (
