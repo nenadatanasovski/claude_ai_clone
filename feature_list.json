@@ -430,7 +430,7 @@
       "Step 5: Verify Claude generates an updated version",
       "Step 6: Verify the new version appears in the artifact panel"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",

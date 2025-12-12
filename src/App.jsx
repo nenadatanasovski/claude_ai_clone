@@ -87,6 +87,8 @@ function App() {
   const [isArtifactFullscreen, setIsArtifactFullscreen] = useState(false)
   const [isEditingArtifact, setIsEditingArtifact] = useState(false)
   const [editedArtifactContent, setEditedArtifactContent] = useState('')
+  const [showRepromptModal, setShowRepromptModal] = useState(false)
+  const [repromptInstruction, setRepromptInstruction] = useState('')
   const messagesEndRef = useRef(null)
   const chatContainerRef = useRef(null)
   const textareaRef = useRef(null)
@@ -293,6 +295,148 @@ function App() {
     } catch (error) {
       console.error('Error creating folder:', error)
     }
+  }
+
+  const handleReprompt = async () => {
+    if (!repromptInstruction.trim() || !currentArtifact) return
+
+    // Close the modal
+    setShowRepromptModal(false)
+
+    // Create a contextual message that references the artifact
+    const contextualMessage = `Please modify the following ${currentArtifact.type} artifact: "${currentArtifact.title || 'artifact'}"\n\nCurrent content:\n\`\`\`${currentArtifact.language || ''}\n${currentArtifact.content}\n\`\`\`\n\nModification request: ${repromptInstruction.trim()}`
+
+    // Set the input value and trigger send
+    setInputValue(contextualMessage)
+    setRepromptInstruction('')
+
+    // Wait a brief moment for state to update, then send
+    setTimeout(() => {
+      // Manually trigger the send by calling sendMessage
+      // We need to use the contextual message directly since state may not have updated yet
+      const sendRepromptMessage = async () => {
+        if (isLoading) return
+
+        setInputValue('')
+        setIsLoading(true)
+
+        try {
+          // Create conversation if none exists
+          let conversationId = currentConversationId
+          if (!conversationId) {
+            const response = await fetch(`${API_BASE}/conversations`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ title: 'New Chat' })
+            })
+            const newConversation = await response.json()
+            conversationId = newConversation.id
+            setCurrentConversationId(conversationId)
+            setConversations(prev => [newConversation, ...prev])
+          }
+
+          // Add user message to UI immediately
+          const userMessage = {
+            id: Date.now(),
+            role: 'user',
+            content: contextualMessage,
+            created_at: new Date().toISOString()
+          }
+          setMessages(prev => [...prev, userMessage])
+
+          // Create abort controller for this request
+          abortControllerRef.current = new AbortController()
+
+          // Send message to API
+          const response = await fetch(`${API_BASE}/conversations/${conversationId}/messages`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ content: contextualMessage, role: 'user' }),
+            signal: abortControllerRef.current.signal
+          })
+
+          if (response.headers.get('content-type')?.includes('text/event-stream')) {
+            // Handle streaming response
+            setIsStreaming(true)
+            const reader = response.body.getReader()
+            streamReaderRef.current = reader
+            const decoder = new TextDecoder()
+            let assistantMessage = {
+              id: Date.now() + 1,
+              role: 'assistant',
+              content: '',
+              created_at: new Date().toISOString()
+            }
+
+            setMessages(prev => [...prev, assistantMessage])
+
+            try {
+              while (true) {
+                const { value, done } = await reader.read()
+                if (done) break
+
+                const chunk = decoder.decode(value)
+                const lines = chunk.split('\n')
+
+                for (const line of lines) {
+                  if (line.startsWith('data: ')) {
+                    const data = line.slice(6)
+                    if (data === '[DONE]') {
+                      break
+                    }
+                    try {
+                      const parsed = JSON.parse(data)
+                      if (parsed.content) {
+                        assistantMessage.content += parsed.content
+                        setMessages(prev => {
+                          const newMessages = [...prev]
+                          newMessages[newMessages.length - 1] = { ...assistantMessage }
+                          return newMessages
+                        })
+                      }
+                    } catch (e) {
+                      // Ignore parse errors
+                    }
+                  }
+                }
+              }
+            } catch (error) {
+              if (error.name !== 'AbortError') {
+                console.error('Streaming error:', error)
+              }
+            } finally {
+              setIsStreaming(false)
+              streamReaderRef.current = null
+
+              // Load artifacts after streaming completes
+              try {
+                const artifactsResponse = await fetch(`${API_BASE}/conversations/${conversationId}/artifacts`)
+                if (artifactsResponse.ok) {
+                  const artifactsData = await artifactsResponse.json()
+                  if (artifactsData.length > 0) {
+                    setArtifacts(artifactsData)
+                    setCurrentArtifact(artifactsData[artifactsData.length - 1]) // Show latest artifact
+                    setShowArtifactPanel(true)
+                  }
+                }
+              } catch (error) {
+                console.error('Error loading artifacts:', error)
+              }
+            }
+          }
+        } catch (error) {
+          if (error.name !== 'AbortError') {
+            console.error('Error sending message:', error)
+            alert('Failed to send message. Please try again.')
+          }
+        } finally {
+          setIsLoading(false)
+          abortControllerRef.current = null
+        }
+      }
+
+      sendRepromptMessage()
+    }, 50)
   }
 
   const toggleFolder = (folderId) => {
@@ -1590,6 +1734,21 @@ function App() {
                       </svg>
                     </button>
                   )}
+                  {!isEditingArtifact && (
+                    <button
+                      onClick={() => {
+                        setShowRepromptModal(true);
+                        setRepromptInstruction('');
+                      }}
+                      className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                      title="Re-prompt artifact"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                          d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+                      </svg>
+                    </button>
+                  )}
                   <button
                     onClick={() => {
                       // Create download function
@@ -2140,6 +2299,70 @@ function App() {
                     text-white rounded-lg transition-colors"
                 >
                   Create Folder
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Re-prompt Modal */}
+        {showRepromptModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md w-full mx-4">
+              <h2 className="text-xl font-semibold mb-4">Re-prompt Artifact</h2>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                Describe how you'd like to modify the artifact. Your instruction will be sent to Claude along with the current artifact content.
+              </p>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium mb-2">
+                    Modification Request
+                  </label>
+                  <textarea
+                    value={repromptInstruction}
+                    onChange={(e) => setRepromptInstruction(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        if (repromptInstruction.trim()) {
+                          handleReprompt();
+                        }
+                      } else if (e.key === 'Escape') {
+                        setShowRepromptModal(false);
+                        setRepromptInstruction('');
+                      }
+                    }}
+                    placeholder="e.g., 'Make the button blue' or 'Add error handling'"
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600
+                      rounded-lg bg-white dark:bg-gray-900 focus:outline-none focus:ring-2
+                      focus:ring-claude-orange resize-none"
+                    rows="4"
+                    autoFocus
+                  />
+                </div>
+              </div>
+              <div className="flex gap-3 mt-6">
+                <button
+                  onClick={() => {
+                    setShowRepromptModal(false);
+                    setRepromptInstruction('');
+                  }}
+                  className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600
+                    rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={async () => {
+                    if (repromptInstruction.trim()) {
+                      await handleReprompt();
+                    }
+                  }}
+                  disabled={!repromptInstruction.trim()}
+                  className="flex-1 px-4 py-2 bg-claude-orange hover:bg-claude-orange-hover
+                    text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Send
                 </button>
               </div>
             </div>
