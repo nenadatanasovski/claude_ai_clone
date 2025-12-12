@@ -568,7 +568,7 @@
       "Step 4: Verify the background changes to light colors",
       "Step 5: Verify all UI elements adapt to light theme"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
