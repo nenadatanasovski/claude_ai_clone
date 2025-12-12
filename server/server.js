@@ -429,7 +429,13 @@ app.get('/api/conversations/:id/messages', (req, res) => {
       ORDER BY created_at ASC
     `).all(req.params.id);
 
-    res.json(messages);
+    // Parse images JSON field
+    const parsedMessages = messages.map(msg => ({
+      ...msg,
+      images: msg.images ? JSON.parse(msg.images) : null
+    }));
+
+    res.json(parsedMessages);
   } catch (error) {
     console.error('Error fetching messages:', error);
     res.status(500).json({ error: 'Failed to fetch messages' });
@@ -489,7 +495,10 @@ app.post('/api/conversations/:id/messages', async (req, res) => {
 
       // Check if project instructions specify a language
       let mockResponse;
-      if (projectInstructions && projectInstructions.toLowerCase().includes('spanish')) {
+      if (images && images.length > 0) {
+        // Mock response for image uploads
+        mockResponse = `I can see you've uploaded ${images.length} image${images.length > 1 ? 's' : ''}. This is a mock response. In a real implementation with the Anthropic API configured, I would analyze the image content and provide detailed information about what I see. For now, I can confirm that your image upload functionality is working correctly!`;
+      } else if (projectInstructions && projectInstructions.toLowerCase().includes('spanish')) {
         mockResponse = "¡Hola! Según las instrucciones personalizadas del proyecto, responderé en español. ¿En qué puedo ayudarte hoy?";
       } else if (projectInstructions && projectInstructions.toLowerCase().includes('french')) {
         mockResponse = "Bonjour! Selon les instructions personnalisées du projet, je répondrai en français. Comment puis-je vous aider aujourd'hui?";

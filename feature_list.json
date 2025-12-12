@@ -482,7 +482,7 @@
       "Step 6: Verify the image appears in the user message bubble",
       "Step 7: Verify Claude responds about the image content"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",

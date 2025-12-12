@@ -53,6 +53,7 @@ function App() {
   const [inputValue, setInputValue] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [isStreaming, setIsStreaming] = useState(false)
+  const [selectedImages, setSelectedImages] = useState([])
   const [editingConversationId, setEditingConversationId] = useState(null)
   const [editingTitle, setEditingTitle] = useState('')
   const [selectedModel, setSelectedModel] = useState('claude-sonnet-4-20250514')
@@ -95,6 +96,7 @@ function App() {
   const messagesEndRef = useRef(null)
   const chatContainerRef = useRef(null)
   const textareaRef = useRef(null)
+  const fileInputRef = useRef(null)
   const editInputRef = useRef(null)
   const streamReaderRef = useRef(null)
   const abortControllerRef = useRef(null)
@@ -704,6 +706,7 @@ function App() {
         id: Date.now(),
         role: 'user',
         content: messageText,
+        images: selectedImages.length > 0 ? selectedImages : null,
         created_at: new Date().toISOString()
       }
       setMessages(prev => [...prev, userMessage])
@@ -711,13 +714,29 @@ function App() {
       // Create abort controller for this request
       abortControllerRef.current = new AbortController()
 
+      // Prepare message payload with images
+      const messagePayload = {
+        content: messageText,
+        role: 'user'
+      }
+
+      if (selectedImages.length > 0) {
+        messagePayload.images = selectedImages.map(img => ({
+          type: img.type,
+          data: img.data
+        }))
+      }
+
       // Send message to API
       const response = await fetch(`${API_BASE}/conversations/${conversationId}/messages`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content: messageText, role: 'user' }),
+        body: JSON.stringify(messagePayload),
         signal: abortControllerRef.current.signal
       })
+
+      // Clear selected images after sending
+      setSelectedImages([])
 
       if (response.headers.get('content-type')?.includes('text/event-stream')) {
         // Handle streaming response
@@ -837,6 +856,41 @@ function App() {
   const handleSuggestedPrompt = (prompt) => {
     setInputValue(prompt)
     textareaRef.current?.focus()
+  }
+
+  const handleImageSelect = (e) => {
+    const files = Array.from(e.target.files || [])
+    const imageFiles = files.filter(file => file.type.startsWith('image/'))
+
+    // Convert images to base64 for preview and sending
+    const promises = imageFiles.map(file => {
+      return new Promise((resolve) => {
+        const reader = new FileReader()
+        reader.onloadend = () => {
+          resolve({
+            file,
+            name: file.name,
+            type: file.type,
+            data: reader.result, // base64 data URL
+            preview: reader.result
+          })
+        }
+        reader.readAsDataURL(file)
+      })
+    })
+
+    Promise.all(promises).then(images => {
+      setSelectedImages(prev => [...prev, ...images])
+    })
+
+    // Reset file input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ''
+    }
+  }
+
+  const removeImage = (index) => {
+    setSelectedImages(prev => prev.filter((_, i) => i !== index))
   }
 
   const startEditingConversation = (conv, e) => {
@@ -1684,6 +1738,19 @@ function App() {
                           <div className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
                             {message.role === 'user' ? 'You' : 'Claude'}
                           </div>
+                          {/* Display images if present */}
+                          {message.images && message.images.length > 0 && (
+                            <div className="mb-2 flex flex-wrap gap-2">
+                              {message.images.map((img, imgIdx) => (
+                                <img
+                                  key={imgIdx}
+                                  src={img.preview || img.data}
+                                  alt={img.name || `Image ${imgIdx + 1}`}
+                                  className="max-w-xs max-h-48 rounded-lg border border-gray-300 dark:border-gray-700"
+                                />
+                              ))}
+                            </div>
+                          )}
                           <div className="prose dark:prose-invert prose-sm max-w-none">
                             <ReactMarkdown
                               remarkPlugins={[remarkGfm]}
@@ -1730,20 +1797,72 @@ function App() {
             {/* Input Area */}
             <div className="border-t border-gray-200 dark:border-gray-800 p-4">
               <div className="max-w-3xl mx-auto">
+                {/* Image Previews */}
+                {selectedImages.length > 0 && (
+                  <div className="mb-3 flex flex-wrap gap-2">
+                    {selectedImages.map((image, index) => (
+                      <div key={index} className="relative group">
+                        <img
+                          src={image.preview}
+                          alt={image.name}
+                          className="w-20 h-20 object-cover rounded-lg border border-gray-300 dark:border-gray-700"
+                        />
+                        <button
+                          onClick={() => removeImage(index)}
+                          className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 hover:bg-red-600
+                            text-white rounded-full flex items-center justify-center
+                            opacity-0 group-hover:opacity-100 transition-opacity"
+                          title="Remove image"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
                 <div className="relative">
+                  {/* Hidden file input */}
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    onChange={handleImageSelect}
+                    className="hidden"
+                  />
+
                   <textarea
                     ref={textareaRef}
                     value={inputValue}
                     onChange={(e) => setInputValue(e.target.value)}
                     onKeyDown={handleKeyDown}
                     placeholder="Message Claude..."
-                    className="w-full px-4 py-3 pr-12 rounded-lg border border-gray-300
+                    className="w-full pl-12 pr-12 py-3 rounded-lg border border-gray-300
                       dark:border-gray-700 bg-white dark:bg-gray-900
                       focus:outline-none focus:ring-2 focus:ring-claude-orange
                       resize-none overflow-hidden"
                     style={{ minHeight: '52px' }}
                     disabled={isLoading}
                   />
+                  {/* Image attachment button */}
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={isLoading || isStreaming}
+                    className="absolute left-2 bottom-2 p-2 rounded-lg hover:bg-gray-100
+                      dark:hover:bg-gray-800 transition-colors
+                      disabled:opacity-50 disabled:cursor-not-allowed"
+                    title="Attach image"
+                  >
+                    <svg className="w-5 h-5 text-gray-600 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                        d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+                    </svg>
+                  </button>
+
                   {isStreaming ? (
                     <button
                       type="button"
