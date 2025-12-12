@@ -727,7 +727,7 @@
       "Step 4: Verify daily breakdown within the month",
       "Step 5: Verify cost estimation for the month"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
