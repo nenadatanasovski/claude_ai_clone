@@ -683,6 +683,135 @@ app.get('/api/search/conversations', (req, res) => {
   }
 });
 
+// ============================================================
+// PROJECT ENDPOINTS
+// ============================================================
+
+// Get all projects
+app.get('/api/projects', (req, res) => {
+  try {
+    const projects = dbHelpers.prepare(`
+      SELECT * FROM projects
+      WHERE is_archived = 0
+      ORDER BY is_pinned DESC, created_at DESC
+    `).all();
+    res.json(projects);
+  } catch (error) {
+    console.error('Error fetching projects:', error);
+    res.status(500).json({ error: 'Failed to fetch projects' });
+  }
+});
+
+// Create a new project
+app.post('/api/projects', (req, res) => {
+  try {
+    const { name, description, color, custom_instructions } = req.body;
+
+    if (!name || name.trim() === '') {
+      return res.status(400).json({ error: 'Project name is required' });
+    }
+
+    const now = new Date().toISOString();
+    const result = dbHelpers.prepare(`
+      INSERT INTO projects (user_id, name, description, color, custom_instructions, created_at, updated_at, is_archived, is_pinned)
+      VALUES (?, ?, ?, ?, ?, ?, ?, 0, 0)
+    `).run(
+      1, // Default user_id
+      name.trim(),
+      description || null,
+      color || '#CC785C',
+      custom_instructions || null,
+      now,
+      now
+    );
+
+    const projectId = result.lastInsertRowid;
+    const project = dbHelpers.prepare('SELECT * FROM projects WHERE id = ?').get(projectId);
+
+    res.json(project);
+  } catch (error) {
+    console.error('Error creating project:', error);
+    res.status(500).json({ error: 'Failed to create project' });
+  }
+});
+
+// Get a specific project
+app.get('/api/projects/:id', (req, res) => {
+  try {
+    const { id } = req.params;
+    const project = dbHelpers.prepare('SELECT * FROM projects WHERE id = ?').get(id);
+
+    if (!project) {
+      return res.status(404).json({ error: 'Project not found' });
+    }
+
+    res.json(project);
+  } catch (error) {
+    console.error('Error fetching project:', error);
+    res.status(500).json({ error: 'Failed to fetch project' });
+  }
+});
+
+// Update a project
+app.put('/api/projects/:id', (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, description, color, custom_instructions, is_archived, is_pinned } = req.body;
+
+    const now = new Date().toISOString();
+
+    dbHelpers.prepare(`
+      UPDATE projects
+      SET name = ?, description = ?, color = ?, custom_instructions = ?, is_archived = ?, is_pinned = ?, updated_at = ?
+      WHERE id = ?
+    `).run(name, description, color, custom_instructions, is_archived, is_pinned, now, id);
+
+    const project = dbHelpers.prepare('SELECT * FROM projects WHERE id = ?').get(id);
+    res.json(project);
+  } catch (error) {
+    console.error('Error updating project:', error);
+    res.status(500).json({ error: 'Failed to update project' });
+  }
+});
+
+// Delete a project
+app.delete('/api/projects/:id', (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Set all conversations in this project to have null project_id
+    dbHelpers.prepare(`
+      UPDATE conversations
+      SET project_id = NULL
+      WHERE project_id = ?
+    `).run(id);
+
+    // Delete the project
+    dbHelpers.prepare('DELETE FROM projects WHERE id = ?').run(id);
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error deleting project:', error);
+    res.status(500).json({ error: 'Failed to delete project' });
+  }
+});
+
+// Get conversations in a project
+app.get('/api/projects/:id/conversations', (req, res) => {
+  try {
+    const { id } = req.params;
+    const conversations = dbHelpers.prepare(`
+      SELECT * FROM conversations
+      WHERE project_id = ? AND is_deleted = 0
+      ORDER BY is_pinned DESC, last_message_at DESC, created_at DESC
+    `).all(id);
+    res.json(conversations);
+  } catch (error) {
+    console.error('Error fetching project conversations:', error);
+    res.status(500).json({ error: 'Failed to fetch project conversations' });
+  }
+});
+
 // Export database instance for other modules
 export { db, dbHelpers };
 
