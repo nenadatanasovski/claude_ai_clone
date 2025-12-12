@@ -84,6 +84,7 @@ function App() {
   const [artifacts, setArtifacts] = useState([])
   const [currentArtifact, setCurrentArtifact] = useState(null)
   const [showArtifactPanel, setShowArtifactPanel] = useState(false)
+  const [isArtifactFullscreen, setIsArtifactFullscreen] = useState(false)
   const messagesEndRef = useRef(null)
   const chatContainerRef = useRef(null)
   const textareaRef = useRef(null)
@@ -1556,7 +1557,9 @@ function App() {
 
           {/* Artifact Panel */}
           {showArtifactPanel && currentArtifact && (
-            <aside className="w-96 border-l border-gray-200 dark:border-gray-800 flex flex-col bg-white dark:bg-[#1A1A1A]">
+            <aside className={`border-l border-gray-200 dark:border-gray-800 flex flex-col bg-white dark:bg-[#1A1A1A] ${
+              isArtifactFullscreen ? 'fixed inset-0 z-50 w-full' : 'w-96'
+            }`}>
               {/* Artifact Header */}
               <div className="border-b border-gray-200 dark:border-gray-800 p-4 flex items-center justify-between">
                 <div className="flex items-center gap-2">
@@ -1569,15 +1572,37 @@ function App() {
                     </div>
                   )}
                 </div>
-                <button
-                  onClick={() => setShowArtifactPanel(false)}
-                  className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-                  title="Close artifact panel"
-                >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setIsArtifactFullscreen(!isArtifactFullscreen)}
+                    className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                    title={isArtifactFullscreen ? "Exit fullscreen" : "Fullscreen"}
+                  >
+                    {isArtifactFullscreen ? (
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                          d="M9 9V4.5M9 9H4.5M9 9L3.75 3.75M9 15v4.5M9 15H4.5M9 15l-5.25 5.25M15 9h4.5M15 9V4.5M15 9l5.25-5.25M15 15h4.5M15 15v4.5m0-4.5l5.25 5.25" />
+                      </svg>
+                    ) : (
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                          d="M3.75 3.75v4.5m0-4.5h4.5m-4.5 0L9 9M3.75 20.25v-4.5m0 4.5h4.5m-4.5 0L9 15M20.25 3.75h-4.5m4.5 0v4.5m0-4.5L15 9m5.25 11.25h-4.5m4.5 0v-4.5m0 4.5L15 15" />
+                      </svg>
+                    )}
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowArtifactPanel(false)
+                      setIsArtifactFullscreen(false)
+                    }}
+                    className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                    title="Close artifact panel"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
               </div>
 
               {/* Artifact Title */}
