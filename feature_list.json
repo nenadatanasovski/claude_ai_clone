@@ -828,7 +828,7 @@
       "Step 4: Verify all shortcuts are listed with descriptions",
       "Step 5: Verify shortcuts are grouped by category"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
