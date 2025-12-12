@@ -12,7 +12,7 @@
       "Step 7: Verify the assistant response streams in word-by-word",
       "Step 8: Verify the response is complete and properly formatted"
     ],
-    "passes": true
+    "passes": false
   },
   {
     "category": "functional",
