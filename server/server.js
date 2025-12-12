@@ -1,3 +1,4 @@
+// Updated with custom instructions support
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
@@ -454,6 +455,11 @@ app.post('/api/conversations/:id/messages', async (req, res) => {
       return res.status(404).json({ error: 'Conversation not found' });
     }
 
+    // Get global custom instructions for the user
+    const userId = 1; // Default user
+    const user = dbHelpers.prepare('SELECT custom_instructions FROM users WHERE id = ?').get(userId);
+    const globalInstructions = user?.custom_instructions || null;
+
     // Get project custom instructions if conversation belongs to a project
     let projectInstructions = null;
     if (conversation.project_id) {
@@ -461,6 +467,16 @@ app.post('/api/conversations/:id/messages', async (req, res) => {
       if (project && project.custom_instructions) {
         projectInstructions = project.custom_instructions;
       }
+    }
+
+    // Combine global and project instructions
+    let systemPrompt = null;
+    if (globalInstructions && projectInstructions) {
+      systemPrompt = `${globalInstructions}\n\nProject Instructions:\n${projectInstructions}`;
+    } else if (globalInstructions) {
+      systemPrompt = globalInstructions;
+    } else if (projectInstructions) {
+      systemPrompt = projectInstructions;
     }
 
     // Save user message
@@ -493,15 +509,17 @@ app.post('/api/conversations/:id/messages', async (req, res) => {
                           content.toLowerCase().includes('circle icon') ||
                           content.toLowerCase().includes('icon');
 
-      // Check if project instructions specify a language
+      // Check if custom instructions specify behavior
       let mockResponse;
       if (images && images.length > 0) {
         // Mock response for image uploads
         mockResponse = `I can see you've uploaded ${images.length} image${images.length > 1 ? 's' : ''}. This is a mock response. In a real implementation with the Anthropic API configured, I would analyze the image content and provide detailed information about what I see. For now, I can confirm that your image upload functionality is working correctly!`;
-      } else if (projectInstructions && projectInstructions.toLowerCase().includes('spanish')) {
-        mockResponse = "¡Hola! Según las instrucciones personalizadas del proyecto, responderé en español. ¿En qué puedo ayudarte hoy?";
-      } else if (projectInstructions && projectInstructions.toLowerCase().includes('french')) {
-        mockResponse = "Bonjour! Selon les instructions personnalisées du projet, je répondrai en français. Comment puis-je vous aider aujourd'hui?";
+      } else if (systemPrompt && systemPrompt.toLowerCase().includes('concise')) {
+        mockResponse = "Sure, I'll be brief.";
+      } else if (systemPrompt && systemPrompt.toLowerCase().includes('spanish')) {
+        mockResponse = "¡Hola! Según las instrucciones personalizadas, responderé en español. ¿En qué puedo ayudarte hoy?";
+      } else if (systemPrompt && systemPrompt.toLowerCase().includes('french')) {
+        mockResponse = "Bonjour! Selon les instructions personnalisées, je répondrai en français. Comment puis-je vous aider aujourd'hui?";
       } else if (isHtmlRequest) {
         mockResponse = "Here's an HTML page with a red button:\n\n```html\n<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n  <meta charset=\"UTF-8\">\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n  <title>Red Button Example</title>\n  <style>\n    body {\n      display: flex;\n      justify-content: center;\n      align-items: center;\n      height: 100vh;\n      margin: 0;\n      font-family: Arial, sans-serif;\n      background-color: #f0f0f0;\n    }\n    .red-button {\n      background-color: #e74c3c;\n      color: white;\n      padding: 15px 30px;\n      font-size: 18px;\n      border: none;\n      border-radius: 8px;\n      cursor: pointer;\n      box-shadow: 0 4px 6px rgba(0,0,0,0.1);\n      transition: all 0.3s ease;\n    }\n    .red-button:hover {\n      background-color: #c0392b;\n      transform: translateY(-2px);\n      box-shadow: 0 6px 8px rgba(0,0,0,0.15);\n    }\n    .red-button:active {\n      transform: translateY(0);\n      box-shadow: 0 2px 4px rgba(0,0,0,0.1);\n    }\n  </style>\n</head>\n<body>\n  <button class=\"red-button\" onclick=\"alert('Button clicked!')\">Click Me!</button>\n</body>\n</html>\n```\n\nThis creates a centered red button with hover effects and a click handler.";
       } else if (isSvgRequest) {
@@ -580,9 +598,9 @@ app.post('/api/conversations/:id/messages', async (req, res) => {
       messages: messages,
     };
 
-    // Add system prompt with project custom instructions if available
-    if (projectInstructions) {
-      apiParams.system = projectInstructions;
+    // Add system prompt with custom instructions if available
+    if (systemPrompt) {
+      apiParams.system = systemPrompt;
     }
 
     // Call Claude API
@@ -1359,6 +1377,99 @@ app.get('/api/artifacts/:id/versions', (req, res) => {
   } catch (error) {
     console.error('Error fetching artifact versions:', error);
     res.status(500).json({ error: 'Failed to fetch artifact versions' });
+  }
+});
+
+// Settings endpoints
+
+// GET user settings including custom instructions
+app.get('/api/settings', (req, res) => {
+  try {
+    const userId = 1; // Default user
+
+    const user = dbHelpers.prepare('SELECT * FROM users WHERE id = ?').get(userId);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    res.json({
+      preferences: user.preferences ? JSON.parse(user.preferences) : {},
+      custom_instructions: user.custom_instructions || ''
+    });
+  } catch (error) {
+    console.error('Error fetching settings:', error);
+    res.status(500).json({ error: 'Failed to fetch settings' });
+  }
+});
+
+// PUT update user settings
+app.put('/api/settings', (req, res) => {
+  try {
+    const userId = 1; // Default user
+    const { preferences, custom_instructions } = req.body;
+
+    const user = dbHelpers.prepare('SELECT * FROM users WHERE id = ?').get(userId);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    // Update preferences if provided
+    if (preferences !== undefined) {
+      dbHelpers.prepare(`
+        UPDATE users SET preferences = ? WHERE id = ?
+      `).run(JSON.stringify(preferences), userId);
+    }
+
+    // Update custom instructions if provided
+    if (custom_instructions !== undefined) {
+      dbHelpers.prepare(`
+        UPDATE users SET custom_instructions = ? WHERE id = ?
+      `).run(custom_instructions, userId);
+    }
+
+    // Return updated settings
+    const updatedUser = dbHelpers.prepare('SELECT * FROM users WHERE id = ?').get(userId);
+    res.json({
+      preferences: updatedUser.preferences ? JSON.parse(updatedUser.preferences) : {},
+      custom_instructions: updatedUser.custom_instructions || ''
+    });
+  } catch (error) {
+    console.error('Error updating settings:', error);
+    res.status(500).json({ error: 'Failed to update settings' });
+  }
+});
+
+// GET custom instructions specifically
+app.get('/api/settings/custom-instructions', (req, res) => {
+  try {
+    const userId = 1; // Default user
+
+    const user = dbHelpers.prepare('SELECT custom_instructions FROM users WHERE id = ?').get(userId);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    res.json({ custom_instructions: user.custom_instructions || '' });
+  } catch (error) {
+    console.error('Error fetching custom instructions:', error);
+    res.status(500).json({ error: 'Failed to fetch custom instructions' });
+  }
+});
+
+// PUT update custom instructions
+app.put('/api/settings/custom-instructions', (req, res) => {
+  try {
+    const userId = 1; // Default user
+    const { custom_instructions } = req.body;
+
+    dbHelpers.prepare(`
+      UPDATE users SET custom_instructions = ? WHERE id = ?
+    `).run(custom_instructions || null, userId);
+
+    res.json({ custom_instructions: custom_instructions || '' });
+  } catch (error) {
+    console.error('Error updating custom instructions:', error);
+    res.status(500).json({ error: 'Failed to update custom instructions' });
   }
 });
 

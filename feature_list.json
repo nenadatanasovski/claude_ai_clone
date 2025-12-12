@@ -623,7 +623,7 @@
       "Step 6: Send a message",
       "Step 7: Verify the response follows the custom instructions"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",

@@ -107,6 +107,7 @@ function App() {
     const saved = localStorage.getItem('messageDensity')
     return saved || 'comfortable'
   }) // 'compact', 'comfortable', or 'spacious'
+  const [globalCustomInstructions, setGlobalCustomInstructions] = useState('')
   const messagesEndRef = useRef(null)
   const chatContainerRef = useRef(null)
   const textareaRef = useRef(null)
@@ -154,6 +155,7 @@ function App() {
     loadConversations()
     loadProjects()
     loadFolders()
+    loadCustomInstructions()
   }, [])
 
   // Handle theme changes
@@ -353,6 +355,28 @@ function App() {
       setFolders(data)
     } catch (error) {
       console.error('Error loading folders:', error)
+    }
+  }
+
+  const loadCustomInstructions = async () => {
+    try {
+      const response = await fetch(`${API_BASE}/settings/custom-instructions`)
+      const data = await response.json()
+      setGlobalCustomInstructions(data.custom_instructions || '')
+    } catch (error) {
+      console.error('Error loading custom instructions:', error)
+    }
+  }
+
+  const saveCustomInstructions = async () => {
+    try {
+      await fetch(`${API_BASE}/settings/custom-instructions`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ custom_instructions: globalCustomInstructions })
+      })
+    } catch (error) {
+      console.error('Error saving custom instructions:', error)
     }
   }
 
@@ -3383,6 +3407,27 @@ function App() {
                     )}
                   </button>
                 </div>
+              </div>
+
+              {/* Custom Instructions Section */}
+              <div className="mb-6">
+                <h3 className="text-lg font-medium mb-3">Custom Instructions</h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
+                  Add instructions that will be applied to all conversations
+                </p>
+                <textarea
+                  value={globalCustomInstructions}
+                  onChange={(e) => setGlobalCustomInstructions(e.target.value)}
+                  onBlur={saveCustomInstructions}
+                  placeholder="e.g., Always be concise, Explain like I'm a beginner, etc."
+                  className="w-full h-32 px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600
+                    bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100
+                    placeholder-gray-400 dark:placeholder-gray-500
+                    focus:outline-none focus:ring-2 focus:ring-claude-orange resize-none"
+                />
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                  These instructions will be sent with every message to guide Claude's responses
+                </p>
               </div>
 
               <div className="flex justify-end gap-3 mt-6">
