@@ -970,7 +970,7 @@
       "Step 5: Open it",
       "Step 6: Verify all messages are intact"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
