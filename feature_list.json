@@ -580,7 +580,7 @@
       "Step 4: Change system theme",
       "Step 5: Verify the app theme updates automatically"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
