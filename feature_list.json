@@ -1032,7 +1032,7 @@
       "Step 4: Verify smooth, continuous streaming",
       "Step 5: Verify no jarring jumps or layout shifts"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -1043,7 +1043,7 @@
       "Step 3: Verify markdown formatting applies in real-time",
       "Step 4: Verify headers, lists, bold, etc. render as they stream"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
