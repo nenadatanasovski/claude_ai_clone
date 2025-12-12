@@ -37,7 +37,7 @@
       "Step 5: Verify the second conversation's messages are displayed",
       "Step 6: Verify the previous conversation is no longer visible"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",

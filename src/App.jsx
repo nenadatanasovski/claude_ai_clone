@@ -12,11 +12,14 @@ function App() {
   const [isLoading, setIsLoading] = useState(false)
   const [isStreaming, setIsStreaming] = useState(false)
   const messagesEndRef = useRef(null)
+  const chatContainerRef = useRef(null)
   const textareaRef = useRef(null)
 
   // Scroll to bottom when messages change
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+    if (chatContainerRef.current) {
+      chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight
+    }
   }, [messages])
 
   // Load conversations on mount
@@ -235,7 +238,7 @@ function App() {
           {/* Chat Area */}
           <main className="flex-1 flex flex-col">
             {/* Messages */}
-            <div className="flex-1 overflow-y-auto px-4 py-8">
+            <div ref={chatContainerRef} className="flex-1 overflow-y-auto px-4 py-8">
               <div className="max-w-3xl mx-auto">
                 {messages.length === 0 ? (
                   <>
