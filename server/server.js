@@ -1968,6 +1968,151 @@ app.get('/api/usage/monthly', (req, res) => {
   }
 });
 
+// ===== PROMPT LIBRARY ENDPOINTS =====
+
+// Get all prompts from library
+app.get('/api/prompts/library', (req, res) => {
+  try {
+    const userId = 1; // Default user
+    const result = dbHelpers.prepare(
+      'SELECT * FROM prompt_library WHERE user_id = ? OR is_public = 1 ORDER BY created_at DESC'
+    ).all(userId);
+
+    // Parse JSON fields
+    const prompts = result.map(prompt => ({
+      ...prompt,
+      tags: prompt.tags ? JSON.parse(prompt.tags) : [],
+      is_public: Boolean(prompt.is_public)
+    }));
+
+    res.json(prompts);
+  } catch (error) {
+    console.error('Error fetching prompts:', error);
+    res.status(500).json({ error: 'Failed to fetch prompts' });
+  }
+});
+
+// Create a new prompt
+app.post('/api/prompts/library', (req, res) => {
+  try {
+    const userId = 1; // Default user
+    const { title, description, prompt_template, category, tags } = req.body;
+
+    if (!title || !prompt_template) {
+      return res.status(400).json({ error: 'Title and prompt template are required' });
+    }
+
+    const result = dbHelpers.prepare(
+      `INSERT INTO prompt_library (user_id, title, description, prompt_template, category, tags, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))`
+    ).run(
+      userId,
+      title,
+      description || null,
+      prompt_template,
+      category || 'General',
+      tags ? JSON.stringify(tags) : '[]'
+    );
+
+    const newPrompt = dbHelpers.prepare(
+      'SELECT * FROM prompt_library WHERE id = ?'
+    ).get(result.lastInsertRowid);
+
+    res.json({
+      ...newPrompt,
+      tags: newPrompt.tags ? JSON.parse(newPrompt.tags) : [],
+      is_public: Boolean(newPrompt.is_public)
+    });
+  } catch (error) {
+    console.error('Error creating prompt:', error);
+    res.status(500).json({ error: 'Failed to create prompt' });
+  }
+});
+
+// Get a specific prompt
+app.get('/api/prompts/:id', (req, res) => {
+  try {
+    const { id } = req.params;
+    const prompt = dbHelpers.prepare(
+      'SELECT * FROM prompt_library WHERE id = ?'
+    ).get(parseInt(id));
+
+    if (!prompt) {
+      return res.status(404).json({ error: 'Prompt not found' });
+    }
+
+    res.json({
+      ...prompt,
+      tags: prompt.tags ? JSON.parse(prompt.tags) : [],
+      is_public: Boolean(prompt.is_public)
+    });
+  } catch (error) {
+    console.error('Error fetching prompt:', error);
+    res.status(500).json({ error: 'Failed to fetch prompt' });
+  }
+});
+
+// Update a prompt
+app.put('/api/prompts/:id', (req, res) => {
+  try {
+    const { id } = req.params;
+    const { title, description, prompt_template, category, tags } = req.body;
+
+    dbHelpers.prepare(
+      `UPDATE prompt_library
+       SET title = ?, description = ?, prompt_template = ?, category = ?, tags = ?, updated_at = datetime('now')
+       WHERE id = ?`
+    ).run(
+      title,
+      description || null,
+      prompt_template,
+      category || 'General',
+      tags ? JSON.stringify(tags) : '[]',
+      parseInt(id)
+    );
+
+    const updatedPrompt = dbHelpers.prepare(
+      'SELECT * FROM prompt_library WHERE id = ?'
+    ).get(parseInt(id));
+
+    res.json({
+      ...updatedPrompt,
+      tags: updatedPrompt.tags ? JSON.parse(updatedPrompt.tags) : [],
+      is_public: Boolean(updatedPrompt.is_public)
+    });
+  } catch (error) {
+    console.error('Error updating prompt:', error);
+    res.status(500).json({ error: 'Failed to update prompt' });
+  }
+});
+
+// Delete a prompt
+app.delete('/api/prompts/:id', (req, res) => {
+  try {
+    const { id } = req.params;
+    dbHelpers.prepare('DELETE FROM prompt_library WHERE id = ?').run(parseInt(id));
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error deleting prompt:', error);
+    res.status(500).json({ error: 'Failed to delete prompt' });
+  }
+});
+
+// Get prompt categories
+app.get('/api/prompts/categories', (req, res) => {
+  try {
+    const result = dbHelpers.prepare(
+      'SELECT DISTINCT category FROM prompt_library WHERE category IS NOT NULL ORDER BY category'
+    ).all();
+
+    const categories = result.map(r => r.category);
+    res.json(categories);
+  } catch (error) {
+    console.error('Error fetching categories:', error);
+    res.status(500).json({ error: 'Failed to fetch categories' });
+  }
+});
+
 // Export database instance for other modules
 export { db, dbHelpers };
 

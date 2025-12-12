@@ -741,7 +741,7 @@
       "Step 6: Save the prompt",
       "Step 7: Verify it appears in the library"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",

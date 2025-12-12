@@ -248,6 +248,15 @@ function App() {
   const [dailyUsageData, setDailyUsageData] = useState(null) // Daily usage data
   const [monthlyUsageData, setMonthlyUsageData] = useState(null) // Monthly usage data
   const [usageView, setUsageView] = useState('daily') // 'daily' or 'monthly'
+  const [showPromptLibrary, setShowPromptLibrary] = useState(false) // Show prompt library modal
+  const [prompts, setPrompts] = useState([]) // All prompts in library
+  const [selectedCategory, setSelectedCategory] = useState('All') // Filter category
+  const [promptCategories, setPromptCategories] = useState(['All', 'Coding', 'Writing', 'Analysis', 'General'])
+  const [newPromptTitle, setNewPromptTitle] = useState('')
+  const [newPromptDescription, setNewPromptDescription] = useState('')
+  const [newPromptTemplate, setNewPromptTemplate] = useState('')
+  const [newPromptCategory, setNewPromptCategory] = useState('General')
+  const [newPromptTags, setNewPromptTags] = useState('')
   const [editingMessageId, setEditingMessageId] = useState(null)
   const [editedMessageContent, setEditedMessageContent] = useState('')
   const [branches, setBranches] = useState([]) // Conversation branches
@@ -650,6 +659,65 @@ function App() {
     } catch (error) {
       console.error('Error loading monthly usage:', error)
     }
+  }
+
+  // Load all prompts from library
+  const loadPrompts = async () => {
+    try {
+      const response = await fetch(`${API_BASE}/prompts/library`)
+      if (response.ok) {
+        const promptsData = await response.json()
+        setPrompts(promptsData)
+      } else {
+        console.error('Failed to load prompts')
+      }
+    } catch (error) {
+      console.error('Error loading prompts:', error)
+    }
+  }
+
+  // Create a new prompt
+  const createPrompt = async () => {
+    if (!newPromptTitle.trim() || !newPromptTemplate.trim()) {
+      alert('Please provide a title and prompt template')
+      return
+    }
+
+    try {
+      const tags = newPromptTags.split(',').map(t => t.trim()).filter(t => t.length > 0)
+      const response = await fetch(`${API_BASE}/prompts/library`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: newPromptTitle,
+          description: newPromptDescription,
+          prompt_template: newPromptTemplate,
+          category: newPromptCategory,
+          tags
+        })
+      })
+
+      if (response.ok) {
+        const newPrompt = await response.json()
+        setPrompts([newPrompt, ...prompts])
+        // Reset form
+        setNewPromptTitle('')
+        setNewPromptDescription('')
+        setNewPromptTemplate('')
+        setNewPromptCategory('General')
+        setNewPromptTags('')
+      } else {
+        console.error('Failed to create prompt')
+      }
+    } catch (error) {
+      console.error('Error creating prompt:', error)
+    }
+  }
+
+  // Use a saved prompt
+  const usePrompt = (prompt) => {
+    setInputMessage(prompt.prompt_template)
+    setShowPromptLibrary(false)
   }
 
   const openArtifactsFromMessage = (messageId) => {
@@ -2204,6 +2272,23 @@ function App() {
                   <span className="text-sm">Stats</span>
                 </button>
               )}
+
+              {/* Prompt Library Button */}
+              <button
+                type="button"
+                onClick={() => {
+                  loadPrompts()
+                  setShowPromptLibrary(true)
+                }}
+                className="px-3 py-1.5 rounded-lg border border-gray-300 dark:border-gray-700
+                  hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors flex items-center gap-2"
+                title="Open prompt library"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2" />
+                </svg>
+                <span className="text-sm">Prompts</span>
+              </button>
 
               {/* Usage Dashboard Button */}
               <button
@@ -4471,6 +4556,210 @@ function App() {
                   onClick={() => setShowUsageDashboard(false)}
                   className="px-4 py-2 bg-claude-orange hover:bg-claude-orange-hover
                     text-white rounded-lg transition-colors"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Prompt Library Modal */}
+        {showPromptLibrary && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white dark:bg-gray-900 rounded-lg shadow-2xl w-full max-w-5xl max-h-[90vh] overflow-hidden flex flex-col">
+              {/* Header */}
+              <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-800">
+                <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">
+                  Prompt Library
+                </h2>
+                <button
+                  onClick={() => setShowPromptLibrary(false)}
+                  className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              {/* Content */}
+              <div className="flex-1 overflow-y-auto p-6">
+                {/* Create New Prompt Section */}
+                <div className="mb-8 p-6 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                  <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">
+                    Create New Prompt
+                  </h3>
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Title *
+                      </label>
+                      <input
+                        type="text"
+                        value={newPromptTitle}
+                        onChange={(e) => setNewPromptTitle(e.target.value)}
+                        placeholder="e.g., Code Reviewer"
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg
+                          bg-white dark:bg-gray-900 text-gray-900 dark:text-white
+                          focus:ring-2 focus:ring-claude-orange focus:border-transparent"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Description
+                      </label>
+                      <input
+                        type="text"
+                        value={newPromptDescription}
+                        onChange={(e) => setNewPromptDescription(e.target.value)}
+                        placeholder="Brief description of what this prompt does"
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg
+                          bg-white dark:bg-gray-900 text-gray-900 dark:text-white
+                          focus:ring-2 focus:ring-claude-orange focus:border-transparent"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Prompt Template *
+                      </label>
+                      <textarea
+                        value={newPromptTemplate}
+                        onChange={(e) => setNewPromptTemplate(e.target.value)}
+                        placeholder="Enter your prompt template here..."
+                        rows={4}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg
+                          bg-white dark:bg-gray-900 text-gray-900 dark:text-white
+                          focus:ring-2 focus:ring-claude-orange focus:border-transparent resize-none"
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                          Category
+                        </label>
+                        <select
+                          value={newPromptCategory}
+                          onChange={(e) => setNewPromptCategory(e.target.value)}
+                          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg
+                            bg-white dark:bg-gray-900 text-gray-900 dark:text-white
+                            focus:ring-2 focus:ring-claude-orange focus:border-transparent"
+                        >
+                          <option value="General">General</option>
+                          <option value="Coding">Coding</option>
+                          <option value="Writing">Writing</option>
+                          <option value="Analysis">Analysis</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                          Tags (comma-separated)
+                        </label>
+                        <input
+                          type="text"
+                          value={newPromptTags}
+                          onChange={(e) => setNewPromptTags(e.target.value)}
+                          placeholder="code, review, best-practices"
+                          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg
+                            bg-white dark:bg-gray-900 text-gray-900 dark:text-white
+                            focus:ring-2 focus:ring-claude-orange focus:border-transparent"
+                        />
+                      </div>
+                    </div>
+
+                    <button
+                      onClick={createPrompt}
+                      className="w-full bg-claude-orange hover:bg-claude-orange-hover text-white
+                        font-medium py-2.5 rounded-lg transition-colors"
+                    >
+                      Save Prompt
+                    </button>
+                  </div>
+                </div>
+
+                {/* Category Filter */}
+                <div className="mb-4 flex gap-2 flex-wrap">
+                  {promptCategories.map(cat => (
+                    <button
+                      key={cat}
+                      onClick={() => setSelectedCategory(cat)}
+                      className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                        selectedCategory === cat
+                          ? 'bg-claude-orange text-white'
+                          : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
+                      }`}
+                    >
+                      {cat}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Prompts List */}
+                <div className="space-y-3">
+                  {prompts.length === 0 ? (
+                    <div className="text-center py-12 text-gray-500 dark:text-gray-400">
+                      <svg className="w-16 h-16 mx-auto mb-4 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2" />
+                      </svg>
+                      <p className="text-lg">No prompts yet</p>
+                      <p className="text-sm">Create your first prompt above to get started</p>
+                    </div>
+                  ) : (
+                    prompts
+                      .filter(p => selectedCategory === 'All' || p.category === selectedCategory)
+                      .map(prompt => (
+                        <div
+                          key={prompt.id}
+                          className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg
+                            hover:border-claude-orange hover:shadow-md transition-all cursor-pointer"
+                          onClick={() => usePrompt(prompt)}
+                        >
+                          <div className="flex items-start justify-between mb-2">
+                            <div className="flex-1">
+                              <h4 className="font-semibold text-gray-900 dark:text-white mb-1">
+                                {prompt.title}
+                              </h4>
+                              {prompt.description && (
+                                <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                                  {prompt.description}
+                                </p>
+                              )}
+                            </div>
+                            <span className="px-2 py-1 text-xs rounded bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300">
+                              {prompt.category}
+                            </span>
+                          </div>
+                          <p className="text-sm text-gray-700 dark:text-gray-300 line-clamp-2 mb-2">
+                            {prompt.prompt_template}
+                          </p>
+                          {prompt.tags && prompt.tags.length > 0 && (
+                            <div className="flex gap-1 flex-wrap">
+                              {prompt.tags.map((tag, idx) => (
+                                <span
+                                  key={idx}
+                                  className="text-xs px-2 py-0.5 rounded bg-claude-orange bg-opacity-10 text-claude-orange"
+                                >
+                                  {tag}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      ))
+                  )}
+                </div>
+              </div>
+
+              {/* Footer */}
+              <div className="p-6 border-t border-gray-200 dark:border-gray-800 flex justify-end">
+                <button
+                  onClick={() => setShowPromptLibrary(false)}
+                  className="px-6 py-2 border border-gray-300 dark:border-gray-700 rounded-lg
+                    hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-gray-700 dark:text-gray-300"
                 >
                   Close
                 </button>
