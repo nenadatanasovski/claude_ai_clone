@@ -995,7 +995,7 @@
       "Step 5: Re-enable network",
       "Step 6: Verify retry option works"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",

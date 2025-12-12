@@ -349,6 +349,8 @@ function App() {
     const saved = localStorage.getItem('maxTokens')
     return saved ? Number(saved) : 4096
   }) // Max tokens (100-4096)
+  const [errorMessage, setErrorMessage] = useState(null) // Error message to display
+  const [lastFailedMessage, setLastFailedMessage] = useState(null) // Last failed message for retry
   const messagesEndRef = useRef(null)
   const chatContainerRef = useRef(null)
   const textareaRef = useRef(null)
@@ -1597,7 +1599,186 @@ function App() {
         console.log('Request aborted by user')
       } else {
         console.error('Error sending message:', error)
-        alert('Error sending message: ' + error.message)
+
+        // Determine user-friendly error message
+        let friendlyMessage = 'An error occurred while sending your message.'
+
+        if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError') || !navigator.onLine) {
+          friendlyMessage = 'Network connection failed. Please check your internet connection and try again.'
+        } else if (error.message.includes('401') || error.message.includes('API key')) {
+          friendlyMessage = 'Authentication failed. Please check your API key configuration.'
+        } else if (error.message.includes('429') || error.message.includes('rate limit')) {
+          friendlyMessage = 'Rate limit exceeded. Please wait a moment and try again.'
+        } else if (error.message.includes('timeout')) {
+          friendlyMessage = 'Request timed out. Please try again.'
+        }
+
+        // Store the error and the message for retry
+        setErrorMessage(friendlyMessage)
+        setLastFailedMessage({
+          content: messageText,
+          conversationId: conversationId,
+          images: selectedImages
+        })
+      }
+    } finally {
+      setIsLoading(false)
+      setIsStreaming(false)
+      streamReaderRef.current = null
+      abortControllerRef.current = null
+    }
+  }
+
+  const retryLastMessage = async () => {
+    if (!lastFailedMessage || isLoading) {
+      return
+    }
+
+    const messageText = lastFailedMessage.content
+    const images = lastFailedMessage.images || []
+
+    // Clear the error and failed message state
+    setErrorMessage(null)
+    setLastFailedMessage(null)
+    setIsLoading(true)
+
+    try {
+      // Create conversation if none exists
+      let conversationId = currentConversationId
+      if (!conversationId) {
+        const response = await fetch(`${API_BASE}/conversations`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ title: 'New Chat' })
+        })
+        const newConversation = await response.json()
+        conversationId = newConversation.id
+        setCurrentConversationId(conversationId)
+        setConversations(prev => [newConversation, ...prev])
+      }
+
+      // Add user message to UI immediately
+      const userMessage = {
+        id: Date.now(),
+        role: 'user',
+        content: messageText,
+        images: images.length > 0 ? images : null,
+        created_at: new Date().toISOString()
+      }
+      setMessages(prev => [...prev, userMessage])
+
+      // Create abort controller for this request
+      abortControllerRef.current = new AbortController()
+
+      // Prepare message payload with images
+      const messagePayload = {
+        content: messageText,
+        role: 'user',
+        temperature: temperature,
+        maxTokens: maxTokens
+      }
+
+      if (images.length > 0) {
+        messagePayload.images = images.map(img => ({
+          type: img.type,
+          data: img.data
+        }))
+      }
+
+      // Send message to API
+      const response = await fetch(`${API_BASE}/conversations/${conversationId}/messages`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(messagePayload),
+        signal: abortControllerRef.current.signal
+      })
+
+      if (response.headers.get('content-type')?.includes('text/event-stream')) {
+        // Handle streaming response (same as sendMessage)
+        setIsStreaming(true)
+        const reader = response.body.getReader()
+        streamReaderRef.current = reader
+        const decoder = new TextDecoder()
+        let assistantMessage = {
+          id: Date.now() + 1,
+          role: 'assistant',
+          content: '',
+          created_at: new Date().toISOString()
+        }
+        setMessages(prev => [...prev, assistantMessage])
+
+        try {
+          while (true) {
+            const { done, value } = await reader.read()
+            if (done) break
+
+            const chunk = decoder.decode(value)
+            const lines = chunk.split('\n')
+
+            for (const line of lines) {
+              if (line.startsWith('data: ')) {
+                try {
+                  const data = JSON.parse(line.slice(6))
+                  if (data.type === 'content') {
+                    assistantMessage.content += data.text
+                    setMessages(prev => {
+                      const newMessages = [...prev]
+                      newMessages[newMessages.length - 1] = { ...assistantMessage }
+                      return newMessages
+                    })
+                  } else if (data.type === 'done') {
+                    assistantMessage.id = data.messageId
+                  }
+                } catch (e) {
+                  // Skip invalid JSON
+                }
+              }
+            }
+          }
+        } catch (error) {
+          if (error.name === 'AbortError') {
+            console.log('Stream aborted by user')
+          } else {
+            console.error('Streaming error:', error)
+          }
+        } finally {
+          setIsStreaming(false)
+          streamReaderRef.current = null
+          abortControllerRef.current = null
+        }
+      } else {
+        // Handle regular JSON response
+        const data = await response.json()
+        await loadMessages(conversationId)
+      }
+
+      // Reload conversations to update the list
+      loadConversations()
+    } catch (error) {
+      if (error.name === 'AbortError') {
+        console.log('Request aborted by user')
+      } else {
+        console.error('Error retrying message:', error)
+
+        // Show error again
+        let friendlyMessage = 'An error occurred while sending your message.'
+
+        if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError') || !navigator.onLine) {
+          friendlyMessage = 'Network connection failed. Please check your internet connection and try again.'
+        } else if (error.message.includes('401') || error.message.includes('API key')) {
+          friendlyMessage = 'Authentication failed. Please check your API key configuration.'
+        } else if (error.message.includes('429') || error.message.includes('rate limit')) {
+          friendlyMessage = 'Rate limit exceeded. Please wait a moment and try again.'
+        } else if (error.message.includes('timeout')) {
+          friendlyMessage = 'Request timed out. Please try again.'
+        }
+
+        setErrorMessage(friendlyMessage)
+        setLastFailedMessage({
+          content: messageText,
+          conversationId: conversationId,
+          images: images
+        })
       }
     } finally {
       setIsLoading(false)
@@ -3441,6 +3622,49 @@ function App() {
                     ))}
                     {isLoading && !isStreaming && (
                       <TypingIndicator />
+                    )}
+                    {/* Error Message Display */}
+                    {errorMessage && (
+                      <div className="flex justify-center mb-4">
+                        <div className="max-w-[80%] rounded-lg px-4 py-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800">
+                          <div className="flex items-start gap-3">
+                            <svg className="w-5 h-5 text-red-500 dark:text-red-400 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            <div className="flex-1">
+                              <div className="text-sm font-medium text-red-800 dark:text-red-200 mb-1">
+                                Error
+                              </div>
+                              <div className="text-sm text-red-700 dark:text-red-300 mb-3">
+                                {errorMessage}
+                              </div>
+                              <div className="flex gap-2">
+                                <button
+                                  onClick={retryLastMessage}
+                                  className="px-3 py-1.5 text-xs font-medium rounded-md
+                                    bg-red-600 text-white hover:bg-red-700
+                                    transition-colors"
+                                >
+                                  Retry
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    setErrorMessage(null)
+                                    setLastFailedMessage(null)
+                                  }}
+                                  className="px-3 py-1.5 text-xs font-medium rounded-md
+                                    border border-red-300 dark:border-red-700
+                                    text-red-700 dark:text-red-300
+                                    hover:bg-red-100 dark:hover:bg-red-900/30
+                                    transition-colors"
+                                >
+                                  Dismiss
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
                     )}
                     <div ref={messagesEndRef} />
                   </div>
