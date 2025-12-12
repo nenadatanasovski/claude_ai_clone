@@ -768,7 +768,7 @@
       "Step 5: Switch to another category",
       "Step 6: Verify the prompts update"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
