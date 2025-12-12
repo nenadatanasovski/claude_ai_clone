@@ -1008,7 +1008,7 @@
       "Step 5: Set valid API key",
       "Step 6: Verify messages work again"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",

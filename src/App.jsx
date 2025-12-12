@@ -1501,6 +1501,16 @@ function App() {
       // Clear selected images after sending
       setSelectedImages([])
 
+      // Check for errors before processing response
+      if (!response.ok) {
+        // Extract error details from response
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }))
+        const error = new Error(errorData.error || 'Failed to send message')
+        error.status = response.status
+        error.details = errorData.details
+        throw error
+      }
+
       if (response.headers.get('content-type')?.includes('text/event-stream')) {
         // Handle streaming response
         setIsStreaming(true)
@@ -1605,9 +1615,9 @@ function App() {
 
         if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError') || !navigator.onLine) {
           friendlyMessage = 'Network connection failed. Please check your internet connection and try again.'
-        } else if (error.message.includes('401') || error.message.includes('API key')) {
+        } else if (error.status === 401 || error.message.includes('401') || error.message.includes('API key') || error.message.includes('Authentication failed')) {
           friendlyMessage = 'Authentication failed. Please check your API key configuration.'
-        } else if (error.message.includes('429') || error.message.includes('rate limit')) {
+        } else if (error.status === 429 || error.message.includes('429') || error.message.includes('rate limit') || error.message.includes('Rate limit')) {
           friendlyMessage = 'Rate limit exceeded. Please wait a moment and try again.'
         } else if (error.message.includes('timeout')) {
           friendlyMessage = 'Request timed out. Please try again.'
@@ -1765,9 +1775,9 @@ function App() {
 
         if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError') || !navigator.onLine) {
           friendlyMessage = 'Network connection failed. Please check your internet connection and try again.'
-        } else if (error.message.includes('401') || error.message.includes('API key')) {
+        } else if (error.status === 401 || error.message.includes('401') || error.message.includes('API key') || error.message.includes('Authentication failed')) {
           friendlyMessage = 'Authentication failed. Please check your API key configuration.'
-        } else if (error.message.includes('429') || error.message.includes('rate limit')) {
+        } else if (error.status === 429 || error.message.includes('429') || error.message.includes('rate limit') || error.message.includes('Rate limit')) {
           friendlyMessage = 'Rate limit exceeded. Please wait a moment and try again.'
         } else if (error.message.includes('timeout')) {
           friendlyMessage = 'Request timed out. Please try again.'
@@ -1992,7 +2002,12 @@ function App() {
       })
 
       if (!response.ok) {
-        throw new Error('Failed to send message')
+        // Extract error details from response
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }))
+        const error = new Error(errorData.error || 'Failed to send message')
+        error.status = response.status
+        error.details = errorData.details
+        throw error
       }
 
       // Handle streaming response
@@ -2214,7 +2229,12 @@ function App() {
       })
 
       if (!response.ok) {
-        throw new Error('Failed to send message')
+        // Extract error details from response
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }))
+        const error = new Error(errorData.error || 'Failed to send message')
+        error.status = response.status
+        error.details = errorData.details
+        throw error
       }
 
       const reader = response.body.getReader()

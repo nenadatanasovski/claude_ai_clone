@@ -741,7 +741,32 @@ app.post('/api/conversations/:id/messages', async (req, res) => {
 
   } catch (error) {
     console.error('Error sending message:', error);
-    res.status(500).json({ error: 'Failed to send message', details: error.message });
+
+    // Check for specific error types from Anthropic API
+    let statusCode = 500;
+    let errorMessage = 'Failed to send message';
+
+    // Authentication/API key errors
+    if (error.status === 401 || error.message?.includes('authentication') || error.message?.includes('API key')) {
+      statusCode = 401;
+      errorMessage = 'Authentication failed';
+    }
+    // Rate limit errors
+    else if (error.status === 429 || error.message?.includes('rate limit')) {
+      statusCode = 429;
+      errorMessage = 'Rate limit exceeded';
+    }
+    // Other specific HTTP errors
+    else if (error.status) {
+      statusCode = error.status;
+    }
+
+    res.status(statusCode).json({
+      error: errorMessage,
+      details: error.message,
+      type: statusCode === 401 ? 'authentication_error' :
+            statusCode === 429 ? 'rate_limit_error' : 'server_error'
+    });
   }
 });
 
