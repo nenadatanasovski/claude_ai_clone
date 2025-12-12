@@ -74,7 +74,7 @@
       "Step 4: Verify the code has proper colors for keywords, strings, etc.",
       "Step 5: Verify a copy button appears on the code block"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -86,7 +86,7 @@
       "Step 4: Verify a 'Copied!' confirmation appears",
       "Step 5: Paste into a text editor to verify clipboard content"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",

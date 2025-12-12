@@ -1,7 +1,49 @@
 import { useState, useEffect, useRef } from 'react'
 import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
+import rehypeHighlight from 'rehype-highlight'
+import 'highlight.js/styles/github-dark.css'
 
 const API_BASE = 'http://localhost:3001/api'
+
+// Custom code block component with copy button
+function CodeBlock({ node, inline, className, children, ...props }) {
+  const [copied, setCopied] = useState(false)
+  const codeRef = useRef(null)
+
+  const handleCopy = async () => {
+    const code = codeRef.current?.textContent || ''
+    try {
+      await navigator.clipboard.writeText(code)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch (err) {
+      console.error('Failed to copy:', err)
+    }
+  }
+
+  if (inline) {
+    return <code className={className} {...props}>{children}</code>
+  }
+
+  return (
+    <div className="relative group">
+      <button
+        onClick={handleCopy}
+        className="absolute right-2 top-2 px-2 py-1 text-xs bg-gray-700 hover:bg-gray-600
+          text-white rounded opacity-0 group-hover:opacity-100 transition-opacity"
+        title="Copy code"
+      >
+        {copied ? 'Copied!' : 'Copy'}
+      </button>
+      <pre className="!mb-0">
+        <code ref={codeRef} className={className} {...props}>
+          {children}
+        </code>
+      </pre>
+    </div>
+  )
+}
 
 function App() {
   const [isDark, setIsDark] = useState(false)
@@ -406,7 +448,15 @@ function App() {
                             {message.role === 'user' ? 'You' : 'Claude'}
                           </div>
                           <div className="prose dark:prose-invert prose-sm max-w-none">
-                            <ReactMarkdown>{message.content}</ReactMarkdown>
+                            <ReactMarkdown
+                              remarkPlugins={[remarkGfm]}
+                              rehypePlugins={[rehypeHighlight]}
+                              components={{
+                                code: CodeBlock
+                              }}
+                            >
+                              {message.content}
+                            </ReactMarkdown>
                           </div>
                         </div>
                       </div>

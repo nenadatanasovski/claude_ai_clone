@@ -404,7 +404,15 @@ app.post('/api/conversations/:id/messages', async (req, res) => {
     // If no Anthropic client, return mock response
     // TODO: Fix API key configuration - using mock for now
     if (true || !anthropic) {
-      const mockResponse = "I'm a mock response. Please configure your Anthropic API key to get real responses.";
+      // Check if the user is asking for code
+      const isCodeRequest = content.toLowerCase().includes('code') ||
+                           content.toLowerCase().includes('function') ||
+                           content.toLowerCase().includes('python') ||
+                           content.toLowerCase().includes('javascript');
+
+      const mockResponse = isCodeRequest
+        ? "Here's a simple Python hello world function:\n\n```python\ndef hello_world():\n    print('Hello, World!')\n    return 'Hello, World!'\n\n# Call the function\nhello_world()\n```\n\nThis function prints 'Hello, World!' to the console and returns the string."
+        : "I'm a mock response. Please configure your Anthropic API key to get real responses.";
 
       const assistantMessageResult = dbHelpers.prepare(`
         INSERT INTO messages (conversation_id, role, content, tokens)
