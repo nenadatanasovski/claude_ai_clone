@@ -45,6 +45,22 @@ function CodeBlock({ node, inline, className, children, ...props }) {
   )
 }
 
+// Typing indicator component with animated dots
+function TypingIndicator() {
+  return (
+    <div className="flex justify-start mb-4">
+      <div className="flex items-center gap-2 px-4 py-3 bg-gray-50 dark:bg-gray-800 rounded-2xl">
+        <span className="text-sm text-gray-600 dark:text-gray-400">Claude is thinking</span>
+        <div className="flex gap-1">
+          <div className="w-2 h-2 bg-gray-400 dark:bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '0ms', animationDuration: '1s' }}></div>
+          <div className="w-2 h-2 bg-gray-400 dark:bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '150ms', animationDuration: '1s' }}></div>
+          <div className="w-2 h-2 bg-gray-400 dark:bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '300ms', animationDuration: '1s' }}></div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // Helper function to group conversations by date
 function groupConversationsByDate(conversations) {
   const today = new Date()
@@ -3289,12 +3305,8 @@ function App() {
                         </div>
                       </div>
                     ))}
-                    {isStreaming && (
-                      <div className="flex justify-start">
-                        <div className="text-sm text-gray-500 dark:text-gray-400 italic">
-                          Streaming...
-                        </div>
-                      </div>
+                    {isLoading && !isStreaming && (
+                      <TypingIndicator />
                     )}
                     <div ref={messagesEndRef} />
                   </div>

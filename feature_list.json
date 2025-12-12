@@ -920,7 +920,7 @@
       "Step 4: Verify it shows Claude is thinking/typing",
       "Step 5: Verify it disappears when the response starts streaming"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",

@@ -564,6 +564,9 @@ app.post('/api/conversations/:id/messages', async (req, res) => {
       res.setHeader('Cache-Control', 'no-cache');
       res.setHeader('Connection', 'keep-alive');
 
+      // Add initial delay to allow typing indicator to show (1 second)
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
       // Stream the mock response word by word
       const words = mockResponse.split(' ');
       let sentContent = '';
