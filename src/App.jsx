@@ -306,6 +306,7 @@ function App() {
   const [dailyUsageData, setDailyUsageData] = useState(null) // Daily usage data
   const [monthlyUsageData, setMonthlyUsageData] = useState(null) // Monthly usage data
   const [usageView, setUsageView] = useState('daily') // 'daily' or 'monthly'
+  const [contextWindowTokens, setContextWindowTokens] = useState(0) // Current conversation token count
   const [showPromptLibrary, setShowPromptLibrary] = useState(false) // Show prompt library modal
   const [prompts, setPrompts] = useState([]) // All prompts in library
   const [selectedCategory, setSelectedCategory] = useState('All') // Filter category
@@ -363,11 +364,26 @@ function App() {
   const contextMenuRef = useRef(null)
   const projectDropdownRef = useRef(null)
 
-  // Model options
+  // Model options with context window limits
   const models = [
-    { id: 'claude-sonnet-4-20250514', name: 'Claude Sonnet 4.5', description: 'Most capable model' },
-    { id: 'claude-haiku-4-20250514', name: 'Claude Haiku 4.5', description: 'Fast and efficient' },
-    { id: 'claude-opus-4-20250514', name: 'Claude Opus 4.1', description: 'Most intelligent' }
+    {
+      id: 'claude-sonnet-4-20250514',
+      name: 'Claude Sonnet 4.5',
+      description: 'Most capable model',
+      contextWindow: 200000
+    },
+    {
+      id: 'claude-haiku-4-20250514',
+      name: 'Claude Haiku 4.5',
+      description: 'Fast and efficient',
+      contextWindow: 200000
+    },
+    {
+      id: 'claude-opus-4-20250514',
+      name: 'Claude Opus 4.1',
+      description: 'Most intelligent',
+      contextWindow: 200000
+    }
   ]
 
   // Command palette commands
@@ -758,6 +774,11 @@ function App() {
       const response = await fetch(`${API_BASE}/conversations/${conversationId}/messages`)
       const data = await response.json()
       setMessages(data)
+
+      // Calculate total tokens from messages for context window indicator
+      const totalTokens = data.reduce((sum, msg) => sum + (msg.tokens || 0), 0)
+      console.log('[Context Window] Loading messages, total tokens:', totalTokens, 'from', data.length, 'messages')
+      setContextWindowTokens(totalTokens)
 
       // Load artifacts for this conversation
       const artifactsResponse = await fetch(`${API_BASE}/conversations/${conversationId}/artifacts`)
@@ -1546,6 +1567,17 @@ function App() {
                     })
                   } else if (data.type === 'done') {
                     assistantMessage.id = data.messageId
+                    // Update context window tokens if message has token data
+                    if (data.tokens && !isNaN(data.tokens)) {
+                      assistantMessage.tokens = data.tokens
+                      console.log('[Context Window] Received tokens in done message:', data.tokens)
+                      setContextWindowTokens(prev => {
+                        const prevTokens = isNaN(prev) ? 0 : prev
+                        const newTotal = prevTokens + parseInt(data.tokens, 10)
+                        console.log('[Context Window] Updated total:', prevTokens, '+', data.tokens, '=', newTotal)
+                        return newTotal
+                      })
+                    }
                   }
                 } catch (e) {
                   // Skip invalid JSON
@@ -1738,6 +1770,17 @@ function App() {
                     })
                   } else if (data.type === 'done') {
                     assistantMessage.id = data.messageId
+                    // Update context window tokens if message has token data
+                    if (data.tokens && !isNaN(data.tokens)) {
+                      assistantMessage.tokens = data.tokens
+                      console.log('[Context Window] Received tokens in done message:', data.tokens)
+                      setContextWindowTokens(prev => {
+                        const prevTokens = isNaN(prev) ? 0 : prev
+                        const newTotal = prevTokens + parseInt(data.tokens, 10)
+                        console.log('[Context Window] Updated total:', prevTokens, '+', data.tokens, '=', newTotal)
+                        return newTotal
+                      })
+                    }
                   }
                 } catch (e) {
                   // Skip invalid JSON
@@ -1883,6 +1926,17 @@ function App() {
                     })
                   } else if (data.type === 'done') {
                     assistantMessage.id = data.messageId
+                    // Update context window tokens if message has token data
+                    if (data.tokens && !isNaN(data.tokens)) {
+                      assistantMessage.tokens = data.tokens
+                      console.log('[Context Window] Received tokens in done message:', data.tokens)
+                      setContextWindowTokens(prev => {
+                        const prevTokens = isNaN(prev) ? 0 : prev
+                        const newTotal = prevTokens + parseInt(data.tokens, 10)
+                        console.log('[Context Window] Updated total:', prevTokens, '+', data.tokens, '=', newTotal)
+                        return newTotal
+                      })
+                    }
                   }
                 } catch (e) {
                   // Skip invalid JSON
@@ -2957,6 +3011,52 @@ function App() {
                   </div>
                 )}
               </div>
+
+              {/* Context Window Indicator */}
+              {currentConversationId && (() => {
+                const tokenCount = isNaN(contextWindowTokens) ? 0 : contextWindowTokens
+                console.log('[Context Window Indicator] Rendering with tokens:', tokenCount)
+                const currentModel = models.find(m => m.id === selectedModel)
+                const contextLimit = currentModel?.contextWindow || 200000
+                const percentage = (tokenCount / contextLimit) * 100
+                const isWarning = percentage >= 80
+                const isCritical = percentage >= 95
+
+                return (
+                  <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-gray-300 dark:border-gray-700
+                    bg-gray-50 dark:bg-gray-800/50" title={`${tokenCount.toLocaleString()} / ${contextLimit.toLocaleString()} tokens`}>
+                    <svg className="w-4 h-4 text-gray-600 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    <div className="flex flex-col gap-1">
+                      <div className="flex items-center gap-2">
+                        <span className={`text-xs font-medium ${
+                          isCritical ? 'text-red-600 dark:text-red-400' :
+                          isWarning ? 'text-orange-600 dark:text-orange-400' :
+                          'text-gray-700 dark:text-gray-300'
+                        }`}>
+                          {tokenCount.toLocaleString()} / {contextLimit.toLocaleString()}
+                        </span>
+                        {(isWarning || isCritical) && (
+                          <svg className={`w-3 h-3 ${isCritical ? 'text-red-500' : 'text-orange-500'}`} fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                          </svg>
+                        )}
+                      </div>
+                      <div className="w-32 h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                        <div
+                          className={`h-full transition-all duration-300 ${
+                            isCritical ? 'bg-red-500' :
+                            isWarning ? 'bg-orange-500' :
+                            'bg-blue-500'
+                          }`}
+                          style={{ width: `${Math.min(percentage, 100)}%` }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )
+              })()}
 
               {/* Conversation Stats Button */}
               {currentConversationId && (

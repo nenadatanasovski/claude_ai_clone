@@ -628,8 +628,8 @@ app.post('/api/conversations/:id/messages', async (req, res) => {
         `).run(autoTitle, conversationId);
       }
 
-      // Send completion message
-      res.write(`data: ${JSON.stringify({ type: 'done', messageId: assistantMessage.id })}\n\n`);
+      // Send completion message with token count
+      res.write(`data: ${JSON.stringify({ type: 'done', messageId: assistantMessage.id, tokens: mockTotalTokens })}\n\n`);
       res.end();
       return;
     }
@@ -736,7 +736,7 @@ app.post('/api/conversations/:id/messages', async (req, res) => {
       `).run(autoTitle, conversationId);
     }
 
-    res.write(`data: ${JSON.stringify({ type: 'done', messageId: assistantMessageResult.lastInsertRowid })}\n\n`);
+    res.write(`data: ${JSON.stringify({ type: 'done', messageId: assistantMessageResult.lastInsertRowid, tokens: totalTokens })}\n\n`);
     res.end();
 
   } catch (error) {

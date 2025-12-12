@@ -1056,7 +1056,7 @@
       "Step 5: Verify the indicator updates",
       "Step 6: Verify warning when approaching limit"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
