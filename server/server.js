@@ -522,7 +522,7 @@ app.post('/api/conversations/:id/messages', async (req, res) => {
 // Update conversation
 app.put('/api/conversations/:id', (req, res) => {
   try {
-    const { title, is_archived, is_pinned } = req.body;
+    const { title, is_archived, is_pinned, model } = req.body;
     const updates = [];
     const values = [];
 
@@ -537,6 +537,10 @@ app.put('/api/conversations/:id', (req, res) => {
     if (is_pinned !== undefined) {
       updates.push('is_pinned = ?');
       values.push(is_pinned ? 1 : 0);
+    }
+    if (model !== undefined) {
+      updates.push('model = ?');
+      values.push(model);
     }
 
     if (updates.length > 0) {

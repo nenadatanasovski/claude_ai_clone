@@ -133,6 +133,14 @@ function App() {
 
   const loadMessages = async (conversationId) => {
     try {
+      // Load conversation details to get the model
+      const convResponse = await fetch(`${API_BASE}/conversations/${conversationId}`)
+      const conversation = await convResponse.json()
+      if (conversation.model) {
+        setSelectedModel(conversation.model)
+      }
+
+      // Load messages
       const response = await fetch(`${API_BASE}/conversations/${conversationId}/messages`)
       const data = await response.json()
       setMessages(data)
@@ -168,6 +176,20 @@ function App() {
     }
     setIsStreaming(false)
     setIsLoading(false)
+  }
+
+  const updateConversationModel = async (conversationId, modelId) => {
+    if (!conversationId) return
+
+    try {
+      await fetch(`${API_BASE}/conversations/${conversationId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ model: modelId })
+      })
+    } catch (error) {
+      console.error('Error updating conversation model:', error)
+    }
   }
 
   const sendMessage = async () => {
@@ -420,6 +442,7 @@ function App() {
                       onClick={() => {
                         setSelectedModel(model.id)
                         setIsModelDropdownOpen(false)
+                        updateConversationModel(currentConversationId, model.id)
                       }}
                       className={`w-full text-left px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700
                         transition-colors first:rounded-t-lg last:rounded-b-lg ${

@@ -173,7 +173,7 @@
       "Step 5: Send another message",
       "Step 6: Verify the new message uses the selected model"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
