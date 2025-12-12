@@ -1020,7 +1020,7 @@
       "Step 4: Wait for rate limit to reset",
       "Step 5: Verify normal operation resumes"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
