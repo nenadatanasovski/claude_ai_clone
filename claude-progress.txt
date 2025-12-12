@@ -1,6 +1,185 @@
 CLAUDE.AI CLONE - DEVELOPMENT PROGRESS
 ======================================
 
+SESSION 18 - FEATURE #16: SEARCH CONVERSATIONS BY CONTENT
+==========================================================
+Date: December 12, 2025
+Agent: Feature Implementation Agent
+
+SUMMARY
+=======
+
+Session 18 focused on implementing search by content:
+- ✅ Implemented Feature #16: Search conversations by content
+- ✅ Feature fully tested and verified with browser automation
+- ✅ Updated feature_list.json
+- ✅ Code committed in clean, working state
+
+**Progress: 16/175 features passing (9.14%)**
+
+FEATURE #16 IMPLEMENTATION
+===========================
+
+**Feature #16: Search conversations by content** ✅ COMPLETED
+
+Implementation Details:
+
+**Backend Changes (server/server.js):**
+
+Added GET /api/search/conversations endpoint (lines 576-611):
+- Accepts query parameter 'q' for search term
+- Returns all conversations if search term is empty
+- Uses SQL LIKE with case-insensitive matching
+- Searches BOTH conversation titles AND message content
+- LEFT JOIN with messages table to search message content
+- DISTINCT to avoid duplicate conversations
+- Maintains ordering by last_message_at DESC
+
+SQL Query:
+```sql
+SELECT DISTINCT c.*
+FROM conversations c
+LEFT JOIN messages m ON m.conversation_id = c.id
+WHERE c.is_deleted = 0
+  AND (
+    LOWER(c.title) LIKE ?
+    OR LOWER(m.content) LIKE ?
+  )
+ORDER BY c.last_message_at DESC, c.created_at DESC
+```
+
+**Frontend Changes (src/App.jsx):**
+
+1. Modified loadConversations() function (lines 125-137):
+   - Added optional searchTerm parameter
+   - Conditional URL: uses /api/search/conversations?q= when searchTerm exists
+   - Falls back to /api/conversations when searchTerm is empty
+   - URL encodes search term for safe transmission
+
+2. Added useEffect hook (lines 113-116):
+   - Triggers when searchQuery state changes
+   - Automatically calls loadConversations(searchQuery)
+   - Real-time search as user types
+
+3. Removed client-side filtering (deleted lines 415-418):
+   - Old logic: filteredConversations = conversations.filter(...)
+   - New logic: server handles all filtering
+   - Better performance for large datasets
+
+4. Updated UI rendering (line 516):
+   - Changed from filteredConversations.map() to conversations.map()
+   - Conversations array now contains pre-filtered results from server
+
+**How It Works:**
+
+Search Flow:
+1. User types in search input → searchQuery state updates
+2. useEffect detects change → calls loadConversations(searchQuery)
+3. Frontend calls GET /api/search/conversations?q=searchTerm
+4. Backend searches both titles and message content using SQL
+5. Backend returns only matching conversations
+6. Frontend renders filtered results
+7. Empty search shows all conversations
+
+**Testing:**
+
+All 5 test steps verified with browser automation:
+
+Step 1: Create conversation with specific keywords ✅
+- Sent message: "Tell me about Python programming and data science"
+- Response received with Python code example
+- Keywords "Python", "programming", "data", and "science" in message content
+
+Step 2: Use search to find those keywords ✅
+- Searched for "Python" → conversation appeared
+- Searched for "data science" → conversation appeared
+- Search input shows entered term correctly
+
+Step 3: Verify conversation appears in results ✅
+- When searching "Python": 4 conversations visible (down from ~13)
+- When searching "data science": 1 conversation visible
+- Only conversations containing keywords shown
+- Other conversations correctly hidden
+
+Step 4: Click the conversation ✅
+- Clicked on matching conversation in sidebar
+- Conversation loaded successfully
+- Screenshot: feature16_step5_conversation_opened.png
+
+Step 5: Verify correct content ✅
+- User message visible: "Tell me about Python programming and data science"
+- Assistant response visible with Python code
+- Content matches search query expectations
+
+**Additional Testing:**
+
+- Searched for non-existent term "JavaScript frameworks" ✅
+  * Result: 0 conversations shown
+  * Only "Conversations" header visible
+  * Correctly filters out all non-matching conversations
+
+- Cleared search input ✅
+  * All conversations reappeared
+  * Back to full list of ~13 conversations
+  * No filtering applied
+
+- Verified backward compatibility with Feature #15 ✅
+  * Search by title still works
+  * Search by content now also works
+  * Both title AND content matching in single query
+
+**Code Quality:**
+
+- Used SQL DISTINCT to prevent duplicate results
+- Proper URL encoding with encodeURIComponent()
+- Case-insensitive search with LOWER()
+- Efficient SQL with LEFT JOIN (not nested queries)
+- Error handling in both frontend and backend
+- Empty string handled gracefully
+- No breaking changes to existing features
+
+CURRENT STATUS
+==============
+
+**Total Features:** 175
+**Passing:** 16 ✅ (Features #1-16)
+**Failing:** 159
+**Progress:** 9.14% (16/175)
+
+**Working Features:**
+1. ✅ Basic chat interface
+2. ✅ Create new conversations
+3. ✅ Switch between conversations
+4. ✅ Rename conversations
+5. ✅ Delete conversations
+6. ✅ Code block syntax highlighting
+7. ✅ Copy code from code blocks
+8. ✅ Stop generation while streaming
+9. ✅ Markdown rendering (bold, italic, links)
+10. ✅ Multi-line input with Shift+Enter
+11. ✅ Auto-resize textarea as content grows
+12. ✅ Character count display in input area
+13. ✅ Model selection dropdown displays available models
+14. ✅ Switch models mid-conversation
+15. ✅ Search conversations by title
+16. ✅ Search conversations by content
+
+**Next Priority:**
+17. Pin important conversations
+18. Archive conversations
+19. Unread message indicators
+
+GIT COMMITS THIS SESSION
+=========================
+e23a0f6 - Implement Feature #16: Search conversations by content - verified end-to-end
+
+========================================================================
+PREVIOUS SESSION NOTES (SESSION 17)
+========================================================================
+
+CLAUDE.AI CLONE - DEVELOPMENT PROGRESS
+======================================
+
 SESSION 17 - FEATURE #15: SEARCH CONVERSATIONS BY TITLE
 ========================================================
 Date: December 12, 2025
