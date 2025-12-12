@@ -60,16 +60,20 @@ const dbHelpers = {
         // First, bind parameters manually since exec doesn't support placeholders well
         let boundSql = sql;
 
-        // Replace placeholders one at a time (replace only first occurrence each time)
+        // Replace placeholders with unique tokens FIRST, before escaping values
+        // This prevents user content containing ? from interfering
+        const tokens = params.map((_, i) => `__PARAM_${i}__`);
+        tokens.forEach((token, index) => {
+          boundSql = boundSql.replace('?', token);
+        });
+
+        // Now replace tokens with actual escaped values
         params.forEach((param, index) => {
           const value = param === null || param === undefined
             ? 'NULL'
             : `'${String(param).replace(/'/g, "''")}'`;
-          console.log(`[SQL DEBUG] Param ${index}:`, JSON.stringify(param), '-> value:', value);
-          boundSql = boundSql.replace('?', value);
+          boundSql = boundSql.replace(`__PARAM_${index}__`, value);
         });
-
-        console.log('[SQL DEBUG] Final bound SQL:', boundSql);
         db.exec(boundSql);
         saveDatabase();
 
