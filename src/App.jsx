@@ -79,6 +79,8 @@ function App() {
   const [showFolderModal, setShowFolderModal] = useState(false)
   const [newFolderName, setNewFolderName] = useState('')
   const [contextMenuType, setContextMenuType] = useState('conversation') // 'conversation' or 'sidebar'
+  const [draggedConversationId, setDraggedConversationId] = useState(null)
+  const [folderConversations, setFolderConversations] = useState({}) // Map of folder ID to conversation IDs
   const messagesEndRef = useRef(null)
   const chatContainerRef = useRef(null)
   const textareaRef = useRef(null)
@@ -131,6 +133,13 @@ function App() {
     loadConversations()
     loadFolders()
   }, [currentProjectId])
+
+  // Load folder conversations when folders change
+  useEffect(() => {
+    if (folders.length > 0) {
+      loadFolderConversations(folders)
+    }
+  }, [folders])
 
   // Load messages when conversation changes
   useEffect(() => {
@@ -274,6 +283,63 @@ function App() {
       newExpanded.add(folderId)
     }
     setExpandedFolders(newExpanded)
+  }
+
+  const handleDragStart = (e, conversationId) => {
+    setDraggedConversationId(conversationId)
+    e.dataTransfer.effectAllowed = 'move'
+  }
+
+  const handleDragOver = (e) => {
+    e.preventDefault()
+    e.dataTransfer.dropEffect = 'move'
+  }
+
+  const handleDropOnFolder = async (e, folderId) => {
+    e.preventDefault()
+    e.stopPropagation()
+
+    if (!draggedConversationId) return
+
+    try {
+      const response = await fetch(`${API_BASE}/folders/${folderId}/items`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ conversation_id: draggedConversationId })
+      })
+
+      if (response.ok) {
+        // Update folder conversations mapping
+        setFolderConversations(prev => ({
+          ...prev,
+          [folderId]: [...(prev[folderId] || []), draggedConversationId]
+        }))
+
+        // Expand the folder to show the new conversation
+        const newExpanded = new Set(expandedFolders)
+        newExpanded.add(folderId)
+        setExpandedFolders(newExpanded)
+      }
+    } catch (error) {
+      console.error('Error adding conversation to folder:', error)
+    }
+
+    setDraggedConversationId(null)
+  }
+
+  const loadFolderConversations = async (foldersToLoad = folders) => {
+    try {
+      // For each folder, get its conversations
+      const folderConvsMap = {}
+      for (const folder of foldersToLoad) {
+        const response = await fetch(`${API_BASE}/folders/${folder.id}/items`)
+        const items = await response.json()
+        folderConvsMap[folder.id] = items.map(item => item.conversation_id)
+      }
+      setFolderConversations(folderConvsMap)
+    } catch (error) {
+      console.error('Error loading folder conversations:', error)
+    }
   }
 
   const createProject = async () => {
@@ -1079,9 +1145,15 @@ function App() {
                       <div className="text-sm font-medium text-gray-500 dark:text-gray-400 px-2">
                         Pinned
                       </div>
-                      {conversations.filter(c => (showArchived ? c.is_archived : !c.is_archived) && c.is_pinned && (currentProjectId === null || c.project_id === currentProjectId)).map(conv => (
+                      {conversations.filter(c => {
+                        // Filter out conversations that are in folders
+                        const isInFolder = Object.values(folderConversations).some(convIds => convIds.includes(c.id))
+                        return (showArchived ? c.is_archived : !c.is_archived) && c.is_pinned && (currentProjectId === null || c.project_id === currentProjectId) && !isInFolder
+                      }).map(conv => (
                         <div
                           key={conv.id}
+                          draggable
+                          onDragStart={(e) => handleDragStart(e, conv.id)}
                           onClick={() => setCurrentConversationId(conv.id)}
                           onContextMenu={(e) => handleContextMenu(e, conv.id)}
                           className={`group relative px-2 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800
@@ -1141,9 +1213,15 @@ function App() {
                       <div className="text-sm font-medium text-gray-500 dark:text-gray-400 px-2">
                         Conversations
                       </div>
-                      {conversations.filter(c => (showArchived ? c.is_archived : !c.is_archived) && !c.is_pinned && (currentProjectId === null || c.project_id === currentProjectId)).map(conv => (
+                      {conversations.filter(c => {
+                        // Filter out conversations that are in folders
+                        const isInFolder = Object.values(folderConversations).some(convIds => convIds.includes(c.id))
+                        return (showArchived ? c.is_archived : !c.is_archived) && !c.is_pinned && (currentProjectId === null || c.project_id === currentProjectId) && !isInFolder
+                      }).map(conv => (
                         <div
                           key={conv.id}
+                          draggable
+                          onDragStart={(e) => handleDragStart(e, conv.id)}
                           onClick={() => setCurrentConversationId(conv.id)}
                           onContextMenu={(e) => handleContextMenu(e, conv.id)}
                           className={`group relative px-2 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800
@@ -1205,10 +1283,17 @@ function App() {
                   <div className="text-sm font-medium text-gray-500 dark:text-gray-400 px-2 mt-4">
                     Folders
                   </div>
-                  {folders.filter(f => currentProjectId === null || f.project_id === currentProjectId).map(folder => (
+                  {folders.filter(f => currentProjectId === null || f.project_id === currentProjectId).map(folder => {
+                    const folderConvs = (folderConversations[folder.id] || [])
+                      .map(convId => conversations.find(c => c.id === convId))
+                      .filter(c => c) // Filter out undefined
+
+                    return (
                     <div key={folder.id} className="mb-1">
                       <div
                         onClick={() => toggleFolder(folder.id)}
+                        onDragOver={handleDragOver}
+                        onDrop={(e) => handleDropOnFolder(e, folder.id)}
                         className="px-2 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800
                           cursor-pointer text-sm flex items-center gap-2"
                       >
@@ -1216,12 +1301,29 @@ function App() {
                         <span className="truncate">{folder.name}</span>
                       </div>
                       {expandedFolders.has(folder.id) && (
-                        <div className="ml-6 text-xs text-gray-500 dark:text-gray-400 px-2 py-1">
-                          Empty folder
+                        <div className="ml-6">
+                          {folderConvs.length === 0 ? (
+                            <div className="text-xs text-gray-500 dark:text-gray-400 px-2 py-1">
+                              Empty folder
+                            </div>
+                          ) : (
+                            folderConvs.map(conv => (
+                              <div
+                                key={conv.id}
+                                onClick={() => setCurrentConversationId(conv.id)}
+                                className={`px-2 py-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800
+                                  cursor-pointer text-sm ${
+                                    conv.id === currentConversationId ? 'bg-gray-100 dark:bg-gray-800' : ''
+                                  }`}
+                              >
+                                <div className="truncate">{conv.title}</div>
+                              </div>
+                            ))
+                          )}
                         </div>
                       )}
                     </div>
-                  ))}
+                  )})}
                 </>
               )}
             </div>

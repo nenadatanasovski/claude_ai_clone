@@ -963,6 +963,23 @@ app.delete('/api/folders/:id', (req, res) => {
 });
 
 // POST add conversation to folder
+// GET get all conversations in a folder
+app.get('/api/folders/:id/items', (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const items = dbHelpers.prepare(`
+      SELECT * FROM conversation_folder_items
+      WHERE folder_id = ?
+    `).all(id);
+
+    res.json(items);
+  } catch (error) {
+    console.error('Error getting folder items:', error);
+    res.status(500).json({ error: 'Failed to get folder items' });
+  }
+});
+
 app.post('/api/folders/:id/items', (req, res) => {
   try {
     const { id } = req.params;

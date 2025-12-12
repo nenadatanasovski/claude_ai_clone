@@ -330,7 +330,7 @@
       "Step 5: Expand the folder",
       "Step 6: Verify the conversation is nested inside"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
