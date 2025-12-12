@@ -855,6 +855,166 @@ app.get('/api/projects/:id/conversations', (req, res) => {
   }
 });
 
+// ==========================================
+// FOLDER ENDPOINTS
+// ==========================================
+
+// GET all folders for a user
+app.get('/api/folders', (req, res) => {
+  try {
+    const userId = 1; // Default user
+    const projectId = req.query.project_id;
+
+    let query = `
+      SELECT * FROM conversation_folders
+      WHERE user_id = ?
+    `;
+    const params = [userId];
+
+    if (projectId) {
+      query += ' AND (project_id = ? OR project_id IS NULL)';
+      params.push(projectId);
+    }
+
+    query += ' ORDER BY position, created_at';
+
+    const folders = dbHelpers.prepare(query).all(...params);
+    res.json(folders);
+  } catch (error) {
+    console.error('Error fetching folders:', error);
+    res.status(500).json({ error: 'Failed to fetch folders' });
+  }
+});
+
+// POST create new folder
+app.post('/api/folders', (req, res) => {
+  try {
+    const { name, project_id, parent_folder_id } = req.body;
+    const userId = 1; // Default user
+
+    if (!name) {
+      return res.status(400).json({ error: 'Folder name is required' });
+    }
+
+    const result = dbHelpers.prepare(`
+      INSERT INTO conversation_folders (user_id, project_id, name, parent_folder_id)
+      VALUES (?, ?, ?, ?)
+    `).run(userId, project_id || null, name, parent_folder_id || null);
+
+    const folder = dbHelpers.prepare(`
+      SELECT * FROM conversation_folders WHERE id = ?
+    `).get(result.lastInsertRowid);
+
+    res.status(201).json(folder);
+  } catch (error) {
+    console.error('Error creating folder:', error);
+    res.status(500).json({ error: 'Failed to create folder' });
+  }
+});
+
+// PUT update folder
+app.put('/api/folders/:id', (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, position, parent_folder_id } = req.body;
+
+    // Get existing folder
+    const folder = dbHelpers.prepare('SELECT * FROM conversation_folders WHERE id = ?').get(id);
+    if (!folder) {
+      return res.status(404).json({ error: 'Folder not found' });
+    }
+
+    // Update with provided values or keep existing
+    dbHelpers.prepare(`
+      UPDATE conversation_folders
+      SET name = ?, position = ?, parent_folder_id = ?
+      WHERE id = ?
+    `).run(
+      name !== undefined ? name : folder.name,
+      position !== undefined ? position : folder.position,
+      parent_folder_id !== undefined ? parent_folder_id : folder.parent_folder_id,
+      id
+    );
+
+    const updated = dbHelpers.prepare('SELECT * FROM conversation_folders WHERE id = ?').get(id);
+    res.json(updated);
+  } catch (error) {
+    console.error('Error updating folder:', error);
+    res.status(500).json({ error: 'Failed to update folder' });
+  }
+});
+
+// DELETE folder
+app.delete('/api/folders/:id', (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Delete folder items first
+    dbHelpers.prepare('DELETE FROM conversation_folder_items WHERE folder_id = ?').run(id);
+
+    // Delete folder
+    dbHelpers.prepare('DELETE FROM conversation_folders WHERE id = ?').run(id);
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error deleting folder:', error);
+    res.status(500).json({ error: 'Failed to delete folder' });
+  }
+});
+
+// POST add conversation to folder
+app.post('/api/folders/:id/items', (req, res) => {
+  try {
+    const { id } = req.params;
+    const { conversation_id } = req.body;
+
+    if (!conversation_id) {
+      return res.status(400).json({ error: 'Conversation ID is required' });
+    }
+
+    // Check if already in folder
+    const existing = dbHelpers.prepare(`
+      SELECT * FROM conversation_folder_items
+      WHERE folder_id = ? AND conversation_id = ?
+    `).get(id, conversation_id);
+
+    if (existing) {
+      return res.json(existing);
+    }
+
+    const result = dbHelpers.prepare(`
+      INSERT INTO conversation_folder_items (folder_id, conversation_id)
+      VALUES (?, ?)
+    `).run(id, conversation_id);
+
+    const item = dbHelpers.prepare(`
+      SELECT * FROM conversation_folder_items WHERE id = ?
+    `).get(result.lastInsertRowid);
+
+    res.status(201).json(item);
+  } catch (error) {
+    console.error('Error adding item to folder:', error);
+    res.status(500).json({ error: 'Failed to add item to folder' });
+  }
+});
+
+// DELETE remove conversation from folder
+app.delete('/api/folders/:id/items/:conversationId', (req, res) => {
+  try {
+    const { id, conversationId } = req.params;
+
+    dbHelpers.prepare(`
+      DELETE FROM conversation_folder_items
+      WHERE folder_id = ? AND conversation_id = ?
+    `).run(id, conversationId);
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error removing item from folder:', error);
+    res.status(500).json({ error: 'Failed to remove item from folder' });
+  }
+});
+
 // Export database instance for other modules
 export { db, dbHelpers };
 
