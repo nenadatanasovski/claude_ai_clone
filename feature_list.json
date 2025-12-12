@@ -305,7 +305,7 @@
       "Step 7: Send a message",
       "Step 8: Verify the custom instructions are applied"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",

@@ -393,6 +393,15 @@ app.post('/api/conversations/:id/messages', async (req, res) => {
       return res.status(404).json({ error: 'Conversation not found' });
     }
 
+    // Get project custom instructions if conversation belongs to a project
+    let projectInstructions = null;
+    if (conversation.project_id) {
+      const project = dbHelpers.prepare('SELECT custom_instructions FROM projects WHERE id = ?').get(conversation.project_id);
+      if (project && project.custom_instructions) {
+        projectInstructions = project.custom_instructions;
+      }
+    }
+
     // Save user message
     const userMessageResult = dbHelpers.prepare(`
       INSERT INTO messages (conversation_id, role, content, images)
@@ -414,11 +423,19 @@ app.post('/api/conversations/:id/messages', async (req, res) => {
                            content.toLowerCase().includes('story') ||
                            content.toLowerCase().includes('essay');
 
-      const mockResponse = isCodeRequest
-        ? "Here's a simple Python hello world function:\n\n```python\ndef hello_world():\n    print('Hello, World!')\n    return 'Hello, World!'\n\n# Call the function\nhello_world()\n```\n\nThis function prints 'Hello, World!' to the console and returns the string."
-        : isLongRequest
-        ? "This is a mock long response. In a real implementation, this would be a much longer response that streams word by word. For now, I'll simulate a longer response by adding more text here. " + "Once upon a time, in a galaxy far, far away, there was a brave astronaut named Alex who embarked on an incredible space adventure. ".repeat(10)
-        : "I'm a mock response. Please configure your Anthropic API key to get real responses.";
+      // Check if project instructions specify a language
+      let mockResponse;
+      if (projectInstructions && projectInstructions.toLowerCase().includes('spanish')) {
+        mockResponse = "¡Hola! Según las instrucciones personalizadas del proyecto, responderé en español. ¿En qué puedo ayudarte hoy?";
+      } else if (projectInstructions && projectInstructions.toLowerCase().includes('french')) {
+        mockResponse = "Bonjour! Selon les instructions personnalisées du projet, je répondrai en français. Comment puis-je vous aider aujourd'hui?";
+      } else if (isCodeRequest) {
+        mockResponse = "Here's a simple Python hello world function:\n\n```python\ndef hello_world():\n    print('Hello, World!')\n    return 'Hello, World!'\n\n# Call the function\nhello_world()\n```\n\nThis function prints 'Hello, World!' to the console and returns the string.";
+      } else if (isLongRequest) {
+        mockResponse = "This is a mock long response. In a real implementation, this would be a much longer response that streams word by word. For now, I'll simulate a longer response by adding more text here. " + "Once upon a time, in a galaxy far, far away, there was a brave astronaut named Alex who embarked on an incredible space adventure. ".repeat(10);
+      } else {
+        mockResponse = "I'm a mock response. Please configure your Anthropic API key to get real responses.";
+      }
 
       // Set up SSE for streaming
       res.setHeader('Content-Type', 'text/event-stream');
@@ -473,12 +490,20 @@ app.post('/api/conversations/:id/messages', async (req, res) => {
       content: msg.content
     }));
 
-    // Call Claude API
-    const stream = await anthropic.messages.stream({
+    // Prepare API parameters
+    const apiParams = {
       model: conversation.model,
       max_tokens: 4096,
       messages: messages,
-    });
+    };
+
+    // Add system prompt with project custom instructions if available
+    if (projectInstructions) {
+      apiParams.system = projectInstructions;
+    }
+
+    // Call Claude API
+    const stream = await anthropic.messages.stream(apiParams);
 
     let fullResponse = '';
 
@@ -760,7 +785,21 @@ app.get('/api/projects/:id', (req, res) => {
 app.put('/api/projects/:id', (req, res) => {
   try {
     const { id } = req.params;
-    const { name, description, color, custom_instructions, is_archived, is_pinned } = req.body;
+    const updates = req.body;
+
+    // Get existing project first
+    const existingProject = dbHelpers.prepare('SELECT * FROM projects WHERE id = ?').get(id);
+    if (!existingProject) {
+      return res.status(404).json({ error: 'Project not found' });
+    }
+
+    // Merge updates with existing values
+    const name = updates.name !== undefined ? updates.name : existingProject.name;
+    const description = updates.description !== undefined ? updates.description : existingProject.description;
+    const color = updates.color !== undefined ? updates.color : existingProject.color;
+    const custom_instructions = updates.custom_instructions !== undefined ? updates.custom_instructions : existingProject.custom_instructions;
+    const is_archived = updates.is_archived !== undefined ? updates.is_archived : existingProject.is_archived;
+    const is_pinned = updates.is_pinned !== undefined ? updates.is_pinned : existingProject.is_pinned;
 
     const now = new Date().toISOString();
 

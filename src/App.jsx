@@ -71,6 +71,9 @@ function App() {
   const [newProjectColor, setNewProjectColor] = useState('#CC785C')
   const [showMoveToProjectModal, setShowMoveToProjectModal] = useState(false)
   const [moveConversationId, setMoveConversationId] = useState(null)
+  const [showProjectSettingsModal, setShowProjectSettingsModal] = useState(false)
+  const [settingsProjectId, setSettingsProjectId] = useState(null)
+  const [projectCustomInstructions, setProjectCustomInstructions] = useState('')
   const messagesEndRef = useRef(null)
   const chatContainerRef = useRef(null)
   const textareaRef = useRef(null)
@@ -711,6 +714,43 @@ function App() {
     }
   }
 
+  const openProjectSettings = async (projectId) => {
+    try {
+      const response = await fetch(`${API_BASE}/projects/${projectId}`)
+      const project = await response.json()
+      setSettingsProjectId(projectId)
+      setProjectCustomInstructions(project.custom_instructions || '')
+      setShowProjectSettingsModal(true)
+      setIsProjectDropdownOpen(false)
+    } catch (error) {
+      console.error('Error loading project settings:', error)
+    }
+  }
+
+  const closeProjectSettings = () => {
+    setShowProjectSettingsModal(false)
+    setSettingsProjectId(null)
+    setProjectCustomInstructions('')
+  }
+
+  const saveProjectSettings = async () => {
+    try {
+      const response = await fetch(`${API_BASE}/projects/${settingsProjectId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ custom_instructions: projectCustomInstructions })
+      })
+
+      if (response.ok) {
+        // Reload projects to get updated data
+        loadProjects()
+        closeProjectSettings()
+      }
+    } catch (error) {
+      console.error('Error saving project settings:', error)
+    }
+  }
+
   const handleContextMenu = (e, conversationId) => {
     e.preventDefault()
     e.stopPropagation()
@@ -776,28 +816,62 @@ function App() {
                       </div>
                     </button>
                     {projects.map((project) => (
-                      <button
+                      <div
                         key={project.id}
-                        type="button"
-                        onClick={() => {
-                          setCurrentProjectId(project.id)
-                          setIsProjectDropdownOpen(false)
-                        }}
-                        className={`w-full text-left px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700
+                        className={`group relative hover:bg-gray-50 dark:hover:bg-gray-700
                           transition-colors ${
                           currentProjectId === project.id ? 'bg-gray-50 dark:bg-gray-700' : ''
                         }`}
                       >
-                        <div className="flex items-center gap-2">
-                          <div className="w-3 h-3 rounded-full" style={{ backgroundColor: project.color || '#CC785C' }}></div>
-                          <div className="font-medium text-sm">{project.name}</div>
-                        </div>
-                        {project.description && (
-                          <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 ml-5">
-                            {project.description}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setCurrentProjectId(project.id)
+                            setIsProjectDropdownOpen(false)
+                          }}
+                          className="w-full text-left px-4 py-3"
+                        >
+                          <div className="flex items-center gap-2">
+                            <div className="w-3 h-3 rounded-full" style={{ backgroundColor: project.color || '#CC785C' }}></div>
+                            <div className="font-medium text-sm">{project.name}</div>
                           </div>
-                        )}
-                      </button>
+                          {project.description && (
+                            <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 ml-5">
+                              {project.description}
+                            </div>
+                          )}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            openProjectSettings(project.id)
+                          }}
+                          className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100
+                            p-1.5 rounded hover:bg-gray-200 dark:hover:bg-gray-600 transition-opacity"
+                          title="Project Settings"
+                        >
+                          <svg
+                            className="w-4 h-4 text-gray-600 dark:text-gray-400"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
+                            />
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                            />
+                          </svg>
+                        </button>
+                      </div>
                     ))}
                     <div className="border-t border-gray-200 dark:border-gray-700">
                       <button
@@ -1408,6 +1482,49 @@ function App() {
               >
                 Cancel
               </button>
+            </div>
+          </div>
+        )}
+
+        {/* Project Settings Modal */}
+        {showProjectSettingsModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-2xl w-full mx-4">
+              <h2 className="text-xl font-semibold mb-4">Project Settings</h2>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium mb-2">
+                    Custom Instructions
+                  </label>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                    These instructions will be applied to all conversations in this project.
+                  </p>
+                  <textarea
+                    value={projectCustomInstructions}
+                    onChange={(e) => setProjectCustomInstructions(e.target.value)}
+                    placeholder="e.g., Always respond in Spanish"
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600
+                      rounded-lg bg-white dark:bg-gray-900 resize-none"
+                    rows={6}
+                  />
+                </div>
+              </div>
+              <div className="flex gap-3 mt-6">
+                <button
+                  onClick={closeProjectSettings}
+                  className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600
+                    rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={saveProjectSettings}
+                  className="flex-1 px-4 py-2 bg-claude-orange hover:bg-claude-orange-hover
+                    text-white rounded-lg transition-colors"
+                >
+                  Save Settings
+                </button>
+              </div>
             </div>
           </div>
         )}
