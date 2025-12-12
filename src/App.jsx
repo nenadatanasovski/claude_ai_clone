@@ -1880,6 +1880,28 @@ function App() {
                 </div>
               </div>
 
+              {/* Artifact Tabs - Show when multiple artifacts exist */}
+              {artifacts.length > 1 && (
+                <div className="border-b border-gray-200 dark:border-gray-800 overflow-x-auto">
+                  <div className="flex">
+                    {artifacts.map((artifact, index) => (
+                      <button
+                        key={artifact.id}
+                        onClick={() => setCurrentArtifact(artifact)}
+                        className={`px-4 py-2 text-sm font-medium whitespace-nowrap transition-colors
+                          border-b-2 ${
+                          artifact.id === currentArtifact.id
+                            ? 'border-[#CC785C] text-[#CC785C] bg-gray-50 dark:bg-gray-800'
+                            : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800'
+                        }`}
+                      >
+                        {artifact.title || `Artifact ${index + 1}`}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {/* Artifact Title */}
               <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-800">
                 <div className="flex items-center justify-between">

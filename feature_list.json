@@ -455,7 +455,7 @@
       "Step 4: Verify the correct artifact content displays for each tab",
       "Step 5: Verify tab labels match artifact titles"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
