@@ -1590,11 +1590,29 @@ function App() {
 
               {/* Artifact Content */}
               <div className="flex-1 overflow-y-auto">
-                <pre className="p-4 text-sm font-mono">
-                  <code className={`language-${currentArtifact.language}`}>
-                    {currentArtifact.content}
-                  </code>
-                </pre>
+                {currentArtifact.type === 'html' ? (
+                  // HTML Preview
+                  <div className="h-full bg-white">
+                    <iframe
+                      srcDoc={currentArtifact.content}
+                      className="w-full h-full border-0"
+                      sandbox="allow-scripts"
+                      title="HTML Preview"
+                    />
+                  </div>
+                ) : currentArtifact.type === 'svg' ? (
+                  // SVG Preview
+                  <div className="h-full bg-white flex items-center justify-center p-4">
+                    <div dangerouslySetInnerHTML={{ __html: currentArtifact.content }} />
+                  </div>
+                ) : (
+                  // Code View
+                  <pre className="p-4 text-sm font-mono">
+                    <code className={`language-${currentArtifact.language}`}>
+                      {currentArtifact.content}
+                    </code>
+                  </pre>
+                )}
               </div>
 
               {/* Artifact Actions */}

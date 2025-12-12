@@ -367,7 +367,7 @@
       "Step 4: Verify the HTML is rendered as a live preview",
       "Step 5: Verify the red button appears in the preview"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -379,7 +379,7 @@
       "Step 4: Verify the SVG is rendered visually",
       "Step 5: Verify the circle icon is visible"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
