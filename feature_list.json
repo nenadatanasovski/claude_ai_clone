@@ -715,7 +715,7 @@
       "Step 4: Verify a chart or graph shows usage over time",
       "Step 5: Verify breakdown by model if multiple used"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",

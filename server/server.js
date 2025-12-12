@@ -1754,6 +1754,110 @@ app.get('/api/conversations/:id/cost', (req, res) => {
   }
 });
 
+// Get daily usage statistics
+app.get('/api/usage/daily', (req, res) => {
+  try {
+    const userId = 1; // Default user
+    const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
+
+    // Get today's usage data grouped by model
+    const dailyUsage = dbHelpers.prepare(`
+      SELECT
+        model,
+        SUM(input_tokens) as total_input_tokens,
+        SUM(output_tokens) as total_output_tokens,
+        COUNT(DISTINCT conversation_id) as conversation_count,
+        COUNT(*) as message_count
+      FROM usage_tracking
+      WHERE DATE(created_at) = ?
+      GROUP BY model
+    `).all(today);
+
+    // Calculate totals and costs
+    let totalInputTokens = 0;
+    let totalOutputTokens = 0;
+    let totalCost = 0;
+    const modelBreakdown = [];
+
+    for (const usage of dailyUsage) {
+      const inputTokens = usage.total_input_tokens || 0;
+      const outputTokens = usage.total_output_tokens || 0;
+
+      totalInputTokens += inputTokens;
+      totalOutputTokens += outputTokens;
+
+      // Get pricing for this model (default to Sonnet if unknown)
+      const pricing = MODEL_PRICING[usage.model] || MODEL_PRICING['claude-sonnet-4-20250514'];
+
+      const inputCost = (inputTokens / 1_000_000) * pricing.input;
+      const outputCost = (outputTokens / 1_000_000) * pricing.output;
+      const modelCost = inputCost + outputCost;
+
+      totalCost += modelCost;
+
+      modelBreakdown.push({
+        model: usage.model,
+        input_tokens: inputTokens,
+        output_tokens: outputTokens,
+        total_tokens: inputTokens + outputTokens,
+        input_cost: parseFloat(inputCost.toFixed(6)),
+        output_cost: parseFloat(outputCost.toFixed(6)),
+        total_cost: parseFloat(modelCost.toFixed(6)),
+        conversation_count: usage.conversation_count,
+        message_count: usage.message_count
+      });
+    }
+
+    // Get usage history for last 7 days for chart
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    const sevenDaysAgoStr = sevenDaysAgo.toISOString().split('T')[0];
+
+    const usageHistory = dbHelpers.prepare(`
+      SELECT
+        DATE(created_at) as date,
+        SUM(input_tokens) as input_tokens,
+        SUM(output_tokens) as output_tokens,
+        COUNT(DISTINCT conversation_id) as conversation_count
+      FROM usage_tracking
+      WHERE DATE(created_at) >= ?
+      GROUP BY DATE(created_at)
+      ORDER BY date ASC
+    `).all(sevenDaysAgoStr);
+
+    // Fill in missing days with zero values
+    const history = [];
+    for (let i = 6; i >= 0; i--) {
+      const date = new Date();
+      date.setDate(date.getDate() - i);
+      const dateStr = date.toISOString().split('T')[0];
+
+      const dayData = usageHistory.find(h => h.date === dateStr);
+
+      history.push({
+        date: dateStr,
+        input_tokens: dayData?.input_tokens || 0,
+        output_tokens: dayData?.output_tokens || 0,
+        total_tokens: (dayData?.input_tokens || 0) + (dayData?.output_tokens || 0),
+        conversation_count: dayData?.conversation_count || 0
+      });
+    }
+
+    res.json({
+      date: today,
+      total_input_tokens: totalInputTokens,
+      total_output_tokens: totalOutputTokens,
+      total_tokens: totalInputTokens + totalOutputTokens,
+      total_cost: parseFloat(totalCost.toFixed(6)),
+      model_breakdown: modelBreakdown,
+      history: history
+    });
+  } catch (error) {
+    console.error('Error fetching daily usage:', error);
+    res.status(500).json({ error: 'Failed to fetch daily usage' });
+  }
+});
+
 // Export database instance for other modules
 export { db, dbHelpers };
 
