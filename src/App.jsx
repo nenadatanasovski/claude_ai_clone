@@ -68,7 +68,11 @@ function App() {
   }
 
   const sendMessage = async () => {
-    if (!inputValue.trim() || isLoading) return
+    console.log('sendMessage called, inputValue:', inputValue, 'isLoading:', isLoading)
+    if (!inputValue.trim() || isLoading) {
+      console.log('Returning early - empty input or already loading')
+      return
+    }
 
     const messageText = inputValue.trim()
     setInputValue('')
@@ -187,6 +191,7 @@ function App() {
           <div className="flex items-center justify-between">
             <h1 className="text-xl font-semibold">Claude</h1>
             <button
+              type="button"
               onClick={() => setIsDark(!isDark)}
               className="px-3 py-1.5 rounded-lg border border-gray-300 dark:border-gray-700
                 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
@@ -201,6 +206,7 @@ function App() {
           {/* Sidebar */}
           <aside className="w-64 border-r border-gray-200 dark:border-gray-800 p-4">
             <button
+              type="button"
               onClick={createNewConversation}
               className="w-full bg-claude-orange hover:bg-claude-orange-hover text-white
                 rounded-lg py-2.5 font-medium mb-4 transition-colors flex items-center justify-center gap-2"
@@ -253,6 +259,7 @@ function App() {
                       ].map((prompt, i) => (
                         <button
                           key={i}
+                          type="button"
                           onClick={() => handleSuggestedPrompt(prompt.split('\n')[1])}
                           className="p-4 text-left rounded-lg border border-gray-200 dark:border-gray-700
                             hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
@@ -316,7 +323,12 @@ function App() {
                     disabled={isLoading}
                   />
                   <button
-                    onClick={sendMessage}
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault()
+                      e.stopPropagation()
+                      sendMessage()
+                    }}
                     disabled={isLoading || !inputValue.trim()}
                     className="absolute right-2 bottom-2 p-2 rounded-lg bg-claude-orange
                       hover:bg-claude-orange-hover text-white transition-colors

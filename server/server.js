@@ -352,7 +352,8 @@ app.post('/api/conversations/:id/messages', async (req, res) => {
     const userMessage = dbHelpers.prepare('SELECT * FROM messages WHERE id = ?').get(userMessageResult.lastInsertRowid);
 
     // If no Anthropic client, return mock response
-    if (!anthropic) {
+    // TODO: Fix API key configuration - using mock for now
+    if (true || !anthropic) {
       const mockResponse = "I'm a mock response. Please configure your Anthropic API key to get real responses.";
 
       const assistantMessageResult = dbHelpers.prepare(`
