@@ -91,6 +91,7 @@ function App() {
   const [repromptInstruction, setRepromptInstruction] = useState('')
   const [artifactVersions, setArtifactVersions] = useState([])
   const [showVersionSelector, setShowVersionSelector] = useState(false)
+  const [messageArtifacts, setMessageArtifacts] = useState({}) // Map of message ID to artifacts array
   const messagesEndRef = useRef(null)
   const chatContainerRef = useRef(null)
   const textareaRef = useRef(null)
@@ -249,6 +250,23 @@ function App() {
       const artifactsData = await artifactsResponse.json()
       setArtifacts(artifactsData)
 
+      // Load artifacts for each message
+      const msgArtifacts = {}
+      for (const message of data) {
+        if (message.id) {
+          try {
+            const msgArtResponse = await fetch(`${API_BASE}/messages/${message.id}/artifacts`)
+            const msgArtData = await msgArtResponse.json()
+            if (msgArtData.length > 0) {
+              msgArtifacts[message.id] = msgArtData
+            }
+          } catch (err) {
+            console.error(`Error loading artifacts for message ${message.id}:`, err)
+          }
+        }
+      }
+      setMessageArtifacts(msgArtifacts)
+
       // If there are artifacts, show the panel and select the first one
       if (artifactsData.length > 0) {
         setCurrentArtifact(artifactsData[0])
@@ -283,6 +301,16 @@ function App() {
       setFolders(data)
     } catch (error) {
       console.error('Error loading folders:', error)
+    }
+  }
+
+  const openArtifactsFromMessage = (messageId) => {
+    const msgArtifacts = messageArtifacts[messageId]
+    if (msgArtifacts && msgArtifacts.length > 0) {
+      setArtifacts(msgArtifacts)
+      setCurrentArtifact(msgArtifacts[0])
+      setShowArtifactPanel(true)
+      setIsArtifactFullscreen(false)
     }
   }
 
@@ -749,6 +777,22 @@ function App() {
             const artifactsResponse = await fetch(`${API_BASE}/conversations/${conversationId}/artifacts`)
             const artifactsData = await artifactsResponse.json()
             setArtifacts(artifactsData)
+
+            // Also load artifacts for the assistant message
+            if (assistantMessage.id) {
+              try {
+                const msgArtResponse = await fetch(`${API_BASE}/messages/${assistantMessage.id}/artifacts`)
+                const msgArtData = await msgArtResponse.json()
+                if (msgArtData.length > 0) {
+                  setMessageArtifacts(prev => ({
+                    ...prev,
+                    [assistantMessage.id]: msgArtData
+                  }))
+                }
+              } catch (err) {
+                console.error('Error loading message artifacts:', err)
+              }
+            }
 
             // If there are artifacts, show the panel and select the first one
             if (artifactsData.length > 0) {
@@ -1651,6 +1695,22 @@ function App() {
                               {message.content}
                             </ReactMarkdown>
                           </div>
+                          {messageArtifacts[message.id] && messageArtifacts[message.id].length > 0 && (
+                            <div className="mt-2 pt-2 border-t border-gray-200 dark:border-gray-700">
+                              <button
+                                onClick={() => openArtifactsFromMessage(message.id)}
+                                className="inline-flex items-center gap-2 px-3 py-1.5 text-xs font-medium
+                                  rounded-md bg-[#CC785C] text-white hover:bg-[#B86A4F]
+                                  transition-colors"
+                              >
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                                    d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+                                </svg>
+                                View {messageArtifacts[message.id].length} Artifact{messageArtifacts[message.id].length > 1 ? 's' : ''}
+                              </button>
+                            </div>
+                          )}
                         </div>
                       </div>
                     ))}
