@@ -187,7 +187,7 @@
       "Step 6: Clear the search",
       "Step 7: Verify all conversations reappear"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",

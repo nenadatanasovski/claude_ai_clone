@@ -57,6 +57,7 @@ function App() {
   const [editingTitle, setEditingTitle] = useState('')
   const [selectedModel, setSelectedModel] = useState('claude-sonnet-4-20250514')
   const [isModelDropdownOpen, setIsModelDropdownOpen] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
   const messagesEndRef = useRef(null)
   const chatContainerRef = useRef(null)
   const textareaRef = useRef(null)
@@ -402,6 +403,11 @@ function App() {
     }
   }
 
+  // Filter conversations based on search query
+  const filteredConversations = conversations.filter(conv =>
+    conv.title.toLowerCase().includes(searchQuery.toLowerCase())
+  )
+
   return (
     <div className={isDark ? 'dark' : ''}>
       <div className="min-h-screen bg-white dark:bg-[#1A1A1A] text-gray-900 dark:text-gray-100">
@@ -482,13 +488,28 @@ function App() {
             >
               <span>+</span> New Chat
             </button>
+
+            {/* Search Input */}
+            <div className="mb-4">
+              <input
+                type="text"
+                placeholder="Search conversations..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-700
+                  bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100
+                  focus:outline-none focus:ring-2 focus:ring-claude-orange text-sm
+                  placeholder:text-gray-400 dark:placeholder:text-gray-500"
+              />
+            </div>
+
             <div className="space-y-2">
               {conversations.length > 0 && (
                 <>
                   <div className="text-sm font-medium text-gray-500 dark:text-gray-400 px-2">
                     Conversations
                   </div>
-                  {conversations.map(conv => (
+                  {filteredConversations.map(conv => (
                     <div
                       key={conv.id}
                       onClick={() => setCurrentConversationId(conv.id)}
