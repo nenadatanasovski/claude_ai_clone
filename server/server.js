@@ -297,6 +297,33 @@ try {
   console.warn('Warning: Anthropic API key not configured properly');
 }
 
+// Helper function to generate a conversation title from the first user message
+function generateTitleFromMessage(message) {
+  // Trim and clean the message
+  let title = message.trim();
+
+  // Extract the main topic or question
+  // Remove common question words and extract key content
+  title = title
+    .replace(/^(can you|could you|please|help me|i need|i want to|how do i|how to|what is|what are|tell me|explain|show me)\s+/i, '')
+    .trim();
+
+  // Capitalize first letter
+  title = title.charAt(0).toUpperCase() + title.slice(1);
+
+  // Limit to 50 characters for readability
+  if (title.length > 50) {
+    title = title.substring(0, 47) + '...';
+  }
+
+  // If the title is empty or too short, use a default
+  if (title.length < 3) {
+    title = 'New Chat';
+  }
+
+  return title;
+}
+
 // Helper function to detect and extract artifacts from response
 function detectArtifacts(content) {
   const artifacts = [];
@@ -583,6 +610,21 @@ app.post('/api/conversations/:id/messages', async (req, res) => {
         WHERE id = ?
       `).run(conversationId);
 
+      // Auto-generate title from first exchange
+      const messageCount = dbHelpers.prepare('SELECT COUNT(*) as count FROM messages WHERE conversation_id = ?').get(conversationId);
+      if (messageCount.count === 2) {
+        // This is the first exchange, auto-generate a title
+        const userMessageContent = userMessage.content || content;
+        let autoTitle = generateTitleFromMessage(userMessageContent);
+
+        // Update conversation title
+        dbHelpers.prepare(`
+          UPDATE conversations
+          SET title = ?
+          WHERE id = ?
+        `).run(autoTitle, conversationId);
+      }
+
       // Send completion message
       res.write(`data: ${JSON.stringify({ type: 'done', messageId: assistantMessage.id })}\n\n`);
       res.end();
@@ -675,6 +717,21 @@ app.post('/api/conversations/:id/messages', async (req, res) => {
           updated_at = CURRENT_TIMESTAMP
       WHERE id = ?
     `).run(conversationId);
+
+    // Auto-generate title from first exchange
+    const messageCount = dbHelpers.prepare('SELECT COUNT(*) as count FROM messages WHERE conversation_id = ?').get(conversationId);
+    if (messageCount.count === 2) {
+      // This is the first exchange, auto-generate a title
+      const userMessageContent = userMessage.content || content;
+      let autoTitle = generateTitleFromMessage(userMessageContent);
+
+      // Update conversation title
+      dbHelpers.prepare(`
+        UPDATE conversations
+        SET title = ?
+        WHERE id = ?
+      `).run(autoTitle, conversationId);
+    }
 
     res.write(`data: ${JSON.stringify({ type: 'done', messageId: assistantMessageResult.lastInsertRowid })}\n\n`);
     res.end();

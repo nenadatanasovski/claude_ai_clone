@@ -908,7 +908,7 @@
       "Step 4: Verify the conversation title auto-generates",
       "Step 5: Verify the title is relevant to the content"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
