@@ -840,7 +840,7 @@
       "Step 4: Click to expand sidebar again",
       "Step 5: Verify it slides back open"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",

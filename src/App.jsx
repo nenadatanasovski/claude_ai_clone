@@ -267,6 +267,7 @@ function App() {
   const [currentBranch, setCurrentBranch] = useState(null) // Currently selected branch path
   const [showSettingsModal, setShowSettingsModal] = useState(false)
   const [showKeyboardShortcutsModal, setShowKeyboardShortcutsModal] = useState(false)
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
   const [theme, setTheme] = useState('light') // 'light', 'dark', or 'auto'
   const [fontSize, setFontSize] = useState(() => {
     const saved = localStorage.getItem('fontSize')
@@ -2601,9 +2602,11 @@ function App() {
         </header>
 
         {/* Main Content */}
-        <div className="flex h-[calc(100vh-60px)]">
+        <div className="flex h-[calc(100vh-60px)] relative">
           {/* Sidebar */}
-          <aside className="w-64 border-r border-gray-200 dark:border-gray-800 p-4" onContextMenu={handleSidebarContextMenu}>
+          <aside className={`border-r border-gray-200 dark:border-gray-800 transition-all duration-300 ease-in-out overflow-hidden ${
+            isSidebarCollapsed ? 'w-0 p-0' : 'w-64 p-4'
+          }`} onContextMenu={handleSidebarContextMenu}>
             <button
               type="button"
               onClick={createNewConversation}
@@ -2846,6 +2849,29 @@ function App() {
               )}
             </div>
           </aside>
+
+          {/* Sidebar Collapse Button */}
+          <button
+            onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+            className="absolute left-0 top-20 z-10 bg-white dark:bg-gray-800 border border-gray-200
+              dark:border-gray-700 rounded-r-lg p-2 hover:bg-gray-50 dark:hover:bg-gray-700
+              transition-all duration-300 ease-in-out shadow-sm"
+            style={{ left: isSidebarCollapsed ? '0' : '256px' }}
+            title={isSidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          >
+            <svg
+              className="w-4 h-4 text-gray-600 dark:text-gray-400"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              {isSidebarCollapsed ? (
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              ) : (
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              )}
+            </svg>
+          </button>
 
           {/* Chat Area */}
           <main className="flex-1 flex flex-col">
