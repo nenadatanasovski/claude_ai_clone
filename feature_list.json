@@ -691,7 +691,7 @@
       "Step 5: Verify output token count is displayed",
       "Step 6: Verify total tokens are shown"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",

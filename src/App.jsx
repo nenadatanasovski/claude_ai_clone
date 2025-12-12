@@ -240,6 +240,8 @@ function App() {
   const [artifactVersions, setArtifactVersions] = useState([])
   const [showVersionSelector, setShowVersionSelector] = useState(false)
   const [messageArtifacts, setMessageArtifacts] = useState({}) // Map of message ID to artifacts array
+  const [messageUsage, setMessageUsage] = useState({}) // Map of message ID to usage data
+  const [expandedUsage, setExpandedUsage] = useState(new Set()) // Set of message IDs with expanded usage
   const [editingMessageId, setEditingMessageId] = useState(null)
   const [editedMessageContent, setEditedMessageContent] = useState('')
   const [branches, setBranches] = useState([]) // Conversation branches
@@ -543,6 +545,46 @@ function App() {
     } catch (error) {
       console.error('Error loading custom instructions:', error)
     }
+  }
+
+  const loadMessageUsage = async (messageId) => {
+    // Check if we already have this usage data cached
+    if (messageUsage[messageId]) {
+      return messageUsage[messageId]
+    }
+
+    try {
+      const response = await fetch(`${API_BASE}/messages/${messageId}/usage`)
+      const data = await response.json()
+
+      // Cache the usage data
+      setMessageUsage(prev => ({
+        ...prev,
+        [messageId]: data
+      }))
+
+      return data
+    } catch (error) {
+      console.error('Error loading message usage:', error)
+      return null
+    }
+  }
+
+  const toggleUsageExpanded = async (messageId) => {
+    const newExpanded = new Set(expandedUsage)
+
+    if (expandedUsage.has(messageId)) {
+      // Collapse
+      newExpanded.delete(messageId)
+    } else {
+      // Expand and fetch usage data if we don't have it yet
+      newExpanded.add(messageId)
+      if (!messageUsage[messageId]) {
+        await loadMessageUsage(messageId)
+      }
+    }
+
+    setExpandedUsage(newExpanded)
   }
 
   const saveCustomInstructions = async () => {
@@ -2574,6 +2616,53 @@ function App() {
                                 </svg>
                                 Edit
                               </button>
+                            </div>
+                          )}
+                          {/* Token usage display */}
+                          {message.id && !isStreaming && (
+                            <div className="mt-2">
+                              <button
+                                onClick={() => toggleUsageExpanded(message.id)}
+                                className="inline-flex items-center gap-1.5 px-2 py-1 text-xs
+                                  text-gray-500 dark:text-gray-400
+                                  hover:text-gray-700 dark:hover:text-gray-300
+                                  transition-colors"
+                                title="View token usage"
+                              >
+                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                                    d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                                </svg>
+                                {expandedUsage.has(message.id) ? 'Hide' : 'Show'} token usage
+                              </button>
+                              {expandedUsage.has(message.id) && messageUsage[message.id] && (
+                                <div className="mt-2 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg text-xs space-y-1.5">
+                                  <div className="flex justify-between">
+                                    <span className="text-gray-600 dark:text-gray-400">Input tokens:</span>
+                                    <span className="font-medium text-gray-900 dark:text-gray-100">
+                                      {messageUsage[message.id].input_tokens?.toLocaleString() || 0}
+                                    </span>
+                                  </div>
+                                  <div className="flex justify-between">
+                                    <span className="text-gray-600 dark:text-gray-400">Output tokens:</span>
+                                    <span className="font-medium text-gray-900 dark:text-gray-100">
+                                      {messageUsage[message.id].output_tokens?.toLocaleString() || 0}
+                                    </span>
+                                  </div>
+                                  <div className="flex justify-between pt-1.5 border-t border-gray-200 dark:border-gray-700">
+                                    <span className="text-gray-600 dark:text-gray-400 font-medium">Total tokens:</span>
+                                    <span className="font-semibold text-gray-900 dark:text-gray-100">
+                                      {messageUsage[message.id].total_tokens?.toLocaleString() || 0}
+                                    </span>
+                                  </div>
+                                  {messageUsage[message.id].model && (
+                                    <div className="flex justify-between text-gray-500 dark:text-gray-500 text-[10px] pt-1">
+                                      <span>Model:</span>
+                                      <span>{messageUsage[message.id].model}</span>
+                                    </div>
+                                  )}
+                                </div>
+                              )}
                             </div>
                           )}
                         </div>

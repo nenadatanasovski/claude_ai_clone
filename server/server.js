@@ -549,13 +549,24 @@ app.post('/api/conversations/:id/messages', async (req, res) => {
         await new Promise(resolve => setTimeout(resolve, 50));
       }
 
+      // Mock token counts
+      const mockInputTokens = Math.floor(userMessage.length / 4); // Rough estimate: ~4 chars per token
+      const mockOutputTokens = Math.floor(mockResponse.length / 4);
+      const mockTotalTokens = mockInputTokens + mockOutputTokens;
+
       // Save assistant message
       const assistantMessageResult = dbHelpers.prepare(`
         INSERT INTO messages (conversation_id, role, content, tokens)
         VALUES (?, ?, ?, ?)
-      `).run(conversationId, 'assistant', mockResponse, 50);
+      `).run(conversationId, 'assistant', mockResponse, mockTotalTokens);
 
       const assistantMessage = dbHelpers.prepare('SELECT * FROM messages WHERE id = ?').get(assistantMessageResult.lastInsertRowid);
+
+      // Save mock usage tracking data
+      dbHelpers.prepare(`
+        INSERT INTO usage_tracking (user_id, conversation_id, message_id, model, input_tokens, output_tokens, cost_estimate)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+      `).run(1, conversationId, assistantMessage.id, conversation.model, mockInputTokens, mockOutputTokens, 0.0);
 
       // Detect and save artifacts
       const artifacts = detectArtifacts(mockResponse);
@@ -634,11 +645,27 @@ app.post('/api/conversations/:id/messages', async (req, res) => {
       }
     }
 
+    // Get the final message with usage data
+    const finalMessage = await stream.finalMessage();
+
+    // Calculate total tokens
+    const inputTokens = finalMessage.usage?.input_tokens || 0;
+    const outputTokens = finalMessage.usage?.output_tokens || 0;
+    const totalTokens = inputTokens + outputTokens;
+
     // Save assistant message
     const assistantMessageResult = dbHelpers.prepare(`
       INSERT INTO messages (conversation_id, role, content, tokens)
       VALUES (?, ?, ?, ?)
-    `).run(conversationId, 'assistant', fullResponse, fullResponse.length);
+    `).run(conversationId, 'assistant', fullResponse, totalTokens);
+
+    const assistantMessageId = assistantMessageResult.lastInsertRowid;
+
+    // Save usage tracking data
+    dbHelpers.prepare(`
+      INSERT INTO usage_tracking (user_id, conversation_id, message_id, model, input_tokens, output_tokens, cost_estimate)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `).run(1, conversationId, assistantMessageId, conversation.model, inputTokens, outputTokens, 0.0);
 
     // Update conversation
     dbHelpers.prepare(`
@@ -1304,6 +1331,31 @@ app.get('/api/messages/:id/artifacts', (req, res) => {
   } catch (error) {
     console.error('Error fetching message artifacts:', error);
     res.status(500).json({ error: 'Failed to fetch message artifacts' });
+  }
+});
+
+// GET usage data for a specific message
+app.get('/api/messages/:id/usage', (req, res) => {
+  try {
+    const usage = dbHelpers.prepare(`
+      SELECT * FROM usage_tracking
+      WHERE message_id = ?
+    `).get(req.params.id);
+
+    if (!usage) {
+      return res.json({ input_tokens: 0, output_tokens: 0, total_tokens: 0 });
+    }
+
+    res.json({
+      input_tokens: usage.input_tokens,
+      output_tokens: usage.output_tokens,
+      total_tokens: usage.input_tokens + usage.output_tokens,
+      model: usage.model,
+      cost_estimate: usage.cost_estimate
+    });
+  } catch (error) {
+    console.error('Error fetching message usage:', error);
+    res.status(500).json({ error: 'Failed to fetch message usage' });
   }
 });
 
