@@ -317,7 +317,7 @@
       "Step 4: Verify the folder appears in the sidebar",
       "Step 5: Verify it can be expanded/collapsed"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
