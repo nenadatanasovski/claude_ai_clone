@@ -268,6 +268,8 @@ function App() {
   const [showSettingsModal, setShowSettingsModal] = useState(false)
   const [showKeyboardShortcutsModal, setShowKeyboardShortcutsModal] = useState(false)
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
+  const [sidebarWidth, setSidebarWidth] = useState(256) // Sidebar width in pixels (min: 200, max: 500)
+  const [isResizing, setIsResizing] = useState(false)
   const [theme, setTheme] = useState('light') // 'light', 'dark', or 'auto'
   const [fontSize, setFontSize] = useState(() => {
     const saved = localStorage.getItem('fontSize')
@@ -2330,6 +2332,49 @@ function App() {
     })
   }
 
+  // Sidebar resize handlers
+  const handleResizeMouseDown = (e) => {
+    e.preventDefault()
+    setIsResizing(true)
+  }
+
+  const handleResizeMouseMove = (e) => {
+    if (!isResizing) return
+
+    const newWidth = e.clientX
+    // Constrain width between 200px and 500px
+    if (newWidth >= 200 && newWidth <= 500) {
+      setSidebarWidth(newWidth)
+    }
+  }
+
+  const handleResizeMouseUp = () => {
+    setIsResizing(false)
+  }
+
+  // Add resize event listeners
+  useEffect(() => {
+    if (isResizing) {
+      document.addEventListener('mousemove', handleResizeMouseMove)
+      document.addEventListener('mouseup', handleResizeMouseUp)
+      // Prevent text selection while dragging
+      document.body.style.cursor = 'col-resize'
+      document.body.style.userSelect = 'none'
+    } else {
+      document.removeEventListener('mousemove', handleResizeMouseMove)
+      document.removeEventListener('mouseup', handleResizeMouseUp)
+      document.body.style.cursor = ''
+      document.body.style.userSelect = ''
+    }
+
+    return () => {
+      document.removeEventListener('mousemove', handleResizeMouseMove)
+      document.removeEventListener('mouseup', handleResizeMouseUp)
+      document.body.style.cursor = ''
+      document.body.style.userSelect = ''
+    }
+  }, [isResizing])
+
   const handleFolderContextMenu = (e, folderId) => {
     e.preventDefault()
     e.stopPropagation()
@@ -2604,9 +2649,21 @@ function App() {
         {/* Main Content */}
         <div className="flex h-[calc(100vh-60px)] relative">
           {/* Sidebar */}
-          <aside className={`border-r border-gray-200 dark:border-gray-800 transition-all duration-300 ease-in-out overflow-hidden ${
-            isSidebarCollapsed ? 'w-0 p-0' : 'w-64 p-4'
-          }`} onContextMenu={handleSidebarContextMenu}>
+          <aside
+            className={`border-r border-gray-200 dark:border-gray-800 transition-all duration-300 ease-in-out overflow-hidden relative ${
+              isSidebarCollapsed ? 'p-0' : 'p-4'
+            }`}
+            style={{ width: isSidebarCollapsed ? '0px' : `${sidebarWidth}px` }}
+            onContextMenu={handleSidebarContextMenu}
+          >
+            {/* Resize Handle */}
+            {!isSidebarCollapsed && (
+              <div
+                className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-[#CC785C] transition-colors z-20"
+                onMouseDown={handleResizeMouseDown}
+                title="Drag to resize sidebar"
+              />
+            )}
             <button
               type="button"
               onClick={createNewConversation}
@@ -2856,7 +2913,7 @@ function App() {
             className="absolute left-0 top-20 z-10 bg-white dark:bg-gray-800 border border-gray-200
               dark:border-gray-700 rounded-r-lg p-2 hover:bg-gray-50 dark:hover:bg-gray-700
               transition-all duration-300 ease-in-out shadow-sm"
-            style={{ left: isSidebarCollapsed ? '0' : '256px' }}
+            style={{ left: isSidebarCollapsed ? '0' : `${sidebarWidth}px` }}
             title={isSidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
           >
             <svg

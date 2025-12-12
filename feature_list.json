@@ -853,7 +853,7 @@
       "Step 5: Verify the sidebar width decreases",
       "Step 6: Verify the chat area adjusts accordingly"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
