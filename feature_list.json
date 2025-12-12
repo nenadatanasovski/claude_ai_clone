@@ -404,7 +404,7 @@
       "Step 4: Open the file",
       "Step 5: Verify it contains the artifact content"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",

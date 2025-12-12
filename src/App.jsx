@@ -1574,6 +1574,71 @@ function App() {
                 </div>
                 <div className="flex items-center gap-2">
                   <button
+                    onClick={() => {
+                      // Create download function
+                      const downloadArtifact = () => {
+                        const blob = new Blob([currentArtifact.content], { type: 'text/plain' });
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+
+                        // Generate filename based on artifact type and language
+                        let extension = '.txt';
+                        if (currentArtifact.type === 'html') {
+                          extension = '.html';
+                        } else if (currentArtifact.type === 'svg') {
+                          extension = '.svg';
+                        } else if (currentArtifact.language === 'python') {
+                          extension = '.py';
+                        } else if (currentArtifact.language === 'javascript') {
+                          extension = '.js';
+                        } else if (currentArtifact.language === 'typescript') {
+                          extension = '.ts';
+                        } else if (currentArtifact.language === 'java') {
+                          extension = '.java';
+                        } else if (currentArtifact.language === 'cpp' || currentArtifact.language === 'c++') {
+                          extension = '.cpp';
+                        } else if (currentArtifact.language === 'c') {
+                          extension = '.c';
+                        } else if (currentArtifact.language === 'ruby') {
+                          extension = '.rb';
+                        } else if (currentArtifact.language === 'go') {
+                          extension = '.go';
+                        } else if (currentArtifact.language === 'rust') {
+                          extension = '.rs';
+                        } else if (currentArtifact.language === 'php') {
+                          extension = '.php';
+                        } else if (currentArtifact.language === 'css') {
+                          extension = '.css';
+                        } else if (currentArtifact.language === 'json') {
+                          extension = '.json';
+                        } else if (currentArtifact.language === 'yaml' || currentArtifact.language === 'yml') {
+                          extension = '.yml';
+                        } else if (currentArtifact.language) {
+                          extension = '.' + currentArtifact.language;
+                        }
+
+                        // Create filename from title or use default
+                        const filename = (currentArtifact.title || 'artifact').replace(/\s+/g, '_') + extension;
+                        a.download = filename;
+
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                        URL.revokeObjectURL(url);
+                      };
+
+                      downloadArtifact();
+                    }}
+                    className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                    title="Download artifact"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                        d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                    </svg>
+                  </button>
+                  <button
                     onClick={() => setIsArtifactFullscreen(!isArtifactFullscreen)}
                     className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
                     title={isArtifactFullscreen ? "Exit fullscreen" : "Fullscreen"}
