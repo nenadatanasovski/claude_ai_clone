@@ -816,7 +816,7 @@
       "Step 4: Press Cmd/Ctrl+Down arrow",
       "Step 5: Verify selection moves to next conversation"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",

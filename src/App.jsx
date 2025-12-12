@@ -491,7 +491,7 @@ function App() {
     localStorage.setItem('maxTokens', maxTokens.toString())
   }, [maxTokens])
 
-  // Command palette keyboard shortcut (Cmd/Ctrl+K)
+  // Command palette keyboard shortcut (Cmd/Ctrl+K) and conversation navigation
   useEffect(() => {
     const handleKeyDown = (e) => {
       // Cmd+K on Mac or Ctrl+K on Windows/Linux
@@ -505,11 +505,46 @@ function App() {
         setShowCommandPalette(false)
         setCommandPaletteQuery('')
       }
+
+      // Conversation navigation shortcuts (Cmd/Ctrl+Up/Down arrows)
+      if ((e.metaKey || e.ctrlKey) && (e.key === 'ArrowUp' || e.key === 'ArrowDown')) {
+        e.preventDefault() // Prevent page scrolling
+
+        // Get the filtered and sorted conversations list
+        const filteredConvos = conversations.filter(conv => {
+          if (showArchived && !conv.is_archived) return false
+          if (!showArchived && conv.is_archived) return false
+          if (searchQuery && !conv.title.toLowerCase().includes(searchQuery.toLowerCase())) return false
+          return true
+        })
+
+        if (filteredConvos.length === 0) return
+
+        // Find current conversation index
+        const currentIndex = filteredConvos.findIndex(conv => conv.id === currentConversationId)
+
+        if (e.key === 'ArrowUp') {
+          // Move to previous conversation
+          if (currentIndex > 0) {
+            const prevConv = filteredConvos[currentIndex - 1]
+            setCurrentConversationId(prevConv.id)
+          }
+        } else if (e.key === 'ArrowDown') {
+          // Move to next conversation
+          if (currentIndex >= 0 && currentIndex < filteredConvos.length - 1) {
+            const nextConv = filteredConvos[currentIndex + 1]
+            setCurrentConversationId(nextConv.id)
+          } else if (currentIndex === -1 && filteredConvos.length > 0) {
+            // If no conversation is selected, select the first one
+            setCurrentConversationId(filteredConvos[0].id)
+          }
+        }
+      }
     }
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [showCommandPalette])
+  }, [showCommandPalette, conversations, currentConversationId, showArchived, searchQuery])
 
   // Reload conversations when project changes
   useEffect(() => {
