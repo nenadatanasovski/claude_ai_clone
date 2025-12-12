@@ -59,6 +59,7 @@ function App() {
   const [isModelDropdownOpen, setIsModelDropdownOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [contextMenu, setContextMenu] = useState(null) // { conversationId, x, y }
+  const [showArchived, setShowArchived] = useState(false)
   const messagesEndRef = useRef(null)
   const chatContainerRef = useRef(null)
   const textareaRef = useRef(null)
@@ -452,6 +453,36 @@ function App() {
     }
   }
 
+  const toggleArchiveConversation = async (conversationId) => {
+    try {
+      const conversation = conversations.find(conv => conv.id === conversationId)
+      if (!conversation) return
+
+      const newArchivedState = !conversation.is_archived
+
+      const response = await fetch(`${API_BASE}/conversations/${conversationId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ is_archived: newArchivedState })
+      })
+
+      if (response.ok) {
+        // Update local state
+        setConversations(conversations.map(conv =>
+          conv.id === conversationId ? { ...conv, is_archived: newArchivedState } : conv
+        ))
+
+        // If archiving the current conversation, clear it from view
+        if (newArchivedState && currentConversationId === conversationId) {
+          setCurrentConversationId(null)
+          setMessages([])
+        }
+      }
+    } catch (error) {
+      console.error('Error toggling archive:', error)
+    }
+  }
+
   const handleContextMenu = (e, conversationId) => {
     e.preventDefault()
     e.stopPropagation()
@@ -561,16 +592,42 @@ function App() {
               />
             </div>
 
+            {/* View Toggle */}
+            <div className="mb-4 flex gap-2">
+              <button
+                type="button"
+                onClick={() => setShowArchived(false)}
+                className={`flex-1 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                  !showArchived
+                    ? 'bg-claude-orange text-white'
+                    : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
+                }`}
+              >
+                Active
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowArchived(true)}
+                className={`flex-1 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                  showArchived
+                    ? 'bg-claude-orange text-white'
+                    : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
+                }`}
+              >
+                Archived
+              </button>
+            </div>
+
             <div className="space-y-2">
-              {conversations.length > 0 && (
+              {conversations.filter(c => showArchived ? c.is_archived : !c.is_archived).length > 0 && (
                 <>
                   {/* Pinned Conversations */}
-                  {conversations.filter(c => c.is_pinned).length > 0 && (
+                  {conversations.filter(c => (showArchived ? c.is_archived : !c.is_archived) && c.is_pinned).length > 0 && (
                     <>
                       <div className="text-sm font-medium text-gray-500 dark:text-gray-400 px-2">
                         Pinned
                       </div>
-                      {conversations.filter(c => c.is_pinned).map(conv => (
+                      {conversations.filter(c => (showArchived ? c.is_archived : !c.is_archived) && c.is_pinned).map(conv => (
                         <div
                           key={conv.id}
                           onClick={() => setCurrentConversationId(conv.id)}
@@ -627,12 +684,12 @@ function App() {
                   )}
 
                   {/* Regular Conversations */}
-                  {conversations.filter(c => !c.is_pinned).length > 0 && (
+                  {conversations.filter(c => (showArchived ? c.is_archived : !c.is_archived) && !c.is_pinned).length > 0 && (
                     <>
                       <div className="text-sm font-medium text-gray-500 dark:text-gray-400 px-2">
                         Conversations
                       </div>
-                      {conversations.filter(c => !c.is_pinned).map(conv => (
+                      {conversations.filter(c => (showArchived ? c.is_archived : !c.is_archived) && !c.is_pinned).map(conv => (
                         <div
                           key={conv.id}
                           onClick={() => setCurrentConversationId(conv.id)}
@@ -868,6 +925,26 @@ function App() {
                 <>
                   <span>📌</span>
                   <span>Pin</span>
+                </>
+              )}
+            </button>
+            <button
+              onClick={() => {
+                toggleArchiveConversation(contextMenu.conversationId)
+                closeContextMenu()
+              }}
+              className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700
+                flex items-center gap-2"
+            >
+              {conversations.find(c => c.id === contextMenu.conversationId)?.is_archived ? (
+                <>
+                  <span>📤</span>
+                  <span>Unarchive</span>
+                </>
+              ) : (
+                <>
+                  <span>📦</span>
+                  <span>Archive</span>
                 </>
               )}
             </button>

@@ -225,7 +225,7 @@
       "Step 5: Navigate to archived conversations view",
       "Step 6: Verify the conversation appears there"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
