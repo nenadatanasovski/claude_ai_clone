@@ -443,7 +443,7 @@
       "Step 5: Verify the older content is displayed",
       "Step 6: Switch back to the latest version"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",

@@ -89,6 +89,8 @@ function App() {
   const [editedArtifactContent, setEditedArtifactContent] = useState('')
   const [showRepromptModal, setShowRepromptModal] = useState(false)
   const [repromptInstruction, setRepromptInstruction] = useState('')
+  const [artifactVersions, setArtifactVersions] = useState([])
+  const [showVersionSelector, setShowVersionSelector] = useState(false)
   const messagesEndRef = useRef(null)
   const chatContainerRef = useRef(null)
   const textareaRef = useRef(null)
@@ -204,6 +206,15 @@ function App() {
       }
     }
   }, [isProjectDropdownOpen])
+
+  // Fetch artifact versions when current artifact changes
+  useEffect(() => {
+    if (currentArtifact && currentArtifact.id) {
+      fetchArtifactVersions(currentArtifact.id)
+    } else {
+      setArtifactVersions([])
+    }
+  }, [currentArtifact])
 
   const loadConversations = async (searchTerm = '') => {
     try {
@@ -437,6 +448,29 @@ function App() {
 
       sendRepromptMessage()
     }, 50)
+  }
+
+  // Fetch artifact versions
+  const fetchArtifactVersions = async (artifactId) => {
+    try {
+      const response = await fetch(`http://localhost:3001/api/artifacts/${artifactId}/versions`)
+      if (response.ok) {
+        const versions = await response.json()
+        setArtifactVersions(versions)
+      } else {
+        console.error('Failed to fetch artifact versions')
+        setArtifactVersions([])
+      }
+    } catch (error) {
+      console.error('Error fetching artifact versions:', error)
+      setArtifactVersions([])
+    }
+  }
+
+  // Switch to a different artifact version
+  const switchToVersion = (versionArtifact) => {
+    setCurrentArtifact(versionArtifact)
+    setShowVersionSelector(false)
   }
 
   const toggleFolder = (folderId) => {
@@ -1848,7 +1882,47 @@ function App() {
 
               {/* Artifact Title */}
               <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-800">
-                <div className="text-sm font-semibold">{currentArtifact.title}</div>
+                <div className="flex items-center justify-between">
+                  <div className="text-sm font-semibold">{currentArtifact.title}</div>
+                  {artifactVersions.length > 1 && (
+                    <div className="relative">
+                      <button
+                        onClick={() => setShowVersionSelector(!showVersionSelector)}
+                        className="flex items-center gap-1 px-2 py-1 text-xs bg-gray-100 dark:bg-gray-800
+                          hover:bg-gray-200 dark:hover:bg-gray-700 rounded transition-colors"
+                      >
+                        <span>v{currentArtifact.version || 1}</span>
+                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        </svg>
+                      </button>
+                      {showVersionSelector && (
+                        <div className="absolute right-0 mt-1 w-48 bg-white dark:bg-gray-800 border border-gray-200
+                          dark:border-gray-700 rounded-lg shadow-lg z-50 max-h-60 overflow-y-auto">
+                          <div className="py-1">
+                            {artifactVersions.map((version) => (
+                              <button
+                                key={version.id}
+                                onClick={() => switchToVersion(version)}
+                                className={`w-full px-3 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700
+                                  transition-colors flex items-center justify-between ${
+                                  version.id === currentArtifact.id ? 'bg-gray-50 dark:bg-gray-750' : ''
+                                }`}
+                              >
+                                <span>Version {version.version}</span>
+                                {version.id === currentArtifact.id && (
+                                  <svg className="w-4 h-4 text-[#CC785C]" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                  </svg>
+                                )}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
                 <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                   {currentArtifact.language} • {currentArtifact.type}
                 </div>

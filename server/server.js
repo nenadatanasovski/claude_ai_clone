@@ -1156,7 +1156,7 @@ app.get('/api/artifacts/:id', (req, res) => {
   }
 });
 
-// PUT update artifact content
+// PUT update artifact content - creates a new version
 app.put('/api/artifacts/:id', (req, res) => {
   try {
     const { id } = req.params;
@@ -1172,19 +1172,61 @@ app.put('/api/artifacts/:id', (req, res) => {
       return res.status(404).json({ error: 'Artifact not found' });
     }
 
-    // Update the artifact content and updated_at timestamp
-    dbHelpers.prepare(`
-      UPDATE artifacts
-      SET content = ?, updated_at = CURRENT_TIMESTAMP
-      WHERE id = ?
-    `).run(content, id);
+    // Get the maximum version for this artifact identifier
+    const maxVersionResult = dbHelpers.prepare(`
+      SELECT MAX(version) as max_version
+      FROM artifacts
+      WHERE identifier = ?
+    `).get(artifact.identifier);
 
-    // Return the updated artifact
-    const updatedArtifact = dbHelpers.prepare('SELECT * FROM artifacts WHERE id = ?').get(id);
-    res.json(updatedArtifact);
+    const newVersion = (maxVersionResult?.max_version || 0) + 1;
+
+    // Create a new artifact record with incremented version
+    const result = dbHelpers.prepare(`
+      INSERT INTO artifacts (message_id, conversation_id, type, title, identifier, language, content, version)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(
+      artifact.message_id,
+      artifact.conversation_id,
+      artifact.type,
+      artifact.title,
+      artifact.identifier,
+      artifact.language,
+      content,
+      newVersion
+    );
+
+    // Return the newly created artifact version
+    const newArtifact = dbHelpers.prepare('SELECT * FROM artifacts WHERE id = ?').get(result.lastInsertRowid);
+    res.json(newArtifact);
   } catch (error) {
     console.error('Error updating artifact:', error);
     res.status(500).json({ error: 'Failed to update artifact' });
+  }
+});
+
+// GET all versions of an artifact by identifier
+app.get('/api/artifacts/:id/versions', (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // First get the artifact to find its identifier
+    const artifact = dbHelpers.prepare('SELECT * FROM artifacts WHERE id = ?').get(id);
+    if (!artifact) {
+      return res.status(404).json({ error: 'Artifact not found' });
+    }
+
+    // Get all versions with this identifier
+    const versions = dbHelpers.prepare(`
+      SELECT * FROM artifacts
+      WHERE identifier = ?
+      ORDER BY version ASC
+    `).all(artifact.identifier);
+
+    res.json(versions);
+  } catch (error) {
+    console.error('Error fetching artifact versions:', error);
+    res.status(500).json({ error: 'Failed to fetch artifact versions' });
   }
 });
 
