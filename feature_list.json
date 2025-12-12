@@ -505,7 +505,7 @@
       "Step 3: Click the remove button",
       "Step 4: Verify the image is removed from the input area"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
