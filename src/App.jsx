@@ -285,6 +285,42 @@ function App() {
     setExpandedFolders(newExpanded)
   }
 
+  const deleteFolder = async (folderId) => {
+    // Show confirmation dialog
+    const confirmed = window.confirm('Are you sure you want to delete this folder? Conversations inside will be moved back to the main list.')
+
+    if (!confirmed) {
+      return
+    }
+
+    try {
+      const response = await fetch(`${API_BASE}/folders/${folderId}`, {
+        method: 'DELETE'
+      })
+
+      if (response.ok) {
+        // Remove from local state
+        setFolders(folders.filter(f => f.id !== folderId))
+
+        // Remove folder from expanded set
+        const newExpanded = new Set(expandedFolders)
+        newExpanded.delete(folderId)
+        setExpandedFolders(newExpanded)
+
+        // Clear folder conversations mapping
+        const newFolderConvs = { ...folderConversations }
+        delete newFolderConvs[folderId]
+        setFolderConversations(newFolderConvs)
+
+        // Reload conversations to show the ones that were in the folder
+        loadConversations()
+      }
+    } catch (error) {
+      console.error('Error deleting folder:', error)
+      alert('Failed to delete folder. Please try again.')
+    }
+  }
+
   const handleDragStart = (e, conversationId) => {
     setDraggedConversationId(conversationId)
     e.dataTransfer.effectAllowed = 'move'
@@ -892,6 +928,17 @@ function App() {
     })
   }
 
+  const handleFolderContextMenu = (e, folderId) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setContextMenuType('folder')
+    setContextMenu({
+      folderId,
+      x: e.clientX,
+      y: e.clientY
+    })
+  }
+
   const closeContextMenu = () => {
     setContextMenu(null)
     setContextMenuType('conversation')
@@ -1292,6 +1339,7 @@ function App() {
                     <div key={folder.id} className="mb-1">
                       <div
                         onClick={() => toggleFolder(folder.id)}
+                        onContextMenu={(e) => handleFolderContextMenu(e, folder.id)}
                         onDragOver={handleDragOver}
                         onDrop={(e) => handleDropOnFolder(e, folder.id)}
                         className="px-2 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800
@@ -1499,6 +1547,18 @@ function App() {
               >
                 <span>📁</span>
                 <span>New Folder</span>
+              </button>
+            ) : contextMenuType === 'folder' ? (
+              <button
+                onClick={() => {
+                  deleteFolder(contextMenu.folderId)
+                  closeContextMenu()
+                }}
+                className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700
+                  text-red-600 dark:text-red-400 flex items-center gap-2"
+              >
+                <span>🗑️</span>
+                <span>Delete</span>
               </button>
             ) : (
               <>

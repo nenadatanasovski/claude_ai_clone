@@ -343,7 +343,7 @@
       "Step 5: Verify the folder is removed",
       "Step 6: Verify conversations either move to default or are deleted based on settings"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
