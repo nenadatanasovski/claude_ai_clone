@@ -13,8 +13,8 @@
   "license": "MIT",
   "dependencies": {
     "express": "^4.21.2",
-    "better-sqlite3": "^11.8.1",
-    "@anthropic-ai/sdk": "^0.34.1",
+    "sql.js": "^1.10.3",
+    "@anthropic-ai/sdk": "^0.27.0",
     "cors": "^2.8.5",
     "dotenv": "^16.4.7"
   },

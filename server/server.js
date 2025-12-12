@@ -3,7 +3,8 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
-import Database from 'better-sqlite3';
+import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'fs';
+import initSqlJs from 'sql.js';
 import Anthropic from '@anthropic-ai/sdk';
 
 // Load environment variables
@@ -19,10 +20,70 @@ app.use(express.urlencoded({ extended: true }));
 
 // Initialize database
 const dbPath = join(dirname(fileURLToPath(import.meta.url)), 'data', 'claude.db');
-const db = new Database(dbPath);
+const dataDir = dirname(dbPath);
+
+// Ensure data directory exists
+if (!existsSync(dataDir)) {
+  mkdirSync(dataDir, { recursive: true });
+}
+
+let db;
+const SQL = await initSqlJs();
+
+// Load or create database
+if (existsSync(dbPath)) {
+  const buffer = readFileSync(dbPath);
+  db = new SQL.Database(buffer);
+} else {
+  db = new SQL.Database();
+}
+
+// Helper function to save database
+function saveDatabase() {
+  const data = db.export();
+  const buffer = Buffer.from(data);
+  writeFileSync(dbPath, buffer);
+}
+
+// Helper functions for sql.js compatibility
+const dbHelpers = {
+  prepare: (sql) => ({
+    run: (...params) => {
+      db.run(sql, params);
+      saveDatabase();
+      return { lastInsertRowid: db.exec('SELECT last_insert_rowid()')[0]?.values[0]?.[0] };
+    },
+    get: (...params) => {
+      const result = db.exec(sql, params);
+      if (result.length === 0) return null;
+      const row = result[0];
+      const obj = {};
+      row.columns.forEach((col, i) => {
+        obj[col] = row.values[0]?.[i];
+      });
+      return obj;
+    },
+    all: (...params) => {
+      const result = db.exec(sql, params);
+      if (result.length === 0) return [];
+      const row = result[0];
+      return row.values.map(values => {
+        const obj = {};
+        row.columns.forEach((col, i) => {
+          obj[col] = values[i];
+        });
+        return obj;
+      });
+    }
+  }),
+  exec: (sql) => {
+    db.run(sql);
+    saveDatabase();
+  }
+};
 
 // Initialize database schema
-db.exec(`
+dbHelpers.exec(`
   CREATE TABLE IF NOT EXISTS users (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     email TEXT UNIQUE,
@@ -174,9 +235,9 @@ db.exec(`
 `);
 
 // Create a default user if none exists
-const userCount = db.prepare('SELECT COUNT(*) as count FROM users').get();
-if (userCount.count === 0) {
-  db.prepare(`
+const userCount = dbHelpers.prepare('SELECT COUNT(*) as count FROM users').get();
+if (userCount && userCount.count === 0) {
+  dbHelpers.prepare(`
     INSERT INTO users (email, name, preferences, custom_instructions)
     VALUES (?, ?, ?, ?)
   `).run('user@example.com', 'Default User', '{}', '');
@@ -206,7 +267,7 @@ app.get('/api/health', (req, res) => {
 // Get all conversations
 app.get('/api/conversations', (req, res) => {
   try {
-    const conversations = db.prepare(`
+    const conversations = dbHelpers.prepare(`
       SELECT * FROM conversations
       WHERE is_deleted = 0
       ORDER BY last_message_at DESC, created_at DESC
@@ -224,12 +285,12 @@ app.post('/api/conversations', (req, res) => {
   try {
     const { title, model, project_id } = req.body;
 
-    const result = db.prepare(`
+    const result = dbHelpers.prepare(`
       INSERT INTO conversations (user_id, title, model, project_id, last_message_at)
       VALUES (1, ?, ?, ?, CURRENT_TIMESTAMP)
     `).run(title || 'New Conversation', model || 'claude-sonnet-4-20250514', project_id || null);
 
-    const conversation = db.prepare('SELECT * FROM conversations WHERE id = ?').get(result.lastInsertRowid);
+    const conversation = dbHelpers.prepare('SELECT * FROM conversations WHERE id = ?').get(result.lastInsertRowid);
 
     res.json(conversation);
   } catch (error) {
@@ -241,7 +302,7 @@ app.post('/api/conversations', (req, res) => {
 // Get conversation by ID
 app.get('/api/conversations/:id', (req, res) => {
   try {
-    const conversation = db.prepare('SELECT * FROM conversations WHERE id = ?').get(req.params.id);
+    const conversation = dbHelpers.prepare('SELECT * FROM conversations WHERE id = ?').get(req.params.id);
 
     if (!conversation) {
       return res.status(404).json({ error: 'Conversation not found' });
@@ -257,7 +318,7 @@ app.get('/api/conversations/:id', (req, res) => {
 // Get messages for a conversation
 app.get('/api/conversations/:id/messages', (req, res) => {
   try {
-    const messages = db.prepare(`
+    const messages = dbHelpers.prepare(`
       SELECT * FROM messages
       WHERE conversation_id = ?
       ORDER BY created_at ASC
@@ -277,32 +338,32 @@ app.post('/api/conversations/:id/messages', async (req, res) => {
     const conversationId = req.params.id;
 
     // Get conversation details
-    const conversation = db.prepare('SELECT * FROM conversations WHERE id = ?').get(conversationId);
+    const conversation = dbHelpers.prepare('SELECT * FROM conversations WHERE id = ?').get(conversationId);
     if (!conversation) {
       return res.status(404).json({ error: 'Conversation not found' });
     }
 
     // Save user message
-    const userMessageResult = db.prepare(`
+    const userMessageResult = dbHelpers.prepare(`
       INSERT INTO messages (conversation_id, role, content, images)
       VALUES (?, ?, ?, ?)
     `).run(conversationId, role, content, images ? JSON.stringify(images) : null);
 
-    const userMessage = db.prepare('SELECT * FROM messages WHERE id = ?').get(userMessageResult.lastInsertRowid);
+    const userMessage = dbHelpers.prepare('SELECT * FROM messages WHERE id = ?').get(userMessageResult.lastInsertRowid);
 
     // If no Anthropic client, return mock response
     if (!anthropic) {
       const mockResponse = "I'm a mock response. Please configure your Anthropic API key to get real responses.";
 
-      const assistantMessageResult = db.prepare(`
+      const assistantMessageResult = dbHelpers.prepare(`
         INSERT INTO messages (conversation_id, role, content, tokens)
         VALUES (?, ?, ?, ?)
       `).run(conversationId, 'assistant', mockResponse, 50);
 
-      const assistantMessage = db.prepare('SELECT * FROM messages WHERE id = ?').get(assistantMessageResult.lastInsertRowid);
+      const assistantMessage = dbHelpers.prepare('SELECT * FROM messages WHERE id = ?').get(assistantMessageResult.lastInsertRowid);
 
       // Update conversation
-      db.prepare(`
+      dbHelpers.prepare(`
         UPDATE conversations
         SET last_message_at = CURRENT_TIMESTAMP,
             message_count = message_count + 2,
@@ -317,7 +378,7 @@ app.post('/api/conversations/:id/messages', async (req, res) => {
     }
 
     // Get conversation history
-    const history = db.prepare(`
+    const history = dbHelpers.prepare(`
       SELECT role, content FROM messages
       WHERE conversation_id = ?
       ORDER BY created_at ASC
@@ -352,13 +413,13 @@ app.post('/api/conversations/:id/messages', async (req, res) => {
     }
 
     // Save assistant message
-    const assistantMessageResult = db.prepare(`
+    const assistantMessageResult = dbHelpers.prepare(`
       INSERT INTO messages (conversation_id, role, content, tokens)
       VALUES (?, ?, ?, ?)
     `).run(conversationId, 'assistant', fullResponse, fullResponse.length);
 
     // Update conversation
-    db.prepare(`
+    dbHelpers.prepare(`
       UPDATE conversations
       SET last_message_at = CURRENT_TIMESTAMP,
           message_count = message_count + 2,
@@ -399,14 +460,14 @@ app.put('/api/conversations/:id', (req, res) => {
       updates.push('updated_at = CURRENT_TIMESTAMP');
       values.push(req.params.id);
 
-      db.prepare(`
+      dbHelpers.prepare(`
         UPDATE conversations
         SET ${updates.join(', ')}
         WHERE id = ?
       `).run(...values);
     }
 
-    const conversation = db.prepare('SELECT * FROM conversations WHERE id = ?').get(req.params.id);
+    const conversation = dbHelpers.prepare('SELECT * FROM conversations WHERE id = ?').get(req.params.id);
     res.json(conversation);
   } catch (error) {
     console.error('Error updating conversation:', error);
@@ -417,7 +478,7 @@ app.put('/api/conversations/:id', (req, res) => {
 // Delete conversation (soft delete)
 app.delete('/api/conversations/:id', (req, res) => {
   try {
-    db.prepare('UPDATE conversations SET is_deleted = 1 WHERE id = ?').run(req.params.id);
+    dbHelpers.prepare('UPDATE conversations SET is_deleted = 1 WHERE id = ?').run(req.params.id);
     res.json({ success: true });
   } catch (error) {
     console.error('Error deleting conversation:', error);
@@ -426,7 +487,7 @@ app.delete('/api/conversations/:id', (req, res) => {
 });
 
 // Export database instance for other modules
-export { db };
+export { db, dbHelpers };
 
 // Start server
 app.listen(PORT, () => {
