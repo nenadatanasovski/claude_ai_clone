@@ -584,8 +584,9 @@ function App() {
                     </button>
                   )}
                 </div>
-                <div className="mt-2 text-xs text-gray-500 dark:text-gray-400 text-center">
-                  Press Enter to send, Shift+Enter for new line
+                <div className="mt-2 flex justify-between items-center text-xs text-gray-500 dark:text-gray-400">
+                  <span>Press Enter to send, Shift+Enter for new line</span>
+                  <span className="font-medium">{inputValue.length} characters</span>
                 </div>
               </div>
             </div>
