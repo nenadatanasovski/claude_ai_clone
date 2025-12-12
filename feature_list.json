@@ -494,7 +494,7 @@
       "Step 4: Send the message",
       "Step 5: Verify all images are included in the message"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
