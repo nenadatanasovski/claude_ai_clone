@@ -110,7 +110,7 @@
       "Step 4: Verify italic text is rendered with font-style: italic",
       "Step 5: Verify links are clickable and properly styled"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
