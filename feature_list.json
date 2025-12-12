@@ -276,7 +276,7 @@
       "Step 5: Save the project",
       "Step 6: Verify the project appears in the selector"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",

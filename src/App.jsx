@@ -62,6 +62,13 @@ function App() {
   const [showArchived, setShowArchived] = useState(false)
   const [showExportModal, setShowExportModal] = useState(false)
   const [exportConversationId, setExportConversationId] = useState(null)
+  const [projects, setProjects] = useState([])
+  const [currentProjectId, setCurrentProjectId] = useState(null)
+  const [isProjectDropdownOpen, setIsProjectDropdownOpen] = useState(false)
+  const [showProjectModal, setShowProjectModal] = useState(false)
+  const [newProjectName, setNewProjectName] = useState('')
+  const [newProjectDescription, setNewProjectDescription] = useState('')
+  const [newProjectColor, setNewProjectColor] = useState('#CC785C')
   const messagesEndRef = useRef(null)
   const chatContainerRef = useRef(null)
   const textareaRef = useRef(null)
@@ -70,6 +77,7 @@ function App() {
   const abortControllerRef = useRef(null)
   const modelDropdownRef = useRef(null)
   const contextMenuRef = useRef(null)
+  const projectDropdownRef = useRef(null)
 
   // Model options
   const models = [
@@ -101,9 +109,10 @@ function App() {
     }
   }, [isModelDropdownOpen])
 
-  // Load conversations on mount
+  // Load conversations and projects on mount
   useEffect(() => {
     loadConversations()
+    loadProjects()
   }, [])
 
   // Load messages when conversation changes
@@ -146,6 +155,22 @@ function App() {
     }
   }, [contextMenu])
 
+  // Close project dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (projectDropdownRef.current && !projectDropdownRef.current.contains(event.target)) {
+        setIsProjectDropdownOpen(false)
+      }
+    }
+
+    if (isProjectDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside)
+      return () => {
+        document.removeEventListener('mousedown', handleClickOutside)
+      }
+    }
+  }, [isProjectDropdownOpen])
+
   const loadConversations = async (searchTerm = '') => {
     try {
       let url = `${API_BASE}/conversations`
@@ -175,6 +200,44 @@ function App() {
       setMessages(data)
     } catch (error) {
       console.error('Error loading messages:', error)
+    }
+  }
+
+  const loadProjects = async () => {
+    try {
+      const response = await fetch(`${API_BASE}/projects`)
+      const data = await response.json()
+      setProjects(data)
+    } catch (error) {
+      console.error('Error loading projects:', error)
+    }
+  }
+
+  const createProject = async () => {
+    if (!newProjectName.trim()) {
+      alert('Please enter a project name')
+      return
+    }
+
+    try {
+      const response = await fetch(`${API_BASE}/projects`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: newProjectName,
+          description: newProjectDescription,
+          color: newProjectColor
+        })
+      })
+      const project = await response.json()
+      setProjects([...projects, project])
+      setCurrentProjectId(project.id)
+      setShowProjectModal(false)
+      setNewProjectName('')
+      setNewProjectDescription('')
+      setNewProjectColor('#CC785C')
+    } catch (error) {
+      console.error('Error creating project:', error)
     }
   }
 
@@ -632,63 +695,147 @@ function App() {
           <div className="flex items-center justify-between">
             <h1 className="text-xl font-semibold">Claude</h1>
 
-            {/* Model Selector */}
-            <div className="relative" ref={modelDropdownRef}>
-              <button
-                type="button"
-                onClick={() => setIsModelDropdownOpen(!isModelDropdownOpen)}
-                className="px-3 py-1.5 rounded-lg border border-gray-300 dark:border-gray-700
-                  hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors flex items-center gap-2"
-              >
-                <span className="text-sm font-medium">
-                  {models.find(m => m.id === selectedModel)?.name || 'Select Model'}
-                </span>
-                <svg
-                  className={`w-4 h-4 transition-transform ${isModelDropdownOpen ? 'rotate-180' : ''}`}
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
+            <div className="flex items-center gap-3">
+              {/* Project Selector */}
+              <div className="relative" ref={projectDropdownRef}>
+                <button
+                  type="button"
+                  onClick={() => setIsProjectDropdownOpen(!isProjectDropdownOpen)}
+                  className="px-3 py-1.5 rounded-lg border border-gray-300 dark:border-gray-700
+                    hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors flex items-center gap-2"
                 >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                </svg>
-              </button>
+                  <span className="text-sm font-medium">
+                    {currentProjectId ? (projects.find(p => p.id === currentProjectId)?.name || 'All Conversations') : 'All Conversations'}
+                  </span>
+                  <svg
+                    className={`w-4 h-4 transition-transform ${isProjectDropdownOpen ? 'rotate-180' : ''}`}
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
 
-              {/* Dropdown Menu */}
-              {isModelDropdownOpen && (
-                <div className="absolute top-full right-0 mt-2 w-72 bg-white dark:bg-gray-800
-                  border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-50">
-                  {models.map((model) => (
+                {/* Project Dropdown Menu */}
+                {isProjectDropdownOpen && (
+                  <div className="absolute top-full left-0 mt-2 w-64 bg-white dark:bg-gray-800
+                    border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-50">
                     <button
-                      key={model.id}
                       type="button"
                       onClick={() => {
-                        setSelectedModel(model.id)
-                        setIsModelDropdownOpen(false)
-                        updateConversationModel(currentConversationId, model.id)
+                        setCurrentProjectId(null)
+                        setIsProjectDropdownOpen(false)
                       }}
                       className={`w-full text-left px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700
-                        transition-colors first:rounded-t-lg last:rounded-b-lg ${
-                        selectedModel === model.id ? 'bg-gray-50 dark:bg-gray-700' : ''
+                        transition-colors first:rounded-t-lg ${
+                        currentProjectId === null ? 'bg-gray-50 dark:bg-gray-700' : ''
                       }`}
                     >
-                      <div className="font-medium text-sm">{model.name}</div>
+                      <div className="font-medium text-sm">All Conversations</div>
                       <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                        {model.description}
+                        View all your conversations
                       </div>
                     </button>
-                  ))}
-                </div>
-              )}
-            </div>
+                    {projects.map((project) => (
+                      <button
+                        key={project.id}
+                        type="button"
+                        onClick={() => {
+                          setCurrentProjectId(project.id)
+                          setIsProjectDropdownOpen(false)
+                        }}
+                        className={`w-full text-left px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700
+                          transition-colors ${
+                          currentProjectId === project.id ? 'bg-gray-50 dark:bg-gray-700' : ''
+                        }`}
+                      >
+                        <div className="flex items-center gap-2">
+                          <div className="w-3 h-3 rounded-full" style={{ backgroundColor: project.color || '#CC785C' }}></div>
+                          <div className="font-medium text-sm">{project.name}</div>
+                        </div>
+                        {project.description && (
+                          <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 ml-5">
+                            {project.description}
+                          </div>
+                        )}
+                      </button>
+                    ))}
+                    <div className="border-t border-gray-200 dark:border-gray-700">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowProjectModal(true)
+                          setIsProjectDropdownOpen(false)
+                        }}
+                        className="w-full text-left px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700
+                          transition-colors last:rounded-b-lg text-claude-orange font-medium text-sm"
+                      >
+                        + New Project
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
 
-            <button
-              type="button"
-              onClick={() => setIsDark(!isDark)}
-              className="px-3 py-1.5 rounded-lg border border-gray-300 dark:border-gray-700
-                hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-            >
-              {isDark ? '☀️' : '🌙'}Dark
-            </button>
+              {/* Model Selector */}
+              <div className="relative" ref={modelDropdownRef}>
+                <button
+                  type="button"
+                  onClick={() => setIsModelDropdownOpen(!isModelDropdownOpen)}
+                  className="px-3 py-1.5 rounded-lg border border-gray-300 dark:border-gray-700
+                    hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors flex items-center gap-2"
+                >
+                  <span className="text-sm font-medium">
+                    {models.find(m => m.id === selectedModel)?.name || 'Select Model'}
+                  </span>
+                  <svg
+                    className={`w-4 h-4 transition-transform ${isProjectDropdownOpen ? 'rotate-180' : ''}`}
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+
+                {/* Dropdown Menu */}
+                {isModelDropdownOpen && (
+                  <div className="absolute top-full right-0 mt-2 w-72 bg-white dark:bg-gray-800
+                    border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-50">
+                    {models.map((model) => (
+                      <button
+                        key={model.id}
+                        type="button"
+                        onClick={() => {
+                          setSelectedModel(model.id)
+                          setIsModelDropdownOpen(false)
+                          updateConversationModel(currentConversationId, model.id)
+                        }}
+                        className={`w-full text-left px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700
+                          transition-colors first:rounded-t-lg last:rounded-b-lg ${
+                          selectedModel === model.id ? 'bg-gray-50 dark:bg-gray-700' : ''
+                        }`}
+                      >
+                        <div className="font-medium text-sm">{model.name}</div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                          {model.description}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setIsDark(!isDark)}
+                className="px-3 py-1.5 rounded-lg border border-gray-300 dark:border-gray-700
+                  hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+              >
+                {isDark ? '☀️' : '🌙'}Dark
+              </button>
+            </div>
           </div>
         </header>
 
@@ -1163,6 +1310,84 @@ function App() {
               >
                 Cancel
               </button>
+            </div>
+          </div>
+        )}
+
+        {/* Project Modal */}
+        {showProjectModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md w-full mx-4">
+              <h2 className="text-xl font-semibold mb-4">Create New Project</h2>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium mb-2">
+                    Project Name <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={newProjectName}
+                    onChange={(e) => setNewProjectName(e.target.value)}
+                    placeholder="Enter project name..."
+                    className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-700
+                      bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100
+                      focus:outline-none focus:ring-2 focus:ring-claude-orange"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-2">
+                    Description (optional)
+                  </label>
+                  <textarea
+                    value={newProjectDescription}
+                    onChange={(e) => setNewProjectDescription(e.target.value)}
+                    placeholder="Add a description..."
+                    rows={3}
+                    className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-700
+                      bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100
+                      focus:outline-none focus:ring-2 focus:ring-claude-orange resize-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-2">
+                    Color
+                  </label>
+                  <div className="flex gap-2">
+                    {['#CC785C', '#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899'].map(color => (
+                      <button
+                        key={color}
+                        type="button"
+                        onClick={() => setNewProjectColor(color)}
+                        className={`w-8 h-8 rounded-full transition-transform ${
+                          newProjectColor === color ? 'ring-2 ring-offset-2 ring-gray-400 dark:ring-gray-600 scale-110' : ''
+                        }`}
+                        style={{ backgroundColor: color }}
+                      />
+                    ))}
+                  </div>
+                </div>
+              </div>
+              <div className="flex gap-3 mt-6">
+                <button
+                  onClick={() => {
+                    setShowProjectModal(false)
+                    setNewProjectName('')
+                    setNewProjectDescription('')
+                    setNewProjectColor('#CC785C')
+                  }}
+                  className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600
+                    rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={createProject}
+                  className="flex-1 px-4 py-2 bg-claude-orange hover:bg-claude-orange-hover
+                    text-white rounded-lg transition-colors"
+                >
+                  Create Project
+                </button>
+              </div>
             </div>
           </div>
         )}
