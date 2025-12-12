@@ -199,7 +199,7 @@
       "Step 4: Click the conversation",
       "Step 5: Verify it opens with the correct content"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",

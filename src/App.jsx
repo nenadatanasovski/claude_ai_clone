@@ -110,6 +110,11 @@ function App() {
     }
   }, [currentConversationId])
 
+  // Search conversations when search query changes
+  useEffect(() => {
+    loadConversations(searchQuery)
+  }, [searchQuery])
+
   // Auto-resize textarea based on content
   useEffect(() => {
     const textarea = textareaRef.current
@@ -122,9 +127,13 @@ function App() {
     }
   }, [inputValue])
 
-  const loadConversations = async () => {
+  const loadConversations = async (searchTerm = '') => {
     try {
-      const response = await fetch(`${API_BASE}/conversations`)
+      let url = `${API_BASE}/conversations`
+      if (searchTerm && searchTerm.trim() !== '') {
+        url = `${API_BASE}/search/conversations?q=${encodeURIComponent(searchTerm)}`
+      }
+      const response = await fetch(url)
       const data = await response.json()
       setConversations(data)
     } catch (error) {
@@ -403,11 +412,6 @@ function App() {
     }
   }
 
-  // Filter conversations based on search query
-  const filteredConversations = conversations.filter(conv =>
-    conv.title.toLowerCase().includes(searchQuery.toLowerCase())
-  )
-
   return (
     <div className={isDark ? 'dark' : ''}>
       <div className="min-h-screen bg-white dark:bg-[#1A1A1A] text-gray-900 dark:text-gray-100">
@@ -509,7 +513,7 @@ function App() {
                   <div className="text-sm font-medium text-gray-500 dark:text-gray-400 px-2">
                     Conversations
                   </div>
-                  {filteredConversations.map(conv => (
+                  {conversations.map(conv => (
                     <div
                       key={conv.id}
                       onClick={() => setCurrentConversationId(conv.id)}

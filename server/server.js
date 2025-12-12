@@ -573,6 +573,43 @@ app.delete('/api/conversations/:id', (req, res) => {
   }
 });
 
+// Search conversations by title and content
+app.get('/api/search/conversations', (req, res) => {
+  try {
+    const { q } = req.query;
+
+    if (!q || q.trim() === '') {
+      // Return all conversations if no search query
+      const conversations = dbHelpers.prepare(`
+        SELECT * FROM conversations
+        WHERE is_deleted = 0
+        ORDER BY last_message_at DESC, created_at DESC
+      `).all();
+      return res.json(conversations);
+    }
+
+    const searchTerm = `%${q.toLowerCase()}%`;
+
+    // Search in both conversation titles and message content
+    const conversations = dbHelpers.prepare(`
+      SELECT DISTINCT c.*
+      FROM conversations c
+      LEFT JOIN messages m ON m.conversation_id = c.id
+      WHERE c.is_deleted = 0
+        AND (
+          LOWER(c.title) LIKE ?
+          OR LOWER(m.content) LIKE ?
+        )
+      ORDER BY c.last_message_at DESC, c.created_at DESC
+    `).all(searchTerm, searchTerm);
+
+    res.json(conversations);
+  } catch (error) {
+    console.error('Error searching conversations:', error);
+    res.status(500).json({ error: 'Failed to search conversations' });
+  }
+});
+
 // Export database instance for other modules
 export { db, dbHelpers };
 
