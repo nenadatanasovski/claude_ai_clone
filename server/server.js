@@ -1672,6 +1672,88 @@ app.get('/api/conversations/:id/shares', (req, res) => {
   }
 });
 
+// Model pricing information (per million tokens)
+const MODEL_PRICING = {
+  'claude-sonnet-4-20250514': {
+    input: 3.00,   // $3 per million input tokens
+    output: 15.00  // $15 per million output tokens
+  },
+  'claude-haiku-4-20250305': {
+    input: 0.25,   // $0.25 per million input tokens
+    output: 1.25   // $1.25 per million output tokens
+  },
+  'claude-opus-4-20250514': {
+    input: 15.00,  // $15 per million input tokens
+    output: 75.00  // $75 per million output tokens
+  }
+};
+
+// Get conversation cost estimation
+app.get('/api/conversations/:id/cost', (req, res) => {
+  try {
+    const conversationId = parseInt(req.params.id);
+
+    // Get all usage data for this conversation
+    const usageData = dbHelpers.prepare(`
+      SELECT
+        model,
+        SUM(input_tokens) as total_input_tokens,
+        SUM(output_tokens) as total_output_tokens,
+        COUNT(*) as message_count
+      FROM usage_tracking
+      WHERE conversation_id = ?
+      GROUP BY model
+    `).all(conversationId);
+
+    // Calculate total tokens and cost
+    let totalInputTokens = 0;
+    let totalOutputTokens = 0;
+    let totalCost = 0;
+    const modelBreakdown = [];
+
+    for (const usage of usageData) {
+      const inputTokens = usage.total_input_tokens || 0;
+      const outputTokens = usage.total_output_tokens || 0;
+
+      totalInputTokens += inputTokens;
+      totalOutputTokens += outputTokens;
+
+      // Calculate cost for this model
+      const pricing = MODEL_PRICING[usage.model] || MODEL_PRICING['claude-sonnet-4-20250514'];
+      const inputCost = (inputTokens / 1000000) * pricing.input;
+      const outputCost = (outputTokens / 1000000) * pricing.output;
+      const modelCost = inputCost + outputCost;
+
+      totalCost += modelCost;
+
+      modelBreakdown.push({
+        model: usage.model,
+        input_tokens: inputTokens,
+        output_tokens: outputTokens,
+        total_tokens: inputTokens + outputTokens,
+        input_cost: inputCost,
+        output_cost: outputCost,
+        total_cost: modelCost,
+        message_count: usage.message_count
+      });
+    }
+
+    const totalTokens = totalInputTokens + totalOutputTokens;
+
+    res.json({
+      conversation_id: conversationId,
+      total_input_tokens: totalInputTokens,
+      total_output_tokens: totalOutputTokens,
+      total_tokens: totalTokens,
+      total_cost: totalCost,
+      model_breakdown: modelBreakdown
+    });
+  } catch (error) {
+    console.error('Error calculating conversation cost:', error);
+    res.status(500).json({ error: 'Failed to calculate conversation cost' });
+  }
+});
+
 // Export database instance for other modules
 export { db, dbHelpers };
 

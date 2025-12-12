@@ -242,6 +242,8 @@ function App() {
   const [messageArtifacts, setMessageArtifacts] = useState({}) // Map of message ID to artifacts array
   const [messageUsage, setMessageUsage] = useState({}) // Map of message ID to usage data
   const [expandedUsage, setExpandedUsage] = useState(new Set()) // Set of message IDs with expanded usage
+  const [showConversationCost, setShowConversationCost] = useState(false) // Show conversation cost modal
+  const [conversationCostData, setConversationCostData] = useState(null) // Conversation cost data
   const [editingMessageId, setEditingMessageId] = useState(null)
   const [editedMessageContent, setEditedMessageContent] = useState('')
   const [branches, setBranches] = useState([]) // Conversation branches
@@ -596,6 +598,21 @@ function App() {
       })
     } catch (error) {
       console.error('Error saving custom instructions:', error)
+    }
+  }
+
+  const loadConversationCost = async (conversationId) => {
+    try {
+      const response = await fetch(`${API_BASE}/conversations/${conversationId}/cost`)
+      if (response.ok) {
+        const costData = await response.json()
+        setConversationCostData(costData)
+        setShowConversationCost(true)
+      } else {
+        console.error('Failed to load conversation cost')
+      }
+    } catch (error) {
+      console.error('Error loading conversation cost:', error)
     }
   }
 
@@ -2135,6 +2152,22 @@ function App() {
                   </div>
                 )}
               </div>
+
+              {/* Conversation Stats Button */}
+              {currentConversationId && (
+                <button
+                  type="button"
+                  onClick={() => loadConversationCost(currentConversationId)}
+                  className="px-3 py-1.5 rounded-lg border border-gray-300 dark:border-gray-700
+                    hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors flex items-center gap-2"
+                  title="View conversation stats and cost"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                  </svg>
+                  <span className="text-sm">Stats</span>
+                </button>
+              )}
 
               <button
                 type="button"
@@ -4008,6 +4041,98 @@ function App() {
                     text-white rounded-lg transition-colors"
                 >
                   Done
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Conversation Cost Modal */}
+        {showConversationCost && conversationCostData && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white dark:bg-gray-900 rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[80vh] overflow-y-auto">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-2xl font-semibold">Conversation Statistics</h2>
+                <button
+                  onClick={() => setShowConversationCost(false)}
+                  className="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              {/* Total Summary */}
+              <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 mb-6">
+                <h3 className="text-lg font-semibold mb-4">Total Usage</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">Input Tokens</p>
+                    <p className="text-2xl font-bold">{conversationCostData.total_input_tokens.toLocaleString()}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">Output Tokens</p>
+                    <p className="text-2xl font-bold">{conversationCostData.total_output_tokens.toLocaleString()}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">Total Tokens</p>
+                    <p className="text-2xl font-bold">{conversationCostData.total_tokens.toLocaleString()}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">Estimated Cost</p>
+                    <p className="text-2xl font-bold text-claude-orange">
+                      ${conversationCostData.total_cost.toFixed(4)}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Model Breakdown */}
+              {conversationCostData.model_breakdown && conversationCostData.model_breakdown.length > 0 && (
+                <div>
+                  <h3 className="text-lg font-semibold mb-4">Breakdown by Model</h3>
+                  <div className="space-y-4">
+                    {conversationCostData.model_breakdown.map((modelData, index) => (
+                      <div key={index} className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                        <div className="flex justify-between items-center mb-3">
+                          <h4 className="font-medium">
+                            {models.find(m => m.id === modelData.model)?.name || modelData.model}
+                          </h4>
+                          <span className="text-sm text-gray-600 dark:text-gray-400">
+                            {modelData.message_count} {modelData.message_count === 1 ? 'message' : 'messages'}
+                          </span>
+                        </div>
+                        <div className="grid grid-cols-3 gap-3 text-sm">
+                          <div>
+                            <p className="text-gray-600 dark:text-gray-400">Input</p>
+                            <p className="font-semibold">{modelData.input_tokens.toLocaleString()}</p>
+                            <p className="text-xs text-gray-500">${modelData.input_cost.toFixed(4)}</p>
+                          </div>
+                          <div>
+                            <p className="text-gray-600 dark:text-gray-400">Output</p>
+                            <p className="font-semibold">{modelData.output_tokens.toLocaleString()}</p>
+                            <p className="text-xs text-gray-500">${modelData.output_cost.toFixed(4)}</p>
+                          </div>
+                          <div>
+                            <p className="text-gray-600 dark:text-gray-400">Total</p>
+                            <p className="font-semibold">{modelData.total_tokens.toLocaleString()}</p>
+                            <p className="text-xs text-claude-orange font-medium">${modelData.total_cost.toFixed(4)}</p>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div className="flex justify-end mt-6">
+                <button
+                  onClick={() => setShowConversationCost(false)}
+                  className="px-4 py-2 bg-claude-orange hover:bg-claude-orange-hover
+                    text-white rounded-lg transition-colors"
+                >
+                  Close
                 </button>
               </div>
             </div>
