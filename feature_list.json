@@ -678,7 +678,7 @@
       "Step 5: Try to access the link",
       "Step 6: Verify access is denied or shows error"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",

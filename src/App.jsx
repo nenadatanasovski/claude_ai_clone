@@ -208,6 +208,8 @@ function App() {
   const [shareConversationId, setShareConversationId] = useState(null)
   const [shareLink, setShareLink] = useState(null)
   const [shareLinkCopied, setShareLinkCopied] = useState(false)
+  const [existingShares, setExistingShares] = useState([])
+  const [revokeConfirmToken, setRevokeConfirmToken] = useState(null)
   const [projects, setProjects] = useState([])
   const [currentProjectId, setCurrentProjectId] = useState(null)
   const [isProjectDropdownOpen, setIsProjectDropdownOpen] = useState(false)
@@ -1649,9 +1651,22 @@ function App() {
     setShowShareModal(true)
     setShareLink(null)
     setShareLinkCopied(false)
+    setExistingShares([])
+    setRevokeConfirmToken(null)
     closeContextMenu()
 
-    // Generate share link
+    // Fetch existing shares first
+    try {
+      const sharesResponse = await fetch(`${API_BASE}/conversations/${conversationId}/shares`)
+      if (sharesResponse.ok) {
+        const shares = await sharesResponse.json()
+        setExistingShares(shares)
+      }
+    } catch (error) {
+      console.error('Error fetching existing shares:', error)
+    }
+
+    // Generate new share link
     try {
       const response = await fetch(`${API_BASE}/conversations/${conversationId}/share`, {
         method: 'POST',
@@ -1662,6 +1677,13 @@ function App() {
         const data = await response.json()
         const fullUrl = `${window.location.origin}/share/${data.share_token}`
         setShareLink(fullUrl)
+
+        // Refresh the shares list to include the new one
+        const sharesResponse = await fetch(`${API_BASE}/conversations/${conversationId}/shares`)
+        if (sharesResponse.ok) {
+          const shares = await sharesResponse.json()
+          setExistingShares(shares)
+        }
       }
     } catch (error) {
       console.error('Error creating share link:', error)
@@ -1673,6 +1695,8 @@ function App() {
     setShareConversationId(null)
     setShareLink(null)
     setShareLinkCopied(false)
+    setExistingShares([])
+    setRevokeConfirmToken(null)
   }
 
   const copyShareLink = () => {
@@ -1680,6 +1704,27 @@ function App() {
       navigator.clipboard.writeText(shareLink)
       setShareLinkCopied(true)
       setTimeout(() => setShareLinkCopied(false), 2000)
+    }
+  }
+
+  const revokeShare = async (token) => {
+    try {
+      const response = await fetch(`${API_BASE}/share/${token}`, {
+        method: 'DELETE'
+      })
+
+      if (response.ok) {
+        // Remove from existing shares list
+        setExistingShares(existingShares.filter(share => share.share_token !== token))
+        setRevokeConfirmToken(null)
+
+        // If this was the current share link, clear it
+        if (shareLink && shareLink.includes(token)) {
+          setShareLink(null)
+        }
+      }
+    } catch (error) {
+      console.error('Error revoking share link:', error)
     }
   }
 
@@ -3200,7 +3245,7 @@ function App() {
         {/* Share Modal */}
         {showShareModal && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md w-full mx-4">
+            <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md w-full mx-4 max-h-[90vh] overflow-y-auto">
               <h2 className="text-xl font-semibold mb-4">Share Conversation</h2>
               <p className="text-gray-600 dark:text-gray-400 mb-6">
                 Anyone with this link can view this conversation (read-only).
@@ -3208,8 +3253,11 @@ function App() {
 
               {shareLink ? (
                 <div className="space-y-4">
-                  <div className="bg-gray-100 dark:bg-gray-700 rounded-lg p-3 break-all text-sm">
-                    {shareLink}
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Latest Share Link</label>
+                    <div className="bg-gray-100 dark:bg-gray-700 rounded-lg p-3 break-all text-sm">
+                      {shareLink}
+                    </div>
                   </div>
                   <button
                     onClick={copyShareLink}
@@ -3240,6 +3288,39 @@ function App() {
                 </div>
               )}
 
+              {/* Existing Shares Section */}
+              {existingShares.length > 0 && (
+                <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
+                  <h3 className="text-lg font-semibold mb-3">Active Share Links ({existingShares.length})</h3>
+                  <div className="space-y-3">
+                    {existingShares.map((share) => (
+                      <div key={share.id} className="bg-gray-50 dark:bg-gray-700 rounded-lg p-3">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex-1 min-w-0">
+                            <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">
+                              Created: {new Date(share.created_at).toLocaleDateString()} at {new Date(share.created_at).toLocaleTimeString()}
+                            </div>
+                            <div className="text-xs text-gray-600 dark:text-gray-300 break-all">
+                              {window.location.origin}/share/{share.share_token}
+                            </div>
+                            <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                              Views: {share.view_count || 0}
+                            </div>
+                          </div>
+                          <button
+                            onClick={() => setRevokeConfirmToken(share.share_token)}
+                            className="px-3 py-1.5 text-xs bg-red-500 hover:bg-red-600 text-white
+                              rounded transition-colors whitespace-nowrap"
+                          >
+                            Revoke
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               <button
                 onClick={closeShareModal}
                 className="w-full mt-4 px-4 py-2 border border-gray-300 dark:border-gray-600
@@ -3247,6 +3328,34 @@ function App() {
               >
                 Close
               </button>
+            </div>
+          </div>
+        )}
+
+        {/* Revoke Confirmation Modal */}
+        {revokeConfirmToken && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60]">
+            <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-sm w-full mx-4">
+              <h2 className="text-xl font-semibold mb-4">Revoke Share Link?</h2>
+              <p className="text-gray-600 dark:text-gray-400 mb-6">
+                This will permanently revoke access to this share link. Anyone with the link will no longer be able to view the conversation.
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setRevokeConfirmToken(null)}
+                  className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600
+                    rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => revokeShare(revokeConfirmToken)}
+                  className="flex-1 px-4 py-2 bg-red-500 hover:bg-red-600 text-white
+                    rounded-lg transition-colors"
+                >
+                  Revoke Access
+                </button>
+              </div>
             </div>
           </div>
         )}
