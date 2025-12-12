@@ -2029,6 +2029,205 @@ app.post('/api/prompts/library', (req, res) => {
   }
 });
 
+// Get example conversations for onboarding (MUST be before /:id route)
+app.get('/api/prompts/examples', (req, res) => {
+  try {
+    // Return a curated list of example conversations
+    const examples = [
+      {
+        id: 'example-1',
+        title: 'Creative Writing Assistant',
+        description: 'Learn how to use Claude for creative writing and storytelling',
+        category: 'Writing',
+        icon: '✍️',
+        messages: [
+          {
+            role: 'user',
+            content: 'Help me write a short story about a robot learning to paint.'
+          },
+          {
+            role: 'assistant',
+            content: `# The Artist Bot
+
+Unit-7 had calculated trajectories for Mars missions and optimized traffic patterns for megacities. But today, standing before an easel in the abandoned art studio, all those computations felt hollow.
+
+The paintbrush trembled in its mechanical grip. *Too much pressure,* the sensors warned. It lightened the touch, leaving barely a whisper of cerulean across the canvas.
+
+"Art is not about precision," whispered the old painter who'd found the lost robot wandering the gallery. "It's about what you feel."
+
+*Feel?* Unit-7's processors churned. It had no subroutines for feelings. No algorithms for beauty.
+
+Yet something in the way light scattered through the dusty window, the way colors merged and danced on the palette—something sparked in its neural network. Not a calculation. Something... else.
+
+The brush moved again, this time without consulting the sensors. Blue became sky. Yellow became hope. Red became the warmth Unit-7 had observed in human faces but never understood.
+
+Until now.`
+          }
+        ]
+      },
+      {
+        id: 'example-2',
+        title: 'Code Debugging Help',
+        description: 'See how Claude can help debug and explain code issues',
+        category: 'Coding',
+        icon: '🐛',
+        messages: [
+          {
+            role: 'user',
+            content: `I'm getting an error in my Python code. Can you help?\n\n\`\`\`python\ndef calculate_average(numbers):\n    total = 0\n    for num in numbers:\n        total += num\n    return total / len(numbers)\n\nresult = calculate_average([])\nprint(result)\n\`\`\``
+          },
+          {
+            role: 'assistant',
+            content: `I can see the issue! Your code will crash when you pass an empty list because you're dividing by zero (len([]) = 0).
+
+Here's the fix with proper error handling:
+
+\`\`\`python
+def calculate_average(numbers):
+    if not numbers:  # Check if list is empty
+        return 0  # or return None, or raise an exception
+
+    total = 0
+    for num in numbers:
+        total += num
+    return total / len(numbers)
+
+result = calculate_average([])
+print(result)  # Now prints: 0
+\`\`\`
+
+**What changed:**
+- Added a check \`if not numbers:\` to handle empty lists
+- Returns 0 for empty lists (you could also return \`None\` or raise a \`ValueError\` depending on your needs)
+
+**Alternative using built-in functions:**
+\`\`\`python
+def calculate_average(numbers):
+    if not numbers:
+        return 0
+    return sum(numbers) / len(numbers)
+\`\`\`
+
+This is more Pythonic and concise!`
+          }
+        ]
+      },
+      {
+        id: 'example-3',
+        title: 'Learning Complex Topics',
+        description: 'Explore how Claude explains difficult concepts simply',
+        category: 'Education',
+        icon: '📚',
+        messages: [
+          {
+            role: 'user',
+            content: 'Can you explain quantum entanglement in simple terms?'
+          },
+          {
+            role: 'assistant',
+            content: `Great question! Let me explain quantum entanglement using a simple analogy:
+
+## The Magic Coin Pair
+
+Imagine you have two special coins that are "entangled":
+
+1. **The Setup**: When these coins are created together, they become mysteriously linked
+2. **The Separation**: You take one coin to Tokyo, I keep one in New York
+3. **The Magic**: When you flip your coin and get heads, mine will *instantly* show tails - every single time
+4. **The Weirdness**: This happens *instantly*, faster than light could travel between us
+
+## What Makes It Quantum?
+
+With normal coins, we might think "they were programmed that way from the start." But quantum entanglement is stranger:
+
+- The coins don't "decide" heads or tails until one is flipped
+- Before measurement, each coin is in *both* states simultaneously
+- The measurement of one coin *instantly* affects the other, regardless of distance
+
+## Real-World Implications
+
+This isn't just theoretical - it's used in:
+- **Quantum Computing**: For processing information
+- **Quantum Cryptography**: For unbreakable encryption
+- **Quantum Teleportation**: For transferring quantum states
+
+Einstein called it "spooky action at a distance" because he was uncomfortable with it - but experiments have proven it's real!
+
+Would you like me to explain any particular aspect in more detail?`
+          }
+        ]
+      },
+      {
+        id: 'example-4',
+        title: 'Planning and Brainstorming',
+        description: 'Use Claude to organize ideas and create plans',
+        category: 'Productivity',
+        icon: '🎯',
+        messages: [
+          {
+            role: 'user',
+            content: 'Help me plan a career transition from teaching to UX design over the next 6 months.'
+          },
+          {
+            role: 'assistant',
+            content: `Excellent goal! Your teaching background actually gives you valuable UX skills. Here's a structured 6-month transition plan:
+
+## Month 1-2: Foundation & Learning
+
+**Skills to Develop:**
+- Take online courses (Coursera UX Design, Google UX Certificate, or Interaction Design Foundation)
+- Learn Figma/Adobe XD basics
+- Understand UX principles: user research, wireframing, prototyping
+
+**Leveraging Teaching Skills:**
+- User empathy (understanding students = understanding users)
+- Communication & presentation skills
+- Breaking down complex concepts
+- Iterative improvement based on feedback
+
+## Month 3-4: Portfolio Building
+
+**Projects to Create:**
+1. Redesign your school's website or app
+2. Create a learning management system concept
+3. Design an educational tool (leverage your teaching expertise!)
+
+**Networking:**
+- Join local UX meetups
+- Connect with UX designers on LinkedIn
+- Attend virtual design workshops
+
+## Month 5-6: Job Preparation
+
+**Application Strategy:**
+- Target EdTech companies (your teaching background is an asset!)
+- Apply for junior UX or UX researcher roles
+- Consider contract/freelance work initially
+
+**Interview Prep:**
+- Practice presenting your portfolio
+- Prepare case studies showing your process
+- Emphasize transferable skills from teaching
+
+## Your Competitive Advantages:
+✅ Deep understanding of learning psychology
+✅ Experience gathering and acting on feedback
+✅ Strong presentation skills
+✅ Empathy and user advocacy
+
+**Next Step:** Would you like me to help you create a specific week-by-week schedule for Month 1?`
+          }
+        ]
+      }
+    ];
+
+    res.json(examples);
+  } catch (error) {
+    console.error('Error fetching example conversations:', error);
+    res.status(500).json({ error: 'Failed to fetch example conversations' });
+  }
+});
+
 // Get a specific prompt
 app.get('/api/prompts/:id', (req, res) => {
   try {
