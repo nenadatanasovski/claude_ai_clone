@@ -83,6 +83,18 @@ function App() {
     }
   }, [currentConversationId])
 
+  // Auto-resize textarea based on content
+  useEffect(() => {
+    const textarea = textareaRef.current
+    if (textarea) {
+      // Reset height to minHeight to get the correct scrollHeight
+      textarea.style.height = '52px'
+      // Calculate new height based on scrollHeight
+      const newHeight = Math.max(52, Math.min(textarea.scrollHeight, 300)) // Min 52px, Max 300px
+      textarea.style.height = `${newHeight}px`
+    }
+  }, [inputValue])
+
   const loadConversations = async () => {
     try {
       const response = await fetch(`${API_BASE}/conversations`)
@@ -525,8 +537,8 @@ function App() {
                     className="w-full px-4 py-3 pr-12 rounded-lg border border-gray-300
                       dark:border-gray-700 bg-white dark:bg-gray-900
                       focus:outline-none focus:ring-2 focus:ring-claude-orange
-                      resize-none"
-                    rows="2"
+                      resize-none overflow-hidden"
+                    style={{ minHeight: '52px' }}
                     disabled={isLoading}
                   />
                   {isStreaming ? (

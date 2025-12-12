@@ -136,7 +136,7 @@
       "Step 4: Clear the text",
       "Step 5: Verify the textarea shrinks back to original size"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
