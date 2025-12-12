@@ -573,6 +573,79 @@ app.delete('/api/conversations/:id', (req, res) => {
   }
 });
 
+// Duplicate conversation
+app.post('/api/conversations/:id/duplicate', (req, res) => {
+  try {
+    const conversationId = req.params.id;
+
+    // Get the original conversation
+    const originalConv = dbHelpers.prepare('SELECT * FROM conversations WHERE id = ?').get(conversationId);
+
+    if (!originalConv) {
+      return res.status(404).json({ error: 'Conversation not found' });
+    }
+
+    // Create new conversation with copied data
+    const newTitle = originalConv.title + ' (Copy)';
+    const now = new Date().toISOString();
+
+    const result = dbHelpers.prepare(`
+      INSERT INTO conversations (user_id, project_id, title, model, created_at, updated_at, last_message_at, is_archived, is_pinned, is_deleted, settings, token_count, message_count)
+      VALUES (?, ?, ?, ?, ?, ?, ?, 0, 0, 0, ?, 0, 0)
+    `).run(
+      originalConv.user_id,
+      originalConv.project_id,
+      newTitle,
+      originalConv.model,
+      now,
+      now,
+      now,
+      originalConv.settings
+    );
+
+    const newConversationId = result.lastInsertRowid;
+
+    // Copy all messages from the original conversation
+    const messages = dbHelpers.prepare('SELECT * FROM messages WHERE conversation_id = ? ORDER BY created_at ASC').all(conversationId);
+
+    for (const message of messages) {
+      dbHelpers.prepare(`
+        INSERT INTO messages (conversation_id, role, content, created_at, edited_at, tokens, finish_reason, images, parent_message_id)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `).run(
+        newConversationId,
+        message.role,
+        message.content,
+        message.created_at,
+        message.edited_at,
+        message.tokens,
+        message.finish_reason,
+        message.images,
+        message.parent_message_id
+      );
+    }
+
+    // Update message count and token count
+    const messageCount = messages.length;
+    const tokenCount = messages.reduce((sum, msg) => sum + (msg.tokens || 0), 0);
+
+    dbHelpers.prepare(`
+      UPDATE conversations
+      SET message_count = ?, token_count = ?
+      WHERE id = ?
+    `).run(messageCount, tokenCount, newConversationId);
+
+    saveDatabase();
+
+    // Return the new conversation
+    const newConversation = dbHelpers.prepare('SELECT * FROM conversations WHERE id = ?').get(newConversationId);
+    res.json(newConversation);
+  } catch (error) {
+    console.error('Error duplicating conversation:', error);
+    res.status(500).json({ error: 'Failed to duplicate conversation' });
+  }
+});
+
 // Search conversations by title and content
 app.get('/api/search/conversations', (req, res) => {
   try {

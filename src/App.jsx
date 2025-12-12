@@ -483,6 +483,34 @@ function App() {
     }
   }
 
+  const duplicateConversation = async (conversationId) => {
+    try {
+      const response = await fetch(`${API_BASE}/conversations/${conversationId}/duplicate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      })
+
+      if (response.ok) {
+        const newConversation = await response.json()
+
+        // Add the new conversation to the list
+        setConversations([newConversation, ...conversations])
+
+        // Optionally, switch to the new conversation
+        setCurrentConversationId(newConversation.id)
+
+        // Load messages for the new conversation
+        const messagesResponse = await fetch(`${API_BASE}/conversations/${newConversation.id}/messages`)
+        if (messagesResponse.ok) {
+          const messagesData = await messagesResponse.json()
+          setMessages(messagesData)
+        }
+      }
+    } catch (error) {
+      console.error('Error duplicating conversation:', error)
+    }
+  }
+
   const handleContextMenu = (e, conversationId) => {
     e.preventDefault()
     e.stopPropagation()
@@ -947,6 +975,17 @@ function App() {
                   <span>Archive</span>
                 </>
               )}
+            </button>
+            <button
+              onClick={() => {
+                duplicateConversation(contextMenu.conversationId)
+                closeContextMenu()
+              }}
+              className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700
+                flex items-center gap-2"
+            >
+              <span>📋</span>
+              <span>Duplicate</span>
             </button>
             <button
               onClick={() => {
