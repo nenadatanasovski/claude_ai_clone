@@ -259,6 +259,8 @@ function App() {
   const [newPromptTags, setNewPromptTags] = useState('')
   const [showExampleConversations, setShowExampleConversations] = useState(false) // Show example conversations modal
   const [exampleConversations, setExampleConversations] = useState([]) // List of example conversations
+  const [showCommandPalette, setShowCommandPalette] = useState(false) // Show command palette modal
+  const [commandPaletteQuery, setCommandPaletteQuery] = useState('') // Search query in command palette
   const [editingMessageId, setEditingMessageId] = useState(null)
   const [editedMessageContent, setEditedMessageContent] = useState('')
   const [branches, setBranches] = useState([]) // Conversation branches
@@ -299,6 +301,121 @@ function App() {
     { id: 'claude-sonnet-4-20250514', name: 'Claude Sonnet 4.5', description: 'Most capable model' },
     { id: 'claude-haiku-4-20250514', name: 'Claude Haiku 4.5', description: 'Fast and efficient' },
     { id: 'claude-opus-4-20250514', name: 'Claude Opus 4.1', description: 'Most intelligent' }
+  ]
+
+  // Command palette commands
+  const commands = [
+    {
+      id: 'new-conversation',
+      name: 'New Conversation',
+      description: 'Start a new chat',
+      icon: '💬',
+      action: () => {
+        createNewConversation()
+        setShowCommandPalette(false)
+      }
+    },
+    {
+      id: 'search-conversations',
+      name: 'Search Conversations',
+      description: 'Search through your conversations',
+      icon: '🔍',
+      action: () => {
+        setShowCommandPalette(false)
+        // Focus search input in sidebar
+        setTimeout(() => {
+          const searchInput = document.querySelector('input[placeholder="Search conversations..."]')
+          if (searchInput) searchInput.focus()
+        }, 100)
+      }
+    },
+    {
+      id: 'show-prompts',
+      name: 'Prompt Library',
+      description: 'Browse and use saved prompts',
+      icon: '📝',
+      action: () => {
+        setShowCommandPalette(false)
+        loadPromptLibrary()
+        setShowPromptLibrary(true)
+      }
+    },
+    {
+      id: 'show-examples',
+      name: 'Example Conversations',
+      description: 'Start with a pre-made conversation',
+      icon: '📚',
+      action: () => {
+        setShowCommandPalette(false)
+        loadExampleConversations()
+        setShowExampleConversations(true)
+      }
+    },
+    {
+      id: 'show-usage',
+      name: 'Usage Dashboard',
+      description: 'View token usage and costs',
+      icon: '📊',
+      action: () => {
+        setShowCommandPalette(false)
+        loadUsageDashboard()
+        setShowUsageDashboard(true)
+      }
+    },
+    {
+      id: 'show-settings',
+      name: 'Settings',
+      description: 'Customize your experience',
+      icon: '⚙️',
+      action: () => {
+        setShowCommandPalette(false)
+        setShowSettingsModal(true)
+      }
+    },
+    {
+      id: 'toggle-theme',
+      name: 'Toggle Theme',
+      description: 'Switch between light and dark mode',
+      icon: '🌓',
+      action: () => {
+        setTheme(prev => prev === 'dark' ? 'light' : 'dark')
+        setShowCommandPalette(false)
+      }
+    },
+    {
+      id: 'new-project',
+      name: 'New Project',
+      description: 'Create a new project',
+      icon: '📁',
+      action: () => {
+        setShowCommandPalette(false)
+        setShowProjectModal(true)
+      }
+    },
+    {
+      id: 'export-conversation',
+      name: 'Export Conversation',
+      description: 'Export current conversation',
+      icon: '💾',
+      action: () => {
+        if (currentConversation) {
+          setShowCommandPalette(false)
+          setShowExportModal(true)
+        }
+      }
+    },
+    {
+      id: 'share-conversation',
+      name: 'Share Conversation',
+      description: 'Share current conversation via link',
+      icon: '🔗',
+      action: () => {
+        if (currentConversation) {
+          setShowCommandPalette(false)
+          setShowShareModal(true)
+        }
+      }
+    }
   ]
 
   // Scroll to bottom when messages change
@@ -373,6 +490,26 @@ function App() {
   useEffect(() => {
     localStorage.setItem('maxTokens', maxTokens.toString())
   }, [maxTokens])
+
+  // Command palette keyboard shortcut (Cmd/Ctrl+K)
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      // Cmd+K on Mac or Ctrl+K on Windows/Linux
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault() // Prevent browser default behavior
+        setShowCommandPalette(prev => !prev) // Toggle command palette
+        setCommandPaletteQuery('') // Reset search query
+      }
+      // Also handle Escape to close command palette
+      if (e.key === 'Escape' && showCommandPalette) {
+        setShowCommandPalette(false)
+        setCommandPaletteQuery('')
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [showCommandPalette])
 
   // Reload conversations when project changes
   useEffect(() => {
@@ -4063,6 +4200,98 @@ function App() {
                 >
                   Close
                 </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Command Palette Modal */}
+        {showCommandPalette && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-start justify-center z-50 p-4 pt-20">
+            <div className="bg-white dark:bg-gray-900 rounded-lg shadow-2xl w-full max-w-2xl overflow-hidden">
+              {/* Search Input */}
+              <div className="p-4 border-b border-gray-200 dark:border-gray-800">
+                <div className="relative">
+                  <svg
+                    className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                  <input
+                    type="text"
+                    value={commandPaletteQuery}
+                    onChange={(e) => setCommandPaletteQuery(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        // Execute the first filtered command
+                        const filteredCommands = commands.filter(cmd => {
+                          const query = commandPaletteQuery.toLowerCase()
+                          return cmd.name.toLowerCase().includes(query) ||
+                                 cmd.description.toLowerCase().includes(query)
+                        })
+                        if (filteredCommands.length > 0) {
+                          filteredCommands[0].action()
+                        }
+                      }
+                    }}
+                    placeholder="Type a command or search..."
+                    className="w-full pl-10 pr-4 py-3 bg-gray-50 dark:bg-gray-800 border-none
+                      text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400
+                      focus:outline-none rounded-lg"
+                    autoFocus
+                  />
+                </div>
+              </div>
+
+              {/* Commands List */}
+              <div className="max-h-96 overflow-y-auto">
+                {commands
+                  .filter(cmd => {
+                    const query = commandPaletteQuery.toLowerCase()
+                    return cmd.name.toLowerCase().includes(query) ||
+                           cmd.description.toLowerCase().includes(query)
+                  })
+                  .map((cmd) => (
+                    <button
+                      key={cmd.id}
+                      onClick={cmd.action}
+                      className="w-full px-4 py-3 flex items-center gap-3 hover:bg-gray-100 dark:hover:bg-gray-800
+                        transition-colors text-left border-b border-gray-100 dark:border-gray-800 last:border-b-0"
+                    >
+                      <span className="text-2xl">{cmd.icon}</span>
+                      <div className="flex-1">
+                        <div className="font-medium text-gray-900 dark:text-white">
+                          {cmd.name}
+                        </div>
+                        <div className="text-sm text-gray-500 dark:text-gray-400">
+                          {cmd.description}
+                        </div>
+                      </div>
+                    </button>
+                  ))}
+
+                {commands.filter(cmd => {
+                  const query = commandPaletteQuery.toLowerCase()
+                  return cmd.name.toLowerCase().includes(query) ||
+                         cmd.description.toLowerCase().includes(query)
+                }).length === 0 && (
+                  <div className="py-12 text-center text-gray-500 dark:text-gray-400">
+                    <svg className="w-12 h-12 mx-auto mb-3 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                    <p>No commands found</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Footer Hint */}
+              <div className="px-4 py-3 bg-gray-50 dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700
+                text-xs text-gray-500 dark:text-gray-400 flex items-center justify-between">
+                <span>Press <kbd className="px-2 py-1 bg-white dark:bg-gray-900 rounded border border-gray-300 dark:border-gray-600">Esc</kbd> to close</span>
+                <span>Use <kbd className="px-2 py-1 bg-white dark:bg-gray-900 rounded border border-gray-300 dark:border-gray-600">⌘K</kbd> or <kbd className="px-2 py-1 bg-white dark:bg-gray-900 rounded border border-gray-300 dark:border-gray-600">Ctrl+K</kbd> to open</span>
               </div>
             </div>
           </div>

@@ -792,7 +792,7 @@
       "Step 4: Press Escape",
       "Step 5: Verify it closes"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -804,7 +804,7 @@
       "Step 4: Press Enter",
       "Step 5: Verify a new conversation is created"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
