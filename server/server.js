@@ -18,6 +18,12 @@ app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
+// Request logging middleware
+app.use((req, res, next) => {
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
+  next();
+});
+
 // Initialize database
 const dbPath = join(dirname(fileURLToPath(import.meta.url)), 'data', 'claude.db');
 const dataDir = dirname(dbPath);
@@ -49,9 +55,36 @@ function saveDatabase() {
 const dbHelpers = {
   prepare: (sql) => ({
     run: (...params) => {
-      db.run(sql, params);
-      saveDatabase();
-      return { lastInsertRowid: db.exec('SELECT last_insert_rowid()')[0]?.values[0]?.[0] };
+      try {
+        // Use exec instead of run to get the result properly
+        // First, bind parameters manually since exec doesn't support placeholders well
+        let boundSql = sql;
+        params.forEach((param, i) => {
+          const placeholder = '?';
+          const value = param === null ? 'NULL' : `'${String(param).replace(/'/g, "''")}'`;
+          boundSql = boundSql.replace(placeholder, value);
+        });
+
+        db.exec(boundSql);
+        saveDatabase();
+
+        // WORKAROUND: last_insert_rowid() doesn't work reliably with db.exec()
+        // Instead, get the maximum ID from the table
+        // Extract table name from SQL
+        const tableMatch = sql.match(/INSERT INTO (\w+)/i);
+        const tableName = tableMatch ? tableMatch[1] : null;
+
+        let rowid = null;
+        if (tableName) {
+          const maxIdResult = db.exec(`SELECT MAX(id) as max_id FROM ${tableName}`);
+          rowid = maxIdResult[0]?.values[0]?.[0];
+        }
+
+        return { lastInsertRowid: rowid };
+      } catch (error) {
+        console.error('Error running SQL:', error);
+        throw error;
+      }
     },
     get: (...params) => {
       const result = db.exec(sql, params);
@@ -290,7 +323,15 @@ app.post('/api/conversations', (req, res) => {
       VALUES (1, ?, ?, ?, CURRENT_TIMESTAMP)
     `).run(title || 'New Conversation', model || 'claude-sonnet-4-20250514', project_id || null);
 
+    if (!result.lastInsertRowid) {
+      return res.status(500).json({ error: 'Failed to create conversation' });
+    }
+
     const conversation = dbHelpers.prepare('SELECT * FROM conversations WHERE id = ?').get(result.lastInsertRowid);
+
+    if (!conversation) {
+      return res.status(500).json({ error: 'Failed to retrieve created conversation' });
+    }
 
     res.json(conversation);
   } catch (error) {

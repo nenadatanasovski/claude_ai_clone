@@ -68,17 +68,13 @@ function App() {
   }
 
   const sendMessage = async () => {
-    console.log('sendMessage called, inputValue:', inputValue, 'isLoading:', isLoading)
     if (!inputValue.trim() || isLoading) {
-      console.log('Returning early - empty input or already loading')
       return
     }
 
     const messageText = inputValue.trim()
     setInputValue('')
     setIsLoading(true)
-
-    console.log('Sending message:', messageText)
 
     try {
       // Create conversation if none exists
@@ -92,7 +88,7 @@ function App() {
         const newConversation = await response.json()
         conversationId = newConversation.id
         setCurrentConversationId(conversationId)
-        setConversations([newConversation, ...conversations])
+        setConversations(prev => [newConversation, ...prev])
       }
 
       // Add user message to UI immediately
