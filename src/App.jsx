@@ -103,6 +103,10 @@ function App() {
     const saved = localStorage.getItem('fontSize')
     return saved ? Number(saved) : 16
   }) // Font size in pixels (12-24)
+  const [messageDensity, setMessageDensity] = useState(() => {
+    const saved = localStorage.getItem('messageDensity')
+    return saved || 'comfortable'
+  }) // 'compact', 'comfortable', or 'spacious'
   const messagesEndRef = useRef(null)
   const chatContainerRef = useRef(null)
   const textareaRef = useRef(null)
@@ -178,6 +182,11 @@ function App() {
   useEffect(() => {
     localStorage.setItem('fontSize', fontSize.toString())
   }, [fontSize])
+
+  // Save message density setting to localStorage
+  useEffect(() => {
+    localStorage.setItem('messageDensity', messageDensity)
+  }, [messageDensity])
 
   // Reload conversations when project changes
   useEffect(() => {
@@ -2082,7 +2091,7 @@ function App() {
                     </div>
                   </>
                 ) : (
-                  <div className="space-y-6">
+                  <div className={`${messageDensity === 'compact' ? 'space-y-3' : messageDensity === 'spacious' ? 'space-y-8' : 'space-y-6'}`}>
                     {messages.map((message, idx) => (
                       <div
                         key={message.id || idx}
@@ -3321,6 +3330,58 @@ function App() {
                     <span>Medium (16px)</span>
                     <span>Large (24px)</span>
                   </div>
+                </div>
+              </div>
+
+              {/* Message Density Section */}
+              <div className="mb-6">
+                <h3 className="text-lg font-medium mb-3">Message Density</h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
+                  Adjust spacing between messages
+                </p>
+                <div className="grid grid-cols-3 gap-3">
+                  <button
+                    onClick={() => setMessageDensity('compact')}
+                    className={`px-4 py-3 rounded-lg border-2 transition-all ${
+                      messageDensity === 'compact'
+                        ? 'border-claude-orange bg-claude-orange/5'
+                        : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
+                    }`}
+                  >
+                    <div className="text-sm font-medium">Compact</div>
+                    <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">Reduced spacing</div>
+                    {messageDensity === 'compact' && (
+                      <div className="text-claude-orange text-xs mt-1">✓</div>
+                    )}
+                  </button>
+                  <button
+                    onClick={() => setMessageDensity('comfortable')}
+                    className={`px-4 py-3 rounded-lg border-2 transition-all ${
+                      messageDensity === 'comfortable'
+                        ? 'border-claude-orange bg-claude-orange/5'
+                        : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
+                    }`}
+                  >
+                    <div className="text-sm font-medium">Comfortable</div>
+                    <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">Normal spacing</div>
+                    {messageDensity === 'comfortable' && (
+                      <div className="text-claude-orange text-xs mt-1">✓</div>
+                    )}
+                  </button>
+                  <button
+                    onClick={() => setMessageDensity('spacious')}
+                    className={`px-4 py-3 rounded-lg border-2 transition-all ${
+                      messageDensity === 'spacious'
+                        ? 'border-claude-orange bg-claude-orange/5'
+                        : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
+                    }`}
+                  >
+                    <div className="text-sm font-medium">Spacious</div>
+                    <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">Increased spacing</div>
+                    {messageDensity === 'spacious' && (
+                      <div className="text-claude-orange text-xs mt-1">✓</div>
+                    )}
+                  </button>
                 </div>
               </div>
 
