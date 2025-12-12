@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test API</title>
+</head>
+<body>
+    <h1>Testing API</h1>
+    <button onclick="testConversations()">Test Conversations</button>
+    <button onclick="testMessages(1)">Test Messages for Conv 1</button>
+    <button onclick="testMessages(25)">Test Messages for Conv 25</button>
+    <pre id="output"></pre>
+
+    <script>
+        async function testConversations() {
+            const output = document.getElementById('output');
+            try {
+                const response = await fetch('http://localhost:3001/api/conversations');
+                const data = await response.json();
+                output.textContent = 'Conversations:\n' + JSON.stringify(data, null, 2);
+            } catch (err) {
+                output.textContent = 'Error: ' + err.message;
+            }
+        }
+
+        async function testMessages(convId) {
+            const output = document.getElementById('output');
+            try {
+                const response = await fetch(`http://localhost:3001/api/conversations/${convId}/messages`);
+                const data = await response.json();
+                output.textContent = `Messages for conversation ${convId}:\n` + JSON.stringify(data, null, 2);
+            } catch (err) {
+                output.textContent = 'Error: ' + err.message;
+            }
+        }
+    </script>
+</body>
+</html>

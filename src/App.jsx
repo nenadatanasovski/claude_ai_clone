@@ -28,6 +28,8 @@ function App() {
   useEffect(() => {
     if (currentConversationId) {
       loadMessages(currentConversationId)
+    } else {
+      setMessages([])
     }
   }, [currentConversationId])
 

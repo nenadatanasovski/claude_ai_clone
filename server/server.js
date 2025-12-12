@@ -61,13 +61,15 @@ const dbHelpers = {
         let boundSql = sql;
 
         // Replace placeholders one at a time (replace only first occurrence each time)
-        params.forEach((param) => {
+        params.forEach((param, index) => {
           const value = param === null || param === undefined
             ? 'NULL'
             : `'${String(param).replace(/'/g, "''")}'`;
+          console.log(`[SQL DEBUG] Param ${index}:`, JSON.stringify(param), '-> value:', value);
           boundSql = boundSql.replace('?', value);
         });
 
+        console.log('[SQL DEBUG] Final bound SQL:', boundSql);
         db.exec(boundSql);
         saveDatabase();
 
