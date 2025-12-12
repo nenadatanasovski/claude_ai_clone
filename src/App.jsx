@@ -74,6 +74,11 @@ function App() {
   const [showProjectSettingsModal, setShowProjectSettingsModal] = useState(false)
   const [settingsProjectId, setSettingsProjectId] = useState(null)
   const [projectCustomInstructions, setProjectCustomInstructions] = useState('')
+  const [folders, setFolders] = useState([])
+  const [expandedFolders, setExpandedFolders] = useState(new Set())
+  const [showFolderModal, setShowFolderModal] = useState(false)
+  const [newFolderName, setNewFolderName] = useState('')
+  const [contextMenuType, setContextMenuType] = useState('conversation') // 'conversation' or 'sidebar'
   const messagesEndRef = useRef(null)
   const chatContainerRef = useRef(null)
   const textareaRef = useRef(null)
@@ -118,11 +123,13 @@ function App() {
   useEffect(() => {
     loadConversations()
     loadProjects()
+    loadFolders()
   }, [])
 
   // Reload conversations when project changes
   useEffect(() => {
     loadConversations()
+    loadFolders()
   }, [currentProjectId])
 
   // Load messages when conversation changes
@@ -221,6 +228,52 @@ function App() {
     } catch (error) {
       console.error('Error loading projects:', error)
     }
+  }
+
+  const loadFolders = async () => {
+    try {
+      let url = `${API_BASE}/folders`
+      if (currentProjectId) {
+        url += `?project_id=${currentProjectId}`
+      }
+      const response = await fetch(url)
+      const data = await response.json()
+      setFolders(data)
+    } catch (error) {
+      console.error('Error loading folders:', error)
+    }
+  }
+
+  const createFolder = async () => {
+    if (!newFolderName.trim()) return
+
+    try {
+      const response = await fetch(`${API_BASE}/folders`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: newFolderName,
+          project_id: currentProjectId,
+          parent_folder_id: null
+        })
+      })
+      const data = await response.json()
+      setFolders([...folders, data])
+      setNewFolderName('')
+      setShowFolderModal(false)
+    } catch (error) {
+      console.error('Error creating folder:', error)
+    }
+  }
+
+  const toggleFolder = (folderId) => {
+    const newExpanded = new Set(expandedFolders)
+    if (newExpanded.has(folderId)) {
+      newExpanded.delete(folderId)
+    } else {
+      newExpanded.add(folderId)
+    }
+    setExpandedFolders(newExpanded)
   }
 
   const createProject = async () => {
@@ -754,6 +807,7 @@ function App() {
   const handleContextMenu = (e, conversationId) => {
     e.preventDefault()
     e.stopPropagation()
+    setContextMenuType('conversation')
     setContextMenu({
       conversationId,
       x: e.clientX,
@@ -761,8 +815,20 @@ function App() {
     })
   }
 
+  const handleSidebarContextMenu = (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setContextMenuType('sidebar')
+    setContextMenu({
+      conversationId: null,
+      x: e.clientX,
+      y: e.clientY
+    })
+  }
+
   const closeContextMenu = () => {
     setContextMenu(null)
+    setContextMenuType('conversation')
   }
 
   return (
@@ -954,7 +1020,7 @@ function App() {
         {/* Main Content */}
         <div className="flex h-[calc(100vh-60px)]">
           {/* Sidebar */}
-          <aside className="w-64 border-r border-gray-200 dark:border-gray-800 p-4">
+          <aside className="w-64 border-r border-gray-200 dark:border-gray-800 p-4" onContextMenu={handleSidebarContextMenu}>
             <button
               type="button"
               onClick={createNewConversation}
@@ -1132,6 +1198,32 @@ function App() {
                   )}
                 </>
               )}
+
+              {/* Folders Section */}
+              {folders.filter(f => currentProjectId === null || f.project_id === currentProjectId).length > 0 && (
+                <>
+                  <div className="text-sm font-medium text-gray-500 dark:text-gray-400 px-2 mt-4">
+                    Folders
+                  </div>
+                  {folders.filter(f => currentProjectId === null || f.project_id === currentProjectId).map(folder => (
+                    <div key={folder.id} className="mb-1">
+                      <div
+                        onClick={() => toggleFolder(folder.id)}
+                        className="px-2 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800
+                          cursor-pointer text-sm flex items-center gap-2"
+                      >
+                        <span>{expandedFolders.has(folder.id) ? '📂' : '📁'}</span>
+                        <span className="truncate">{folder.name}</span>
+                      </div>
+                      {expandedFolders.has(folder.id) && (
+                        <div className="ml-6 text-xs text-gray-500 dark:text-gray-400 px-2 py-1">
+                          Empty folder
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </>
+              )}
             </div>
           </aside>
 
@@ -1281,7 +1373,7 @@ function App() {
           </main>
         </div>
 
-        {/* Context Menu */}
+        {/* Context Menu  */}
         {contextMenu && (
           <div
             ref={contextMenuRef}
@@ -1294,6 +1386,20 @@ function App() {
             className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700
               rounded-lg shadow-lg py-1 min-w-[160px]"
           >
+            {contextMenuType === 'sidebar' ? (
+              <button
+                onClick={() => {
+                  setShowFolderModal(true)
+                  closeContextMenu()
+                }}
+                className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700
+                  flex items-center gap-2"
+              >
+                <span>📁</span>
+                <span>New Folder</span>
+              </button>
+            ) : (
+              <>
             <button
               onClick={() => {
                 togglePinConversation(contextMenu.conversationId)
@@ -1390,6 +1496,8 @@ function App() {
               <span>🗑️</span>
               <span>Delete</span>
             </button>
+            </>
+            )}
           </div>
         )}
 
@@ -1523,6 +1631,59 @@ function App() {
                     text-white rounded-lg transition-colors"
                 >
                   Save Settings
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Folder Modal */}
+        {showFolderModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md w-full mx-4">
+              <h2 className="text-xl font-semibold mb-4">Create New Folder</h2>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium mb-2">
+                    Folder Name
+                  </label>
+                  <input
+                    type="text"
+                    value={newFolderName}
+                    onChange={(e) => setNewFolderName(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        createFolder()
+                      } else if (e.key === 'Escape') {
+                        setShowFolderModal(false)
+                        setNewFolderName('')
+                      }
+                    }}
+                    placeholder="Enter folder name..."
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600
+                      rounded-lg bg-white dark:bg-gray-900 focus:outline-none focus:ring-2
+                      focus:ring-claude-orange"
+                    autoFocus
+                  />
+                </div>
+              </div>
+              <div className="flex gap-3 mt-6">
+                <button
+                  onClick={() => {
+                    setShowFolderModal(false)
+                    setNewFolderName('')
+                  }}
+                  className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600
+                    rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={createFolder}
+                  className="flex-1 px-4 py-2 bg-claude-orange hover:bg-claude-orange-hover
+                    text-white rounded-lg transition-colors"
+                >
+                  Create Folder
                 </button>
               </div>
             </div>
