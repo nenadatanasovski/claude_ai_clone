@@ -1068,7 +1068,7 @@
       "Step 4: Compare different models",
       "Step 5: Verify information is accurate and helpful"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -1079,7 +1079,7 @@
       "Step 3: Verify separate pricing for input/output",
       "Step 4: Verify the information is clearly labeled as display-only"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",

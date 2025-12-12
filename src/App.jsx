@@ -370,19 +370,37 @@ function App() {
       id: 'claude-sonnet-4-20250514',
       name: 'Claude Sonnet 4.5',
       description: 'Most capable model',
-      contextWindow: 200000
+      contextWindow: 200000,
+      strengths: ['Balanced performance', 'Complex reasoning', 'Code generation'],
+      pricing: {
+        input: '$3.00',
+        output: '$15.00',
+        per: '/ million tokens'
+      }
     },
     {
       id: 'claude-haiku-4-20250514',
       name: 'Claude Haiku 4.5',
       description: 'Fast and efficient',
-      contextWindow: 200000
+      contextWindow: 200000,
+      strengths: ['Fast responses', 'Cost-effective', 'Simple tasks'],
+      pricing: {
+        input: '$0.25',
+        output: '$1.25',
+        per: '/ million tokens'
+      }
     },
     {
       id: 'claude-opus-4-20250514',
       name: 'Claude Opus 4.1',
       description: 'Most intelligent',
-      contextWindow: 200000
+      contextWindow: 200000,
+      strengths: ['Complex analysis', 'Creative writing', 'Advanced reasoning'],
+      pricing: {
+        input: '$15.00',
+        output: '$75.00',
+        per: '/ million tokens'
+      }
     }
   ]
 
@@ -2986,8 +3004,8 @@ function App() {
 
                 {/* Dropdown Menu */}
                 {isModelDropdownOpen && (
-                  <div className="absolute top-full right-0 mt-2 w-72 bg-white dark:bg-gray-800
-                    border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-50">
+                  <div className="absolute top-full right-0 mt-2 w-80 bg-white dark:bg-gray-800
+                    border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-50 overflow-hidden">
                     {models.map((model) => (
                       <button
                         key={model.id}
@@ -2998,13 +3016,50 @@ function App() {
                           updateConversationModel(currentConversationId, model.id)
                         }}
                         className={`w-full text-left px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700
-                          transition-colors first:rounded-t-lg last:rounded-b-lg ${
-                          selectedModel === model.id ? 'bg-gray-50 dark:bg-gray-700' : ''
+                          transition-colors border-b border-gray-100 dark:border-gray-700 last:border-b-0 ${
+                          selectedModel === model.id ? 'bg-orange-50 dark:bg-orange-900/20' : ''
                         }`}
                       >
-                        <div className="font-medium text-sm">{model.name}</div>
-                        <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="font-medium text-sm">{model.name}</div>
+                          {selectedModel === model.id && (
+                            <svg className="w-4 h-4 text-orange-600 dark:text-orange-400" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                            </svg>
+                          )}
+                        </div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400 mb-2">
                           {model.description}
+                        </div>
+
+                        {/* Context Window */}
+                        <div className="flex items-center gap-1.5 text-xs text-gray-600 dark:text-gray-400 mb-2">
+                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                          </svg>
+                          <span>{model.contextWindow.toLocaleString()} tokens</span>
+                        </div>
+
+                        {/* Strengths */}
+                        <div className="flex flex-wrap gap-1.5 mb-2">
+                          {model.strengths.map((strength, idx) => (
+                            <span key={idx} className="px-2 py-0.5 bg-blue-100 dark:bg-blue-900/30
+                              text-blue-700 dark:text-blue-300 text-xs rounded-full">
+                              {strength}
+                            </span>
+                          ))}
+                        </div>
+
+                        {/* Pricing */}
+                        <div className="text-xs text-gray-500 dark:text-gray-400 pt-2 border-t border-gray-200 dark:border-gray-600">
+                          <div className="flex items-center justify-between">
+                            <span className="text-gray-400 dark:text-gray-500">Pricing (display only):</span>
+                          </div>
+                          <div className="mt-1 flex items-center gap-3">
+                            <span>Input: <span className="font-medium text-gray-700 dark:text-gray-300">{model.pricing.input}</span></span>
+                            <span>Output: <span className="font-medium text-gray-700 dark:text-gray-300">{model.pricing.output}</span></span>
+                          </div>
+                          <div className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{model.pricing.per}</div>
                         </div>
                       </button>
                     ))}
