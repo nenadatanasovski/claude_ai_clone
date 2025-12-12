@@ -195,7 +195,13 @@ RECOMMENDATIONS FOR NEXT SESSION
 
 GIT COMMITS THIS SESSION
 =========================
-(No commits - code has compilation error)
+4805f83 - Add Feature #25 backend: Folder API endpoints (partial implementation)
+
+NOTE: Frontend changes were reverted to keep app in working state.
+      The frontend code (state, functions, UI, modals) was implemented but
+      had a JSX compilation error. Changes were not committed to avoid
+      breaking the build. Next session should re-implement frontend or
+      fix the JSX caching issue.
 
 ========================================================================
 PREVIOUS SESSION NOTES (SESSION 25)
