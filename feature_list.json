@@ -160,7 +160,7 @@
       "Step 4: Verify 'Claude Haiku 4.5' appears as an option",
       "Step 5: Verify 'Claude Opus 4.1' appears as an option"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",

@@ -55,12 +55,22 @@ function App() {
   const [isStreaming, setIsStreaming] = useState(false)
   const [editingConversationId, setEditingConversationId] = useState(null)
   const [editingTitle, setEditingTitle] = useState('')
+  const [selectedModel, setSelectedModel] = useState('claude-sonnet-4-20250514')
+  const [isModelDropdownOpen, setIsModelDropdownOpen] = useState(false)
   const messagesEndRef = useRef(null)
   const chatContainerRef = useRef(null)
   const textareaRef = useRef(null)
   const editInputRef = useRef(null)
   const streamReaderRef = useRef(null)
   const abortControllerRef = useRef(null)
+  const modelDropdownRef = useRef(null)
+
+  // Model options
+  const models = [
+    { id: 'claude-sonnet-4-20250514', name: 'Claude Sonnet 4.5', description: 'Most capable model' },
+    { id: 'claude-haiku-4-20250514', name: 'Claude Haiku 4.5', description: 'Fast and efficient' },
+    { id: 'claude-opus-4-20250514', name: 'Claude Opus 4.1', description: 'Most intelligent' }
+  ]
 
   // Scroll to bottom when messages change
   useEffect(() => {
@@ -68,6 +78,22 @@ function App() {
       chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight
     }
   }, [messages])
+
+  // Close model dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (modelDropdownRef.current && !modelDropdownRef.current.contains(event.target)) {
+        setIsModelDropdownOpen(false)
+      }
+    }
+
+    if (isModelDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside)
+      return () => {
+        document.removeEventListener('mousedown', handleClickOutside)
+      }
+    }
+  }, [isModelDropdownOpen])
 
   // Load conversations on mount
   useEffect(() => {
@@ -361,6 +387,55 @@ function App() {
         <header className="border-b border-gray-200 dark:border-gray-800 px-4 py-3">
           <div className="flex items-center justify-between">
             <h1 className="text-xl font-semibold">Claude</h1>
+
+            {/* Model Selector */}
+            <div className="relative" ref={modelDropdownRef}>
+              <button
+                type="button"
+                onClick={() => setIsModelDropdownOpen(!isModelDropdownOpen)}
+                className="px-3 py-1.5 rounded-lg border border-gray-300 dark:border-gray-700
+                  hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors flex items-center gap-2"
+              >
+                <span className="text-sm font-medium">
+                  {models.find(m => m.id === selectedModel)?.name || 'Select Model'}
+                </span>
+                <svg
+                  className={`w-4 h-4 transition-transform ${isModelDropdownOpen ? 'rotate-180' : ''}`}
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+
+              {/* Dropdown Menu */}
+              {isModelDropdownOpen && (
+                <div className="absolute top-full right-0 mt-2 w-72 bg-white dark:bg-gray-800
+                  border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-50">
+                  {models.map((model) => (
+                    <button
+                      key={model.id}
+                      type="button"
+                      onClick={() => {
+                        setSelectedModel(model.id)
+                        setIsModelDropdownOpen(false)
+                      }}
+                      className={`w-full text-left px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700
+                        transition-colors first:rounded-t-lg last:rounded-b-lg ${
+                        selectedModel === model.id ? 'bg-gray-50 dark:bg-gray-700' : ''
+                      }`}
+                    >
+                      <div className="font-medium text-sm">{model.name}</div>
+                      <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                        {model.description}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
             <button
               type="button"
               onClick={() => setIsDark(!isDark)}
