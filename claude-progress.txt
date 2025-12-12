@@ -1,22 +1,22 @@
 CLAUDE.AI CLONE - DEVELOPMENT PROGRESS
 ======================================
 
-SESSION 19 - FEATURE #17: PIN CONVERSATIONS
-============================================
+SESSION 20 - FEATURE #18: ARCHIVE CONVERSATIONS
+================================================
 Date: December 12, 2025
 Agent: Feature Implementation Agent
 
 SUMMARY
 =======
 
-Session 19 focused on implementing pin conversations feature:
+Session 20 focused on implementing archive conversations feature:
 - ✅ Verified Feature #1 still working (verification testing)
-- ✅ Implemented Feature #17: Pin conversations to keep at top
+- ✅ Implemented Feature #18: Archive conversations
 - ✅ Feature fully tested and verified with browser automation
 - ✅ Updated feature_list.json
 - ✅ Code committed in clean, working state
 
-**Progress: 17/175 features passing (9.71%)**
+**Progress: 18/175 features passing (10.29%)**
 
 VERIFICATION TESTING (STEP 3)
 ==============================
@@ -25,159 +25,154 @@ VERIFICATION TESTING (STEP 3)
 - Sent message "Hello! Testing basic chat functionality."
 - ✅ User message displayed correctly (gray bubble on right with "You" label)
 - ✅ Assistant response displayed with Python hello world code
-- ✅ Code block with proper syntax highlighting (red for def, orange for print)
+- ✅ Code block with proper syntax highlighting (orange for keywords, green for strings)
 - ✅ Input field cleared after sending (shows "0 characters")
 - ✅ No issues found
 
-FEATURE #17 IMPLEMENTATION
+FEATURE #18 IMPLEMENTATION
 ===========================
 
-**Feature #17: Pin a Conversation to Keep at Top** ✅ COMPLETED
+**Feature #18: Archive a Conversation** ✅ COMPLETED
 
 Implementation Details:
 
 **Frontend Changes (src/App.jsx):**
 
-1. Added state for context menu (line 61):
-   ```javascript
-   const [contextMenu, setContextMenu] = useState(null) // { conversationId, x, y }
-   ```
+1. Added showArchived state variable (line 62):
+   - Controls which view is displayed (Active or Archived)
+   - Defaults to false (Active view)
 
-2. Added contextMenuRef for click-outside detection (line 69):
-   ```javascript
-   const contextMenuRef = useRef(null)
-   ```
-
-3. Added togglePinConversation function (lines 417-439):
+2. Added toggleArchiveConversation function (lines 456-484):
    - Finds conversation by ID
-   - Toggles is_pinned state (true → false or false → true)
-   - Calls PUT /api/conversations/:id with { is_pinned: newState }
-   - Updates local conversations state to reflect change immediately
-   - Handles errors gracefully
+   - Toggles archived state (true to false or false to true)
+   - Calls PUT endpoint with updated is_archived value
+   - Updates local state immediately (optimistic update)
+   - If archiving current conversation, clears it from view
+   - Sets currentConversationId to null and clears messages
 
-4. Added handleContextMenu function (lines 441-449):
-   - Prevents default browser context menu
-   - Stops event propagation
-   - Sets contextMenu state with conversationId and click coordinates (x, y)
+3. Added Active/Archived toggle buttons (lines 595-619):
+   - Two buttons: "Active" and "Archived"
+   - Active button: orange when selected, gray when not
+   - Archived button: orange when selected, gray when not
+   - onClick handlers toggle showArchived state
 
-5. Added closeContextMenu function (lines 451-453):
-   - Clears contextMenu state
+4. Added Archive option to context menu (lines 905-924):
+   - Shows "Archive" for non-archived conversations
+   - Shows "Unarchive" for archived conversations
+   - Positioned between Pin and Rename options
+   - Uses box emoji for Archive, up arrow for Unarchive
+   - Calls toggleArchiveConversation on click
 
-6. Added useEffect for closing context menu on outside click (lines 132-144):
-   - Listens for mousedown events when context menu is open
-   - Checks if click is outside contextMenuRef
-   - Closes menu if click is outside
-   - Cleans up event listener on unmount
-
-7. Updated conversation list rendering (lines 564-693):
-   - Split into two sections: "Pinned" and "Conversations"
-   - Pinned section: filters conversations where is_pinned === true
-   - Shows "Pinned" header if any pinned conversations exist
-   - Renders pinned conversations with 📌 emoji prefix
-   - Regular section: filters conversations where is_pinned === false
-   - Shows "Conversations" header if any unpinned conversations exist
-   - Both sections have onContextMenu handler attached
-
-8. Added context menu component (lines 841-900):
-   - Positioned absolutely using fixed positioning at click coordinates
-   - Three options:
-     * Pin/Unpin (shows "Unpin" if already pinned, "Pin" if not)
-     * Rename (calls startEditingConversation)
-     * Delete (calls deleteConversation, shows in red)
-   - Each option closes the menu after action
-   - Styled with white/dark background, border, shadow
-   - Min width of 160px
+5. Updated conversation filtering (lines 622, 625, 630, 687, 692):
+   - Filters conversations based on showArchived state
+   - Shows only active conversations when showArchived = false
+   - Shows only archived conversations when showArchived = true
+   - Applied to both pinned and regular conversation sections
 
 **Backend:**
 - No changes needed
-- is_pinned field already exists in database (line 151, 165 in server.js)
-- PUT endpoint already handles is_pinned (lines 525, 537-539 in server.js)
+- is_archived field already exists in database
+- PUT endpoint already handles is_archived updates
 
 **How It Works:**
 
-Pin Flow:
+Archive Flow:
 1. User right-clicks on a conversation
-2. handleContextMenu captures event, stores conversation ID and coordinates
-3. Context menu renders at click position
-4. User clicks "Pin" option
-5. togglePinConversation calls PUT /api/conversations/:id with is_pinned: true
-6. Local state updated immediately (optimistic update)
-7. Conversation re-renders in "Pinned" section at top
+2. Context menu appears with Pin, Archive, Rename, Delete options
+3. User clicks "Archive"
+4. toggleArchiveConversation calls PUT endpoint with is_archived: true
+5. Local state updated immediately (optimistic update)
+6. Conversation disappears from Active view
+7. If it was the current conversation, chat area clears
 8. Context menu closes
 
-Display Flow:
-1. conversations array filtered twice:
-   - conversations.filter(c => c.is_pinned) → Pinned section
-   - conversations.filter(c => !c.is_pinned) → Conversations section
-2. Pinned section rendered first (appears at top)
-3. Regular section rendered second (appears below)
-4. New conversations go to regular section by default (is_pinned: false)
-5. Pinned conversations stay at top regardless of when they were created
+View Toggle Flow:
+1. User clicks "Archived" button in sidebar
+2. showArchived state changes to true
+3. Conversation list filters to show only archived conversations
+4. Archived conversations appear in sidebar
+5. User can click "Active" to return to active conversations view
+
+Unarchive Flow:
+1. User switches to Archived view
+2. Right-clicks on archived conversation
+3. Clicks "Unarchive" option
+4. archived state set to false
+5. Conversation moves back to Active view
 
 **Testing:**
 
 All 6 test steps verified with browser automation:
 
-Step 1: Create several conversations ✅
-- Multiple "New Chat" conversations already existed in sidebar
-- Total of ~77 conversations visible
+Step 1: Create a conversation ✅
+- Created new conversation
+- Sent message: "This is a test conversation for archiving."
+- Response received successfully
+- Conversation visible in sidebar
 
-Step 2: Right-click on one conversation ✅
-- Right-clicked on first conversation in list
+Step 2: Right-click on the conversation ✅
+- Right-clicked on first conversation in Conversations section
 - Context menu appeared next to conversation
-- Screenshot: feature17_step2_context_menu.png
+- Four options visible: Pin, Archive, Rename, Delete
 
-Step 3: Select 'Pin' option ✅
-- Context menu showed three options:
-  * 📌 Pin
-  * ✏️ Rename
-  * 🗑️ Delete
-- Clicked "Pin" option
+Step 3: Select 'Archive' option ✅
+- Context menu showed all four options
+- Clicked "Archive" option
+- Backend logs: PUT /api/conversations/80
 
-Step 4: Verify conversation moves to 'Pinned' section ✅
-- New "Pinned" section appeared at top of sidebar
-- Conversation moved to Pinned section
-- Shows as "📌New Chat" with pin emoji
-- "Conversations" section now appears below Pinned section
-- Screenshot: feature17_step4_pinned_section.png
+Step 4: Verify conversation removed from main list ✅
+- Switched back to "Active" view
+- Conversation no longer visible in Active conversations
+- Conversations section now shows 5 conversations (was 6)
+- Chat area cleared (shows Welcome screen)
 
-Step 5: Create new conversations ✅
-- Clicked "+ New Chat" button
-- New conversation created successfully
-- New conversation appears in "Conversations" section (not Pinned)
+Step 5: Navigate to archived conversations view ✅
+- Clicked "Archived" button in sidebar
+- Button highlighted in orange
+- View switched to show archived conversations only
 
-Step 6: Verify pinned conversation stays at top ✅
-- Pinned section still at very top
-- "📌New Chat" still first item in sidebar
-- New conversation appears in Conversations section below
-- Pinned conversation did NOT move down
-- Screenshot: feature17_step6_verify_pinned_stays_top.png
+Step 6: Verify conversation appears in Archived view ✅
+- "Conversations" section header visible
+- "New Chat" conversation visible (the one we archived)
+- Conversation successfully stored in archived state
 
 **Additional Features Implemented:**
 
-Context Menu also includes:
-- Rename option: Opens inline edit mode for conversation title
-- Delete option: Shows delete confirmation and removes conversation
-- Click outside closes menu automatically
-- Styled consistently with app theme (light/dark mode support)
+View Toggle Buttons:
+- Clean UI with two-button toggle (Active/Archived)
+- Selected button highlighted in claude-orange
+- Unselected button in gray with hover effect
+- Immediate filtering on click
+- No page reload required
+
+Unarchive Functionality:
+- Context menu dynamically shows "Unarchive" for archived conversations
+- One-click restore to Active view
+- Bidirectional archive/unarchive support
+
+Current Conversation Handling:
+- When archiving the current conversation, automatically clears chat area
+- Prevents showing archived conversation content in Active view
+- User-friendly experience
 
 **Code Quality:**
 
-- Clean separation of pinned and unpinned conversations
+- Clean separation of active and archived conversations
+- Consistent with existing pin/unpin pattern
 - Optimistic UI updates (immediate visual feedback)
-- Proper event handling (preventDefault, stopPropagation)
-- Click-outside detection with cleanup
-- Accessible with visual indicators (📌 emoji)
-- No breaking changes to existing features
+- Proper state management
 - Backend already supported the feature
+- No breaking changes to existing features
+- Accessible with clear visual indicators
+- Emoji usage consistent with app style
 
 CURRENT STATUS
 ==============
 
 **Total Features:** 175
-**Passing:** 17 ✅ (Features #1-17)
-**Failing:** 158
-**Progress:** 9.71% (17/175)
+**Passing:** 18 ✅ (Features #1-18)
+**Failing:** 157
+**Progress:** 10.29% (18/175)
 
 **Working Features:**
 1. ✅ Basic chat interface
@@ -197,550 +192,17 @@ CURRENT STATUS
 15. ✅ Search conversations by title
 16. ✅ Search conversations by content
 17. ✅ Pin conversations to keep at top
+18. ✅ Archive conversations
 
 **Next Priority:**
-18. Archive conversations
-19. Unread message indicators
-20. Conversation grouping by date
+19. Duplicate conversations
+20. Export conversation to JSON
+21. Unread message indicators
 
 GIT COMMITS THIS SESSION
 =========================
-c923c73 - Implement Feature #17: Pin conversations - verified end-to-end
+55ef5ca - Implement Feature #18: Archive conversations - verified end-to-end
 
 ========================================================================
-PREVIOUS SESSION NOTES (SESSION 18)
-========================================================================
-
-CLAUDE.AI CLONE - DEVELOPMENT PROGRESS
-======================================
-
-SESSION 18 - FEATURE #16: SEARCH CONVERSATIONS BY CONTENT
-==========================================================
-Date: December 12, 2025
-Agent: Feature Implementation Agent
-
-SUMMARY
-=======
-
-Session 18 focused on implementing search by content:
-- ✅ Implemented Feature #16: Search conversations by content
-- ✅ Feature fully tested and verified with browser automation
-- ✅ Updated feature_list.json
-- ✅ Code committed in clean, working state
-
-**Progress: 16/175 features passing (9.14%)**
-
-FEATURE #16 IMPLEMENTATION
-===========================
-
-**Feature #16: Search conversations by content** ✅ COMPLETED
-
-Implementation Details:
-
-**Backend Changes (server/server.js):**
-
-Added GET /api/search/conversations endpoint (lines 576-611):
-- Accepts query parameter 'q' for search term
-- Returns all conversations if search term is empty
-- Uses SQL LIKE with case-insensitive matching
-- Searches BOTH conversation titles AND message content
-- LEFT JOIN with messages table to search message content
-- DISTINCT to avoid duplicate conversations
-- Maintains ordering by last_message_at DESC
-
-SQL Query:
-```sql
-SELECT DISTINCT c.*
-FROM conversations c
-LEFT JOIN messages m ON m.conversation_id = c.id
-WHERE c.is_deleted = 0
-  AND (
-    LOWER(c.title) LIKE ?
-    OR LOWER(m.content) LIKE ?
-  )
-ORDER BY c.last_message_at DESC, c.created_at DESC
-```
-
-**Frontend Changes (src/App.jsx):**
-
-1. Modified loadConversations() function (lines 125-137):
-   - Added optional searchTerm parameter
-   - Conditional URL: uses /api/search/conversations?q= when searchTerm exists
-   - Falls back to /api/conversations when searchTerm is empty
-   - URL encodes search term for safe transmission
-
-2. Added useEffect hook (lines 113-116):
-   - Triggers when searchQuery state changes
-   - Automatically calls loadConversations(searchQuery)
-   - Real-time search as user types
-
-3. Removed client-side filtering (deleted lines 415-418):
-   - Old logic: filteredConversations = conversations.filter(...)
-   - New logic: server handles all filtering
-   - Better performance for large datasets
-
-4. Updated UI rendering (line 516):
-   - Changed from filteredConversations.map() to conversations.map()
-   - Conversations array now contains pre-filtered results from server
-
-**How It Works:**
-
-Search Flow:
-1. User types in search input → searchQuery state updates
-2. useEffect detects change → calls loadConversations(searchQuery)
-3. Frontend calls GET /api/search/conversations?q=searchTerm
-4. Backend searches both titles and message content using SQL
-5. Backend returns only matching conversations
-6. Frontend renders filtered results
-7. Empty search shows all conversations
-
-**Testing:**
-
-All 5 test steps verified with browser automation:
-
-Step 1: Create conversation with specific keywords ✅
-- Sent message: "Tell me about Python programming and data science"
-- Response received with Python code example
-- Keywords "Python", "programming", "data", and "science" in message content
-
-Step 2: Use search to find those keywords ✅
-- Searched for "Python" → conversation appeared
-- Searched for "data science" → conversation appeared
-- Search input shows entered term correctly
-
-Step 3: Verify conversation appears in results ✅
-- When searching "Python": 4 conversations visible (down from ~13)
-- When searching "data science": 1 conversation visible
-- Only conversations containing keywords shown
-- Other conversations correctly hidden
-
-Step 4: Click the conversation ✅
-- Clicked on matching conversation in sidebar
-- Conversation loaded successfully
-- Screenshot: feature16_step5_conversation_opened.png
-
-Step 5: Verify correct content ✅
-- User message visible: "Tell me about Python programming and data science"
-- Assistant response visible with Python code
-- Content matches search query expectations
-
-**Additional Testing:**
-
-- Searched for non-existent term "JavaScript frameworks" ✅
-  * Result: 0 conversations shown
-  * Only "Conversations" header visible
-  * Correctly filters out all non-matching conversations
-
-- Cleared search input ✅
-  * All conversations reappeared
-  * Back to full list of ~13 conversations
-  * No filtering applied
-
-- Verified backward compatibility with Feature #15 ✅
-  * Search by title still works
-  * Search by content now also works
-  * Both title AND content matching in single query
-
-**Code Quality:**
-
-- Used SQL DISTINCT to prevent duplicate results
-- Proper URL encoding with encodeURIComponent()
-- Case-insensitive search with LOWER()
-- Efficient SQL with LEFT JOIN (not nested queries)
-- Error handling in both frontend and backend
-- Empty string handled gracefully
-- No breaking changes to existing features
-
-CURRENT STATUS
-==============
-
-**Total Features:** 175
-**Passing:** 16 ✅ (Features #1-16)
-**Failing:** 159
-**Progress:** 9.14% (16/175)
-
-**Working Features:**
-1. ✅ Basic chat interface
-2. ✅ Create new conversations
-3. ✅ Switch between conversations
-4. ✅ Rename conversations
-5. ✅ Delete conversations
-6. ✅ Code block syntax highlighting
-7. ✅ Copy code from code blocks
-8. ✅ Stop generation while streaming
-9. ✅ Markdown rendering (bold, italic, links)
-10. ✅ Multi-line input with Shift+Enter
-11. ✅ Auto-resize textarea as content grows
-12. ✅ Character count display in input area
-13. ✅ Model selection dropdown displays available models
-14. ✅ Switch models mid-conversation
-15. ✅ Search conversations by title
-16. ✅ Search conversations by content
-
-**Next Priority:**
-17. Pin important conversations
-18. Archive conversations
-19. Unread message indicators
-
-GIT COMMITS THIS SESSION
-=========================
-e23a0f6 - Implement Feature #16: Search conversations by content - verified end-to-end
-
-========================================================================
-PREVIOUS SESSION NOTES (SESSION 17)
-========================================================================
-
-CLAUDE.AI CLONE - DEVELOPMENT PROGRESS
-======================================
-
-SESSION 17 - FEATURE #15: SEARCH CONVERSATIONS BY TITLE
-========================================================
-Date: December 12, 2025
-Agent: Feature Implementation Agent
-
-SUMMARY
-=======
-
-Session 17 focused on implementing conversation search:
-- ✅ Verified Feature #1 still working (verification testing)
-- ✅ Implemented Feature #15: Search conversations by title
-- ✅ Feature fully tested and verified with browser automation
-- ✅ Updated feature_list.json
-- ✅ Code committed in clean, working state
-
-**Progress: 15/175 features passing (8.57%)**
-
-VERIFICATION TESTING (STEP 3)
-==============================
-
-**Feature #1: Basic Chat Interface** ✅ STILL PASSING
-- Sent message "Hello, can you help me?"
-- ✅ User message displayed correctly (right-aligned, gray background)
-- ✅ Assistant response displayed correctly (left-aligned)
-- ✅ Input field cleared after sending
-- ✅ Character count showing "0 characters" after send
-- ✅ No issues found
-
-FEATURE #15 IMPLEMENTATION
-===========================
-
-**Feature #15: Search Conversations by Title** ✅ COMPLETED
-
-Implementation Details:
-
-**Frontend Changes (src/App.jsx):**
-
-1. Added searchQuery state variable (line 60):
-   ```javascript
-   const [searchQuery, setSearchQuery] = useState('')
-   ```
-
-2. Added filteredConversations computed value (lines 406-409):
-   ```javascript
-   const filteredConversations = conversations.filter(conv =>
-     conv.title.toLowerCase().includes(searchQuery.toLowerCase())
-   )
-   ```
-
-3. Added search input field in sidebar (lines 492-504):
-   - Positioned below "+ New Chat" button
-   - Full-width input with rounded borders
-   - Placeholder text: "Search conversations..."
-   - Controlled component using searchQuery state
-   - onChange handler updates searchQuery state
-   - Focus ring with claude-orange color on focus
-   - Proper dark mode styling
-
-4. Updated conversation rendering (line 512):
-   - Changed from `conversations.map()` to `filteredConversations.map()`
-   - Renders only conversations matching the search query
-
-**How It Works:**
-
-Search Flow:
-1. User types in search input → searchQuery state updates
-2. filteredConversations recomputes automatically (derived state)
-3. Case-insensitive substring matching: title.toLowerCase().includes(query.toLowerCase())
-4. Only matching conversations render in the sidebar
-5. Clearing search shows all conversations again
-
-**Testing:**
-
-All 7 test steps verified with browser automation:
-
-Step 1: Create multiple conversations ✅
-- Created multiple conversations (63 total with "New Chat" titles)
-- All conversations visible in sidebar initially
-
-Step 2: Locate search input ✅
-- Search input visible in sidebar
-- Positioned below "+ New Chat" button
-- Placeholder text: "Search conversations..."
-- Screenshot: feature15_step1_initial.png
-
-Step 3: Type partial title ✅
-- Typed "new" in search input
-- Search input updated in real-time
-
-Step 4: Matching conversations shown ✅
-- When searching "new", all 63 conversations remained visible
-- All titles contain "New Chat" which matches "new"
-- Case-insensitive matching working correctly
-- Screenshot: feature15_step4_matching_shown.png
-
-Step 5: Non-matching conversations hidden ✅
-- Typed "Python Programming" (no conversations with this title)
-- All conversations hidden (0 visible)
-- Only "Conversations" header remains
-- Filter working correctly
-- Screenshot: feature15_step5_nonmatching_hidden.png
-
-Step 6: Clear the search ✅
-- Cleared search input via JavaScript
-- searchQuery state reset to empty string
-
-Step 7: All conversations reappear ✅
-- After page reload, all 63 conversations visible
-- Filter correctly shows all when search is empty
-- Screenshot: feature15_test_cleared_all_shown.png
-
-**Additional Testing:**
-
-- Tested with partial matches: "Chat" matched all "New Chat" titles ✅
-- Tested with non-matching: "Python Programming" showed 0 results ✅
-- Tested clearing: Empty search shows all conversations ✅
-- Case-insensitive matching confirmed ✅
-
-**Code Quality:**
-
-- Used React best practices (derived state via filter)
-- No additional API calls needed (client-side filtering)
-- Efficient O(n) filtering on each render
-- Clean, readable code with clear variable names
-- Proper dark mode support
-
-CURRENT STATUS
-==============
-
-**Total Features:** 175
-**Passing:** 15 ✅ (Features #1-15)
-**Failing:** 160
-**Progress:** 8.57% (15/175)
-
-**Working Features:**
-1. ✅ Basic chat interface
-2. ✅ Create new conversations
-3. ✅ Switch between conversations
-4. ✅ Rename conversations
-5. ✅ Delete conversations
-6. ✅ Code block syntax highlighting
-7. ✅ Copy code from code blocks
-8. ✅ Stop generation while streaming
-9. ✅ Markdown rendering (bold, italic, links)
-10. ✅ Multi-line input with Shift+Enter
-11. ✅ Auto-resize textarea as content grows
-12. ✅ Character count display in input area
-13. ✅ Model selection dropdown displays available models
-14. ✅ Switch models mid-conversation
-15. ✅ Search conversations by title
-
-**Next Priority:**
-16. Search conversations by content
-17. Pin important conversations
-18. Archive conversations
-
-GIT COMMITS THIS SESSION
-=========================
-d4b746d - Implement Feature #15: Search conversations by title - verified end-to-end
-
-========================================================================
-PREVIOUS SESSION NOTES (SESSION 16)
-========================================================================
-
-CLAUDE.AI CLONE - DEVELOPMENT PROGRESS
-======================================
-
-SESSION 16 - FEATURE #14: SWITCH MODELS MID-CONVERSATION
-=========================================================
-Date: December 12, 2025
-Agent: Feature Implementation Agent
-
-SUMMARY
-=======
-
-Session 16 focused on implementing model switching:
-- ✅ Verified Features #1 still working (verification testing)
-- ✅ Implemented Feature #14: Switch models mid-conversation
-- ✅ Feature fully tested and verified with browser automation
-- ✅ Updated feature_list.json
-- ✅ Code committed in clean, working state
-
-**Progress: 14/175 features passing (8.0%)**
-
-VERIFICATION TESTING (STEP 3)
-==============================
-
-**Feature #1: Basic Chat Interface** ✅ STILL PASSING
-- Sent message "Hello, can you help me?"
-- ✅ Message sent successfully and response received
-- ✅ Both messages visible in chat area
-- ✅ Input field cleared after sending
-- ✅ Character count showing correctly
-- ✅ No issues found
-
-FEATURE #14 IMPLEMENTATION
-===========================
-
-**Feature #14: Switch Models Mid-Conversation** ✅ COMPLETED
-
-Implementation Details:
-
-**Backend Changes (server/server.js):**
-
-Enhanced PUT /api/conversations/:id endpoint (lines 525, 541-544):
-- Added 'model' field to destructured request body
-- Added conditional check: if model !== undefined
-- Adds 'model = ?' to updates array
-- Pushes model value to values array
-- Existing logic handles the SQL UPDATE with proper parameterization
-
-Code changes:
-```javascript
-const { title, is_archived, is_pinned, model } = req.body;
-// ... other fields ...
-if (model !== undefined) {
-  updates.push('model = ?');
-  values.push(model);
-}
-```
-
-**Frontend Changes (src/App.jsx):**
-
-1. Created updateConversationModel() function (lines 173-185):
-   - Accepts conversationId and modelId parameters
-   - Returns early if no conversationId (guards against errors)
-   - Calls PUT /api/conversations/:id with model in body
-   - Uses try-catch for error handling
-   - Silent update (no UI feedback needed as model selector already updated)
-
-2. Updated model selector onClick handler (line 437):
-   - Added call to updateConversationModel(currentConversationId, model.id)
-   - Executes after setSelectedModel and setIsModelDropdownOpen
-   - Persists the model change to database immediately
-
-3. Enhanced loadMessages() function (lines 134-150):
-   - Added GET request to fetch conversation details before loading messages
-   - Extracts model from conversation object
-   - Sets selectedModel state to conversation.model
-   - Ensures model selector always reflects conversation's actual model
-   - Two sequential fetches: conversation details, then messages
-
-**How It Works:**
-
-Model Selection Flow:
-1. User clicks model selector button → dropdown opens
-2. User clicks different model (e.g., Claude Haiku 4.5)
-3. setSelectedModel updates state → UI shows new model immediately
-4. updateConversationModel calls PUT endpoint → model saved to database
-5. Dropdown closes automatically
-
-Model Persistence Flow:
-1. User switches to different conversation
-2. useEffect triggers loadMessages with new conversationId
-3. loadMessages fetches conversation details (including model)
-4. setSelectedModel updates to conversation's saved model
-5. Model selector displays correct model for the conversation
-
-**Testing:**
-
-All 6 test steps verified with browser automation:
-
-Step 1: Start conversation with default model ✅
-- Opened new conversation
-- Model selector showed "Claude Sonnet 4.5" (default)
-
-Step 2: Send message and receive response ✅
-- Sent: "Hello, this is my first message"
-- Response received: "I'm a mock response..."
-- Message visible in chat area
-
-Step 3: Click model selector ✅
-- Clicked "Claude Sonnet 4.5" button
-- Dropdown opened showing all 3 models:
-  * Claude Sonnet 4.5 - Most capable model
-  * Claude Haiku 4.5 - Fast and efficient
-  * Claude Opus 4.1 - Most intelligent
-- Screenshot: feature14_step3_dropdown_open.png
-
-Step 4: Select different model ✅
-- Clicked "Claude Haiku 4.5" option
-- Model selector updated to show "Claude Haiku 4.5"
-- Dropdown closed automatically
-- Backend logs confirmed: PUT /api/conversations/68
-- Screenshot: feature14_step4_haiku_selected.png
-
-Step 5: Send another message ✅
-- Sent: "This is my second message with the new model"
-- Response received: "I'm a mock response..."
-- Both messages now visible in chat
-- Model selector still shows "Claude Haiku 4.5"
-- Screenshot: feature14_step5_second_message.png
-
-Step 6: Verify model persisted ✅
-- Clicked "+ New Chat" button
-- New conversation created with default "Claude Sonnet 4.5"
-- Clicked back to previous conversation (second in sidebar)
-- Model selector correctly showed "Claude Haiku 4.5" (not Sonnet!)
-- Both previous messages displayed correctly
-- Model persisted successfully across conversation switches
-- Screenshot: feature14_step6_verify_model_persisted.png
-
-**Backend API Logs:**
-```
-POST /api/conversations           (created conversation 68 with default model)
-POST /api/conversations/68/messages (first message sent)
-PUT /api/conversations/68          (model updated to Haiku) ← KEY REQUEST
-POST /api/conversations/68/messages (second message sent with Haiku model)
-GET /api/conversations/68          (fetched conversation with model)
-```
-
-**Database Schema:**
-The conversations table already had a 'model' column:
-- Default: 'claude-sonnet-4-20250514'
-- Updated via PUT endpoint when user selects different model
-- Retrieved via GET endpoint when switching conversations
-
-CURRENT STATUS
-==============
-
-**Total Features:** 175
-**Passing:** 14 ✅ (Features #1-14)
-**Failing:** 161
-**Progress:** 8.0% (14/175)
-
-**Working Features:**
-1. ✅ Basic chat interface
-2. ✅ Create new conversations
-3. ✅ Switch between conversations
-4. ✅ Rename conversations
-5. ✅ Delete conversations
-6. ✅ Code block syntax highlighting
-7. ✅ Copy code from code blocks
-8. ✅ Stop generation while streaming
-9. ✅ Markdown rendering (bold, italic, links)
-10. ✅ Multi-line input with Shift+Enter
-11. ✅ Auto-resize textarea as content grows
-12. ✅ Character count display in input area
-13. ✅ Model selection dropdown displays available models
-14. ✅ Switch models mid-conversation
-
-**Next Priority:**
-15. Search conversations by title
-16. Search conversations by content
-17. Pin important conversations
-
-GIT COMMITS THIS SESSION
-=========================
-8392703 - Implement Feature #14: Switch models mid-conversation - verified end-to-end
-
+PREVIOUS SESSION NOTES (SESSION 19)
 ========================================================================
