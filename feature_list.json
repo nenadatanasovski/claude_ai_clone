@@ -355,7 +355,7 @@
       "Step 4: Verify the code appears in the artifact viewer",
       "Step 5: Verify syntax highlighting is applied"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",

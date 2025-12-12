@@ -81,6 +81,9 @@ function App() {
   const [contextMenuType, setContextMenuType] = useState('conversation') // 'conversation' or 'sidebar'
   const [draggedConversationId, setDraggedConversationId] = useState(null)
   const [folderConversations, setFolderConversations] = useState({}) // Map of folder ID to conversation IDs
+  const [artifacts, setArtifacts] = useState([])
+  const [currentArtifact, setCurrentArtifact] = useState(null)
+  const [showArtifactPanel, setShowArtifactPanel] = useState(false)
   const messagesEndRef = useRef(null)
   const chatContainerRef = useRef(null)
   const textareaRef = useRef(null)
@@ -224,6 +227,20 @@ function App() {
       const response = await fetch(`${API_BASE}/conversations/${conversationId}/messages`)
       const data = await response.json()
       setMessages(data)
+
+      // Load artifacts for this conversation
+      const artifactsResponse = await fetch(`${API_BASE}/conversations/${conversationId}/artifacts`)
+      const artifactsData = await artifactsResponse.json()
+      setArtifacts(artifactsData)
+
+      // If there are artifacts, show the panel and select the first one
+      if (artifactsData.length > 0) {
+        setCurrentArtifact(artifactsData[0])
+        setShowArtifactPanel(true)
+      } else {
+        setShowArtifactPanel(false)
+        setCurrentArtifact(null)
+      }
     } catch (error) {
       console.error('Error loading messages:', error)
     }
@@ -545,6 +562,21 @@ function App() {
           setIsStreaming(false)
           streamReaderRef.current = null
           abortControllerRef.current = null
+
+          // Load artifacts after streaming completes
+          try {
+            const artifactsResponse = await fetch(`${API_BASE}/conversations/${conversationId}/artifacts`)
+            const artifactsData = await artifactsResponse.json()
+            setArtifacts(artifactsData)
+
+            // If there are artifacts, show the panel and select the first one
+            if (artifactsData.length > 0) {
+              setCurrentArtifact(artifactsData[0])
+              setShowArtifactPanel(true)
+            }
+          } catch (error) {
+            console.error('Error loading artifacts:', error)
+          }
         }
       } else {
         // Handle regular JSON response
@@ -1521,6 +1553,83 @@ function App() {
               </div>
             </div>
           </main>
+
+          {/* Artifact Panel */}
+          {showArtifactPanel && currentArtifact && (
+            <aside className="w-96 border-l border-gray-200 dark:border-gray-800 flex flex-col bg-white dark:bg-[#1A1A1A]">
+              {/* Artifact Header */}
+              <div className="border-b border-gray-200 dark:border-gray-800 p-4 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">
+                    Artifact
+                  </div>
+                  {artifacts.length > 1 && (
+                    <div className="text-xs text-gray-400">
+                      {artifacts.indexOf(currentArtifact) + 1} / {artifacts.length}
+                    </div>
+                  )}
+                </div>
+                <button
+                  onClick={() => setShowArtifactPanel(false)}
+                  className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                  title="Close artifact panel"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              {/* Artifact Title */}
+              <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-800">
+                <div className="text-sm font-semibold">{currentArtifact.title}</div>
+                <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  {currentArtifact.language} • {currentArtifact.type}
+                </div>
+              </div>
+
+              {/* Artifact Content */}
+              <div className="flex-1 overflow-y-auto">
+                <pre className="p-4 text-sm font-mono">
+                  <code className={`language-${currentArtifact.language}`}>
+                    {currentArtifact.content}
+                  </code>
+                </pre>
+              </div>
+
+              {/* Artifact Actions */}
+              {artifacts.length > 1 && (
+                <div className="border-t border-gray-200 dark:border-gray-800 p-3 flex gap-2">
+                  <button
+                    onClick={() => {
+                      const currentIndex = artifacts.indexOf(currentArtifact);
+                      if (currentIndex > 0) {
+                        setCurrentArtifact(artifacts[currentIndex - 1]);
+                      }
+                    }}
+                    disabled={artifacts.indexOf(currentArtifact) === 0}
+                    className="flex-1 px-3 py-2 text-sm bg-gray-100 dark:bg-gray-800 rounded
+                      hover:bg-gray-200 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Previous
+                  </button>
+                  <button
+                    onClick={() => {
+                      const currentIndex = artifacts.indexOf(currentArtifact);
+                      if (currentIndex < artifacts.length - 1) {
+                        setCurrentArtifact(artifacts[currentIndex + 1]);
+                      }
+                    }}
+                    disabled={artifacts.indexOf(currentArtifact) === artifacts.length - 1}
+                    className="flex-1 px-3 py-2 text-sm bg-gray-100 dark:bg-gray-800 rounded
+                      hover:bg-gray-200 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Next
+                  </button>
+                </div>
+              )}
+            </aside>
+          )}
         </div>
 
         {/* Context Menu  */}

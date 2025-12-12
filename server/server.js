@@ -296,6 +296,49 @@ try {
   console.warn('Warning: Anthropic API key not configured properly');
 }
 
+// Helper function to detect and extract artifacts from response
+function detectArtifacts(content) {
+  const artifacts = [];
+  // Match code blocks: ```language\ncode\n```
+  const codeBlockRegex = /```(\w+)?\n([\s\S]*?)```/g;
+  let match;
+  let index = 0;
+
+  while ((match = codeBlockRegex.exec(content)) !== null) {
+    const language = match[1] || 'text';
+    const code = match[2];
+
+    artifacts.push({
+      type: 'code',
+      language: language,
+      content: code,
+      title: `Code ${index + 1}`,
+      identifier: `artifact_${Date.now()}_${index}`
+    });
+    index++;
+  }
+
+  return artifacts;
+}
+
+// Helper function to save artifacts to database
+function saveArtifacts(artifacts, messageId, conversationId) {
+  artifacts.forEach(artifact => {
+    dbHelpers.prepare(`
+      INSERT INTO artifacts (message_id, conversation_id, type, title, identifier, language, content)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `).run(
+      messageId,
+      conversationId,
+      artifact.type,
+      artifact.title,
+      artifact.identifier,
+      artifact.language,
+      artifact.content
+    );
+  });
+}
+
 // Health check endpoint
 app.get('/api/health', (req, res) => {
   res.json({
@@ -461,6 +504,12 @@ app.post('/api/conversations/:id/messages', async (req, res) => {
       `).run(conversationId, 'assistant', mockResponse, 50);
 
       const assistantMessage = dbHelpers.prepare('SELECT * FROM messages WHERE id = ?').get(assistantMessageResult.lastInsertRowid);
+
+      // Detect and save artifacts
+      const artifacts = detectArtifacts(mockResponse);
+      if (artifacts.length > 0) {
+        saveArtifacts(artifacts, assistantMessage.id, conversationId);
+      }
 
       // Update conversation
       dbHelpers.prepare(`
@@ -1029,6 +1078,56 @@ app.delete('/api/folders/:id/items/:conversationId', (req, res) => {
   } catch (error) {
     console.error('Error removing item from folder:', error);
     res.status(500).json({ error: 'Failed to remove item from folder' });
+  }
+});
+
+// ===== Artifact Endpoints =====
+
+// GET artifacts for a conversation
+app.get('/api/conversations/:id/artifacts', (req, res) => {
+  try {
+    const artifacts = dbHelpers.prepare(`
+      SELECT * FROM artifacts
+      WHERE conversation_id = ?
+      ORDER BY created_at DESC
+    `).all(req.params.id);
+
+    res.json(artifacts);
+  } catch (error) {
+    console.error('Error fetching artifacts:', error);
+    res.status(500).json({ error: 'Failed to fetch artifacts' });
+  }
+});
+
+// GET artifacts for a specific message
+app.get('/api/messages/:id/artifacts', (req, res) => {
+  try {
+    const artifacts = dbHelpers.prepare(`
+      SELECT * FROM artifacts
+      WHERE message_id = ?
+      ORDER BY created_at ASC
+    `).all(req.params.id);
+
+    res.json(artifacts);
+  } catch (error) {
+    console.error('Error fetching message artifacts:', error);
+    res.status(500).json({ error: 'Failed to fetch message artifacts' });
+  }
+});
+
+// GET single artifact by ID
+app.get('/api/artifacts/:id', (req, res) => {
+  try {
+    const artifact = dbHelpers.prepare('SELECT * FROM artifacts WHERE id = ?').get(req.params.id);
+
+    if (!artifact) {
+      return res.status(404).json({ error: 'Artifact not found' });
+    }
+
+    res.json(artifact);
+  } catch (error) {
+    console.error('Error fetching artifact:', error);
+    res.status(500).json({ error: 'Failed to fetch artifact' });
   }
 });
 
