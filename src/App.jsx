@@ -1741,9 +1741,135 @@ function App() {
     }
   }
 
-  const handleSuggestedPrompt = (prompt) => {
-    setInputValue(prompt)
-    textareaRef.current?.focus()
+  const handleSuggestedPrompt = async (prompt) => {
+    if (isLoading) return
+
+    setInputValue('')
+    setIsLoading(true)
+
+    try {
+      // Create conversation if none exists
+      let conversationId = currentConversationId
+      if (!conversationId) {
+        const response = await fetch(`${API_BASE}/conversations`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ title: 'New Chat' })
+        })
+        const newConversation = await response.json()
+        conversationId = newConversation.id
+        setCurrentConversationId(conversationId)
+        setConversations(prev => [newConversation, ...prev])
+      }
+
+      // Add user message to UI immediately
+      const userMessage = {
+        id: Date.now(),
+        role: 'user',
+        content: prompt,
+        images: null,
+        created_at: new Date().toISOString()
+      }
+      setMessages(prev => [...prev, userMessage])
+
+      // Create abort controller for this request
+      abortControllerRef.current = new AbortController()
+
+      // Prepare message payload
+      const messagePayload = {
+        content: prompt,
+        role: 'user',
+        temperature: temperature,
+        maxTokens: maxTokens
+      }
+
+      // Clear selected images since suggested prompts don't include images
+      setSelectedImages([])
+
+      // Send message to backend
+      const response = await fetch(`${API_BASE}/conversations/${conversationId}/messages`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          role: 'user',
+          content: prompt,
+          model: selectedModel,
+          temperature: temperature,
+          maxTokens: maxTokens
+        }),
+        signal: abortControllerRef.current.signal
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to send message')
+      }
+
+      // Handle streaming response
+      setIsStreaming(true)
+      const reader = response.body.getReader()
+      const decoder = new TextDecoder()
+      let accumulatedText = ''
+      let currentMessageId = null
+
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+
+        const chunk = decoder.decode(value, { stream: true })
+        const lines = chunk.split('\n').filter(line => line.trim())
+
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            const data = line.slice(6)
+            if (data === '[DONE]') continue
+
+            try {
+              const parsed = JSON.parse(data)
+
+              if (parsed.type === 'message_start') {
+                currentMessageId = parsed.message.id
+                setMessages(prev => [...prev, {
+                  id: currentMessageId,
+                  role: 'assistant',
+                  content: '',
+                  created_at: new Date().toISOString()
+                }])
+              } else if (parsed.type === 'content_block_delta') {
+                if (parsed.delta?.text) {
+                  accumulatedText += parsed.delta.text
+                  setMessages(prev => prev.map(msg =>
+                    msg.id === currentMessageId
+                      ? { ...msg, content: accumulatedText }
+                      : msg
+                  ))
+                }
+              }
+            } catch (e) {
+              console.error('Error parsing SSE data:', e)
+            }
+          }
+        }
+      }
+
+      // Reload conversations to update the title (server auto-generates it)
+      loadConversations()
+    } catch (error) {
+      if (error.name !== 'AbortError') {
+        console.error('Error sending message:', error)
+        setMessages(prev => [...prev, {
+          id: Date.now(),
+          role: 'assistant',
+          content: 'Sorry, there was an error sending your message. Please try again.',
+          created_at: new Date().toISOString()
+        }])
+      }
+    } finally {
+      setIsLoading(false)
+      setIsStreaming(false)
+      abortControllerRef.current = null
+    }
   }
 
   const handleImageSelect = (e) => {

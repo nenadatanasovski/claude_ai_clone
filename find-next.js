@@ -1,12 +1,7 @@
-const fs = require('fs');
+import fs from 'fs';
 const data = JSON.parse(fs.readFileSync('./feature_list.json', 'utf8'));
-const passing = data.filter(f => f.passes).length;
-const total = data.length;
-console.log('Progress:', passing, '/', total);
-console.log('\nNext failing feature:');
-const failing = data.find(f => !f.passes);
-if (failing) {
-  console.log('Description:', failing.description);
-  console.log('\nSteps:');
-  failing.steps.forEach((s, i) => console.log(`  ${i+1}. ${s}`));
-}
+
+// Get feature 75 (index 74)
+const feature75 = data[74];
+console.log('Feature #75:');
+console.log(JSON.stringify(feature75, null, 2));

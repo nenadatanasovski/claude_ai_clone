@@ -957,7 +957,7 @@
       "Step 4: Click one",
       "Step 5: Verify it sends that message"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
