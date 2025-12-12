@@ -93,11 +93,14 @@ function App() {
   const [artifactVersions, setArtifactVersions] = useState([])
   const [showVersionSelector, setShowVersionSelector] = useState(false)
   const [messageArtifacts, setMessageArtifacts] = useState({}) // Map of message ID to artifacts array
+  const [editingMessageId, setEditingMessageId] = useState(null)
+  const [editedMessageContent, setEditedMessageContent] = useState('')
   const messagesEndRef = useRef(null)
   const chatContainerRef = useRef(null)
   const textareaRef = useRef(null)
   const fileInputRef = useRef(null)
   const editInputRef = useRef(null)
+  const editMessageRef = useRef(null)
   const streamReaderRef = useRef(null)
   const abortControllerRef = useRef(null)
   const modelDropdownRef = useRef(null)
@@ -1028,6 +1031,58 @@ function App() {
     setSelectedImages(prev => prev.filter((_, i) => i !== index))
   }
 
+  const startEditingMessage = (message) => {
+    setEditingMessageId(message.id)
+    setEditedMessageContent(message.content)
+  }
+
+  const cancelEditingMessage = () => {
+    setEditingMessageId(null)
+    setEditedMessageContent('')
+  }
+
+  const saveEditedMessage = async (messageId) => {
+    if (!editedMessageContent.trim()) {
+      return
+    }
+
+    try {
+      // Update the message in the backend
+      const response = await fetch(`${API_BASE}/messages/${messageId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          content: editedMessageContent
+        })
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to update message')
+      }
+
+      // Update the message in local state
+      setMessages(prev => prev.map(msg =>
+        msg.id === messageId
+          ? { ...msg, content: editedMessageContent }
+          : msg
+      ))
+
+      // Exit edit mode
+      setEditingMessageId(null)
+      setEditedMessageContent('')
+
+      // Reload the conversation to ensure consistency
+      if (currentConversationId) {
+        loadMessages(currentConversationId)
+      }
+    } catch (error) {
+      console.error('Error updating message:', error)
+      alert('Failed to update message')
+    }
+  }
+
   const startEditingConversation = (conv, e) => {
     e.stopPropagation()
     setEditingConversationId(conv.id)
@@ -1886,17 +1941,55 @@ function App() {
                               ))}
                             </div>
                           )}
-                          <div className="prose dark:prose-invert prose-sm max-w-none">
-                            <ReactMarkdown
-                              remarkPlugins={[remarkGfm]}
-                              rehypePlugins={[rehypeHighlight]}
-                              components={{
-                                code: CodeBlock
-                              }}
-                            >
-                              {message.content}
-                            </ReactMarkdown>
-                          </div>
+                          {/* Message content - editable for user messages */}
+                          {editingMessageId === message.id ? (
+                            <div className="space-y-2">
+                              <textarea
+                                ref={editMessageRef}
+                                value={editedMessageContent}
+                                onChange={(e) => setEditedMessageContent(e.target.value)}
+                                className="w-full px-3 py-2 rounded-lg border border-gray-300
+                                  dark:border-gray-700 bg-white dark:bg-gray-900
+                                  text-gray-900 dark:text-gray-100
+                                  focus:outline-none focus:ring-2 focus:ring-claude-orange
+                                  resize-none"
+                                style={{ minHeight: '80px' }}
+                                autoFocus
+                              />
+                              <div className="flex gap-2">
+                                <button
+                                  onClick={() => saveEditedMessage(message.id)}
+                                  className="px-3 py-1.5 text-xs font-medium rounded-md
+                                    bg-[#CC785C] text-white hover:bg-[#B86A4F]
+                                    transition-colors"
+                                >
+                                  Save
+                                </button>
+                                <button
+                                  onClick={cancelEditingMessage}
+                                  className="px-3 py-1.5 text-xs font-medium rounded-md
+                                    border border-gray-300 dark:border-gray-600
+                                    text-gray-700 dark:text-gray-300
+                                    hover:bg-gray-100 dark:hover:bg-gray-800
+                                    transition-colors"
+                                >
+                                  Cancel
+                                </button>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="prose dark:prose-invert prose-sm max-w-none">
+                              <ReactMarkdown
+                                remarkPlugins={[remarkGfm]}
+                                rehypePlugins={[rehypeHighlight]}
+                                components={{
+                                  code: CodeBlock
+                                }}
+                              >
+                                {message.content}
+                              </ReactMarkdown>
+                            </div>
+                          )}
                           {messageArtifacts[message.id] && messageArtifacts[message.id].length > 0 && (
                             <div className="mt-2 pt-2 border-t border-gray-200 dark:border-gray-700">
                               <button
@@ -1932,6 +2025,28 @@ function App() {
                                     d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                                 </svg>
                                 Regenerate
+                              </button>
+                            </div>
+                          )}
+                          {/* Edit button for user messages */}
+                          {message.role === 'user' && !isStreaming && editingMessageId !== message.id && (
+                            <div className="mt-2 flex gap-2">
+                              <button
+                                onClick={() => startEditingMessage(message)}
+                                disabled={isLoading}
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium
+                                  rounded-md border border-gray-300 dark:border-gray-600
+                                  text-gray-700 dark:text-gray-300
+                                  hover:bg-gray-100 dark:hover:bg-gray-800
+                                  disabled:opacity-50 disabled:cursor-not-allowed
+                                  transition-colors"
+                                title="Edit message"
+                              >
+                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                                    d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                </svg>
+                                Edit
                               </button>
                             </div>
                           )}

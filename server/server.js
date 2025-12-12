@@ -1133,6 +1133,39 @@ app.get('/api/conversations/:id/artifacts', (req, res) => {
   }
 });
 
+// PUT update a message
+app.put('/api/messages/:id', (req, res) => {
+  try {
+    const { content } = req.body;
+    const messageId = req.params.id;
+
+    if (!content) {
+      return res.status(400).json({ error: 'Content is required' });
+    }
+
+    // Check if message exists
+    const message = dbHelpers.prepare('SELECT * FROM messages WHERE id = ?').get(messageId);
+    if (!message) {
+      return res.status(404).json({ error: 'Message not found' });
+    }
+
+    // Update the message
+    dbHelpers.prepare(`
+      UPDATE messages
+      SET content = ?, edited_at = CURRENT_TIMESTAMP
+      WHERE id = ?
+    `).run(content, messageId);
+
+    // Get the updated message
+    const updatedMessage = dbHelpers.prepare('SELECT * FROM messages WHERE id = ?').get(messageId);
+
+    res.json(updatedMessage);
+  } catch (error) {
+    console.error('Error updating message:', error);
+    res.status(500).json({ error: 'Failed to update message' });
+  }
+});
+
 // GET artifacts for a specific message
 app.get('/api/messages/:id/artifacts', (req, res) => {
   try {
