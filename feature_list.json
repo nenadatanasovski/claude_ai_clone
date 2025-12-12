@@ -49,7 +49,7 @@
       "Step 4: Verify the title updates in the sidebar",
       "Step 5: Verify the title persists after page reload"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",

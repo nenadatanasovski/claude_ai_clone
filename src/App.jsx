@@ -11,9 +11,12 @@ function App() {
   const [inputValue, setInputValue] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [isStreaming, setIsStreaming] = useState(false)
+  const [editingConversationId, setEditingConversationId] = useState(null)
+  const [editingTitle, setEditingTitle] = useState('')
   const messagesEndRef = useRef(null)
   const chatContainerRef = useRef(null)
   const textareaRef = useRef(null)
+  const editInputRef = useRef(null)
 
   // Scroll to bottom when messages change
   useEffect(() => {
@@ -182,6 +185,52 @@ function App() {
     textareaRef.current?.focus()
   }
 
+  const startEditingConversation = (conv, e) => {
+    e.stopPropagation()
+    setEditingConversationId(conv.id)
+    setEditingTitle(conv.title)
+    // Focus the input after a short delay to ensure it's rendered
+    setTimeout(() => {
+      editInputRef.current?.focus()
+      editInputRef.current?.select()
+    }, 10)
+  }
+
+  const saveConversationTitle = async (conversationId) => {
+    if (!editingTitle.trim()) {
+      setEditingConversationId(null)
+      return
+    }
+
+    try {
+      const response = await fetch(`${API_BASE}/conversations/${conversationId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: editingTitle.trim() })
+      })
+
+      if (response.ok) {
+        // Update local state
+        setConversations(conversations.map(conv =>
+          conv.id === conversationId ? { ...conv, title: editingTitle.trim() } : conv
+        ))
+      }
+    } catch (error) {
+      console.error('Error updating conversation title:', error)
+    } finally {
+      setEditingConversationId(null)
+    }
+  }
+
+  const handleTitleKeyDown = (e, conversationId) => {
+    if (e.key === 'Enter') {
+      e.preventDefault()
+      saveConversationTitle(conversationId)
+    } else if (e.key === 'Escape') {
+      setEditingConversationId(null)
+    }
+  }
+
   return (
     <div className={isDark ? 'dark' : ''}>
       <div className="min-h-screen bg-white dark:bg-[#1A1A1A] text-gray-900 dark:text-gray-100">
@@ -223,11 +272,30 @@ function App() {
                       key={conv.id}
                       onClick={() => setCurrentConversationId(conv.id)}
                       className={`px-2 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800
-                        cursor-pointer text-sm truncate ${
+                        cursor-pointer text-sm ${
                           conv.id === currentConversationId ? 'bg-gray-100 dark:bg-gray-800' : ''
                         }`}
                     >
-                      {conv.title}
+                      {editingConversationId === conv.id ? (
+                        <input
+                          ref={editInputRef}
+                          type="text"
+                          value={editingTitle}
+                          onChange={(e) => setEditingTitle(e.target.value)}
+                          onKeyDown={(e) => handleTitleKeyDown(e, conv.id)}
+                          onBlur={() => saveConversationTitle(conv.id)}
+                          onClick={(e) => e.stopPropagation()}
+                          className="w-full px-1 py-0.5 bg-white dark:bg-gray-900 border border-claude-orange
+                            rounded focus:outline-none text-sm"
+                        />
+                      ) : (
+                        <div
+                          onClick={(e) => startEditingConversation(conv, e)}
+                          className="truncate"
+                        >
+                          {conv.title}
+                        </div>
+                      )}
                     </div>
                   ))}
                 </>
