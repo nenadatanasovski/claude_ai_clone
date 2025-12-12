@@ -98,7 +98,7 @@
       "Step 4: Verify the partial response remains visible",
       "Step 5: Verify the input field is re-enabled"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",

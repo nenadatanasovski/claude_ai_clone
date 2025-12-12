@@ -59,6 +59,8 @@ function App() {
   const chatContainerRef = useRef(null)
   const textareaRef = useRef(null)
   const editInputRef = useRef(null)
+  const streamReaderRef = useRef(null)
+  const abortControllerRef = useRef(null)
 
   // Scroll to bottom when messages change
   useEffect(() => {
@@ -117,6 +119,19 @@ function App() {
     }
   }
 
+  const stopGeneration = () => {
+    if (streamReaderRef.current) {
+      streamReaderRef.current.cancel()
+      streamReaderRef.current = null
+    }
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort()
+      abortControllerRef.current = null
+    }
+    setIsStreaming(false)
+    setIsLoading(false)
+  }
+
   const sendMessage = async () => {
     if (!inputValue.trim() || isLoading) {
       return
@@ -150,17 +165,22 @@ function App() {
       }
       setMessages(prev => [...prev, userMessage])
 
+      // Create abort controller for this request
+      abortControllerRef.current = new AbortController()
+
       // Send message to API
       const response = await fetch(`${API_BASE}/conversations/${conversationId}/messages`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content: messageText, role: 'user' })
+        body: JSON.stringify({ content: messageText, role: 'user' }),
+        signal: abortControllerRef.current.signal
       })
 
       if (response.headers.get('content-type')?.includes('text/event-stream')) {
         // Handle streaming response
         setIsStreaming(true)
         const reader = response.body.getReader()
+        streamReaderRef.current = reader
         const decoder = new TextDecoder()
         let assistantMessage = {
           id: Date.now() + 1,
@@ -170,34 +190,45 @@ function App() {
         }
         setMessages(prev => [...prev, assistantMessage])
 
-        while (true) {
-          const { done, value } = await reader.read()
-          if (done) break
+        try {
+          while (true) {
+            const { done, value } = await reader.read()
+            if (done) break
 
           const chunk = decoder.decode(value)
           const lines = chunk.split('\n')
 
-          for (const line of lines) {
-            if (line.startsWith('data: ')) {
-              try {
-                const data = JSON.parse(line.slice(6))
-                if (data.type === 'content') {
-                  assistantMessage.content += data.text
-                  setMessages(prev => {
-                    const newMessages = [...prev]
-                    newMessages[newMessages.length - 1] = { ...assistantMessage }
-                    return newMessages
-                  })
-                } else if (data.type === 'done') {
-                  assistantMessage.id = data.messageId
+            for (const line of lines) {
+              if (line.startsWith('data: ')) {
+                try {
+                  const data = JSON.parse(line.slice(6))
+                  if (data.type === 'content') {
+                    assistantMessage.content += data.text
+                    setMessages(prev => {
+                      const newMessages = [...prev]
+                      newMessages[newMessages.length - 1] = { ...assistantMessage }
+                      return newMessages
+                    })
+                  } else if (data.type === 'done') {
+                    assistantMessage.id = data.messageId
+                  }
+                } catch (e) {
+                  // Skip invalid JSON
                 }
-              } catch (e) {
-                // Skip invalid JSON
               }
             }
           }
+        } catch (error) {
+          if (error.name === 'AbortError') {
+            console.log('Stream aborted by user')
+          } else {
+            console.error('Streaming error:', error)
+          }
+        } finally {
+          setIsStreaming(false)
+          streamReaderRef.current = null
+          abortControllerRef.current = null
         }
-        setIsStreaming(false)
       } else {
         // Handle regular JSON response
         const data = await response.json()
@@ -208,10 +239,17 @@ function App() {
       // Reload conversations to update the list
       loadConversations()
     } catch (error) {
-      console.error('Error sending message:', error)
-      alert('Error sending message: ' + error.message)
+      if (error.name === 'AbortError') {
+        console.log('Request aborted by user')
+      } else {
+        console.error('Error sending message:', error)
+        alert('Error sending message: ' + error.message)
+      }
     } finally {
       setIsLoading(false)
+      setIsStreaming(false)
+      streamReaderRef.current = null
+      abortControllerRef.current = null
     }
   }
 
@@ -491,33 +529,48 @@ function App() {
                     rows="2"
                     disabled={isLoading}
                   />
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.preventDefault()
-                      e.stopPropagation()
-                      sendMessage()
-                    }}
-                    disabled={isLoading || !inputValue.trim()}
-                    className="absolute right-2 bottom-2 p-2 rounded-lg bg-claude-orange
-                      hover:bg-claude-orange-hover text-white transition-colors
-                      disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {isLoading ? (
-                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    ) : (
-                      <svg
-                        width="20"
-                        height="20"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                      >
-                        <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z" />
-                      </svg>
-                    )}
-                  </button>
+                  {isStreaming ? (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault()
+                        e.stopPropagation()
+                        stopGeneration()
+                      }}
+                      className="absolute right-2 bottom-2 px-3 py-2 rounded-lg bg-red-500
+                        hover:bg-red-600 text-white transition-colors font-medium text-sm"
+                    >
+                      Stop
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault()
+                        e.stopPropagation()
+                        sendMessage()
+                      }}
+                      disabled={isLoading || !inputValue.trim()}
+                      className="absolute right-2 bottom-2 p-2 rounded-lg bg-claude-orange
+                        hover:bg-claude-orange-hover text-white transition-colors
+                        disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {isLoading ? (
+                        <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      ) : (
+                        <svg
+                          width="20"
+                          height="20"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                        >
+                          <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z" />
+                        </svg>
+                      )}
+                    </button>
+                  )}
                 </div>
                 <div className="mt-2 text-xs text-gray-500 dark:text-gray-400 text-center">
                   Press Enter to send, Shift+Enter for new line

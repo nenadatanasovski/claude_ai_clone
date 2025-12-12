@@ -401,7 +401,7 @@ app.post('/api/conversations/:id/messages', async (req, res) => {
 
     const userMessage = dbHelpers.prepare('SELECT * FROM messages WHERE id = ?').get(userMessageResult.lastInsertRowid);
 
-    // If no Anthropic client, return mock response
+    // If no Anthropic client, return mock streaming response
     // TODO: Fix API key configuration - using mock for now
     if (true || !anthropic) {
       // Check if the user is asking for code
@@ -410,10 +410,34 @@ app.post('/api/conversations/:id/messages', async (req, res) => {
                            content.toLowerCase().includes('python') ||
                            content.toLowerCase().includes('javascript');
 
+      const isLongRequest = content.toLowerCase().includes('long') ||
+                           content.toLowerCase().includes('story') ||
+                           content.toLowerCase().includes('essay');
+
       const mockResponse = isCodeRequest
         ? "Here's a simple Python hello world function:\n\n```python\ndef hello_world():\n    print('Hello, World!')\n    return 'Hello, World!'\n\n# Call the function\nhello_world()\n```\n\nThis function prints 'Hello, World!' to the console and returns the string."
+        : isLongRequest
+        ? "This is a mock long response. In a real implementation, this would be a much longer response that streams word by word. For now, I'll simulate a longer response by adding more text here. " + "Once upon a time, in a galaxy far, far away, there was a brave astronaut named Alex who embarked on an incredible space adventure. ".repeat(10)
         : "I'm a mock response. Please configure your Anthropic API key to get real responses.";
 
+      // Set up SSE for streaming
+      res.setHeader('Content-Type', 'text/event-stream');
+      res.setHeader('Cache-Control', 'no-cache');
+      res.setHeader('Connection', 'keep-alive');
+
+      // Stream the mock response word by word
+      const words = mockResponse.split(' ');
+      let sentContent = '';
+
+      for (let i = 0; i < words.length; i++) {
+        const word = words[i] + (i < words.length - 1 ? ' ' : '');
+        sentContent += word;
+        res.write(`data: ${JSON.stringify({ type: 'content', text: word })}\n\n`);
+        // Add delay to simulate real streaming (50ms per word)
+        await new Promise(resolve => setTimeout(resolve, 50));
+      }
+
+      // Save assistant message
       const assistantMessageResult = dbHelpers.prepare(`
         INSERT INTO messages (conversation_id, role, content, tokens)
         VALUES (?, ?, ?, ?)
@@ -430,10 +454,10 @@ app.post('/api/conversations/:id/messages', async (req, res) => {
         WHERE id = ?
       `).run(conversationId);
 
-      return res.json({
-        userMessage,
-        assistantMessage
-      });
+      // Send completion message
+      res.write(`data: ${JSON.stringify({ type: 'done', messageId: assistantMessage.id })}\n\n`);
+      res.end();
+      return;
     }
 
     // Get conversation history
