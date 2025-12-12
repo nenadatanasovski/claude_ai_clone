@@ -251,7 +251,7 @@
       "Step 5: Verify a JSON file is downloaded",
       "Step 6: Open the file and verify it contains all messages"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -263,7 +263,7 @@
       "Step 4: Verify a .md file is downloaded",
       "Step 5: Open the file and verify proper markdown formatting"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",

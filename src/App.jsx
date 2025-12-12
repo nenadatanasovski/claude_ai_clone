@@ -60,6 +60,8 @@ function App() {
   const [searchQuery, setSearchQuery] = useState('')
   const [contextMenu, setContextMenu] = useState(null) // { conversationId, x, y }
   const [showArchived, setShowArchived] = useState(false)
+  const [showExportModal, setShowExportModal] = useState(false)
+  const [exportConversationId, setExportConversationId] = useState(null)
   const messagesEndRef = useRef(null)
   const chatContainerRef = useRef(null)
   const textareaRef = useRef(null)
@@ -508,6 +510,103 @@ function App() {
       }
     } catch (error) {
       console.error('Error duplicating conversation:', error)
+    }
+  }
+
+  const openExportModal = (conversationId) => {
+    setExportConversationId(conversationId)
+    setShowExportModal(true)
+    closeContextMenu()
+  }
+
+  const closeExportModal = () => {
+    setShowExportModal(false)
+    setExportConversationId(null)
+  }
+
+  const exportToJSON = async () => {
+    try {
+      const conversation = conversations.find(c => c.id === exportConversationId)
+      if (!conversation) return
+
+      // Fetch messages for this conversation
+      const response = await fetch(`${API_BASE}/conversations/${exportConversationId}/messages`)
+      if (!response.ok) return
+
+      const messages = await response.json()
+
+      // Create export data
+      const exportData = {
+        id: conversation.id,
+        title: conversation.title,
+        model: conversation.model,
+        created_at: conversation.created_at,
+        updated_at: conversation.updated_at,
+        messages: messages.map(msg => ({
+          role: msg.role,
+          content: msg.content,
+          created_at: msg.created_at,
+          tokens: msg.tokens
+        }))
+      }
+
+      // Download as JSON file
+      const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `${conversation.title || 'conversation'}.json`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      URL.revokeObjectURL(url)
+
+      closeExportModal()
+    } catch (error) {
+      console.error('Error exporting to JSON:', error)
+    }
+  }
+
+  const exportToMarkdown = async () => {
+    try {
+      const conversation = conversations.find(c => c.id === exportConversationId)
+      if (!conversation) return
+
+      // Fetch messages for this conversation
+      const response = await fetch(`${API_BASE}/conversations/${exportConversationId}/messages`)
+      if (!response.ok) return
+
+      const messages = await response.json()
+
+      // Create markdown content
+      let markdown = `# ${conversation.title || 'Conversation'}\n\n`
+      markdown += `**Model:** ${conversation.model}\n`
+      markdown += `**Created:** ${new Date(conversation.created_at).toLocaleString()}\n\n`
+      markdown += `---\n\n`
+
+      messages.forEach((msg, index) => {
+        const role = msg.role === 'user' ? 'You' : 'Claude'
+        markdown += `### ${role}\n\n`
+        markdown += `${msg.content}\n\n`
+        if (index < messages.length - 1) {
+          markdown += `---\n\n`
+        }
+      })
+
+      // Download as markdown file
+      const blob = new Blob([markdown], { type: 'text/markdown' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `${conversation.title || 'conversation'}.md`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      URL.revokeObjectURL(url)
+
+      closeExportModal()
+    } catch (error) {
+      console.error('Error exporting to Markdown:', error)
     }
   }
 
@@ -989,6 +1088,16 @@ function App() {
             </button>
             <button
               onClick={() => {
+                openExportModal(contextMenu.conversationId)
+              }}
+              className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700
+                flex items-center gap-2"
+            >
+              <span>📥</span>
+              <span>Export</span>
+            </button>
+            <button
+              onClick={() => {
                 const conv = conversations.find(c => c.id === contextMenu.conversationId)
                 if (conv) {
                   startEditingConversation(conv, { stopPropagation: () => {} })
@@ -1012,6 +1121,49 @@ function App() {
               <span>🗑️</span>
               <span>Delete</span>
             </button>
+          </div>
+        )}
+
+        {/* Export Modal */}
+        {showExportModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md w-full mx-4">
+              <h2 className="text-xl font-semibold mb-4">Export Conversation</h2>
+              <p className="text-gray-600 dark:text-gray-400 mb-6">
+                Choose a format to export your conversation:
+              </p>
+              <div className="space-y-3">
+                <button
+                  onClick={exportToJSON}
+                  className="w-full px-4 py-3 bg-claude-orange hover:bg-claude-orange-hover
+                    text-white rounded-lg transition-colors flex items-center justify-between"
+                >
+                  <span className="flex items-center gap-2">
+                    <span>📄</span>
+                    <span>Export as JSON</span>
+                  </span>
+                  <span className="text-sm opacity-75">.json</span>
+                </button>
+                <button
+                  onClick={exportToMarkdown}
+                  className="w-full px-4 py-3 bg-claude-orange hover:bg-claude-orange-hover
+                    text-white rounded-lg transition-colors flex items-center justify-between"
+                >
+                  <span className="flex items-center gap-2">
+                    <span>📝</span>
+                    <span>Export as Markdown</span>
+                  </span>
+                  <span className="text-sm opacity-75">.md</span>
+                </button>
+              </div>
+              <button
+                onClick={closeExportModal}
+                className="w-full mt-4 px-4 py-2 border border-gray-300 dark:border-gray-600
+                  rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
           </div>
         )}
       </div>
