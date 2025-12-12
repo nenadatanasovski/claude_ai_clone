@@ -69,6 +69,8 @@ function App() {
   const [newProjectName, setNewProjectName] = useState('')
   const [newProjectDescription, setNewProjectDescription] = useState('')
   const [newProjectColor, setNewProjectColor] = useState('#CC785C')
+  const [showMoveToProjectModal, setShowMoveToProjectModal] = useState(false)
+  const [moveConversationId, setMoveConversationId] = useState(null)
   const messagesEndRef = useRef(null)
   const chatContainerRef = useRef(null)
   const textareaRef = useRef(null)
@@ -114,6 +116,11 @@ function App() {
     loadConversations()
     loadProjects()
   }, [])
+
+  // Reload conversations when project changes
+  useEffect(() => {
+    loadConversations()
+  }, [currentProjectId])
 
   // Load messages when conversation changes
   useEffect(() => {
@@ -673,6 +680,37 @@ function App() {
     }
   }
 
+  const openMoveToProjectModal = (conversationId) => {
+    setMoveConversationId(conversationId)
+    setShowMoveToProjectModal(true)
+    closeContextMenu()
+  }
+
+  const closeMoveToProjectModal = () => {
+    setShowMoveToProjectModal(false)
+    setMoveConversationId(null)
+  }
+
+  const moveConversationToProject = async (projectId) => {
+    try {
+      const response = await fetch(`${API_BASE}/conversations/${moveConversationId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ project_id: projectId })
+      })
+
+      if (response.ok) {
+        // Update local state
+        setConversations(conversations.map(conv =>
+          conv.id === moveConversationId ? { ...conv, project_id: projectId } : conv
+        ))
+        closeMoveToProjectModal()
+      }
+    } catch (error) {
+      console.error('Error moving conversation to project:', error)
+    }
+  }
+
   const handleContextMenu = (e, conversationId) => {
     e.preventDefault()
     e.stopPropagation()
@@ -893,15 +931,15 @@ function App() {
             </div>
 
             <div className="space-y-2">
-              {conversations.filter(c => showArchived ? c.is_archived : !c.is_archived).length > 0 && (
+              {conversations.filter(c => (showArchived ? c.is_archived : !c.is_archived) && (currentProjectId === null || c.project_id === currentProjectId)).length > 0 && (
                 <>
                   {/* Pinned Conversations */}
-                  {conversations.filter(c => (showArchived ? c.is_archived : !c.is_archived) && c.is_pinned).length > 0 && (
+                  {conversations.filter(c => (showArchived ? c.is_archived : !c.is_archived) && c.is_pinned && (currentProjectId === null || c.project_id === currentProjectId)).length > 0 && (
                     <>
                       <div className="text-sm font-medium text-gray-500 dark:text-gray-400 px-2">
                         Pinned
                       </div>
-                      {conversations.filter(c => (showArchived ? c.is_archived : !c.is_archived) && c.is_pinned).map(conv => (
+                      {conversations.filter(c => (showArchived ? c.is_archived : !c.is_archived) && c.is_pinned && (currentProjectId === null || c.project_id === currentProjectId)).map(conv => (
                         <div
                           key={conv.id}
                           onClick={() => setCurrentConversationId(conv.id)}
@@ -958,12 +996,12 @@ function App() {
                   )}
 
                   {/* Regular Conversations */}
-                  {conversations.filter(c => (showArchived ? c.is_archived : !c.is_archived) && !c.is_pinned).length > 0 && (
+                  {conversations.filter(c => (showArchived ? c.is_archived : !c.is_archived) && !c.is_pinned && (currentProjectId === null || c.project_id === currentProjectId)).length > 0 && (
                     <>
                       <div className="text-sm font-medium text-gray-500 dark:text-gray-400 px-2">
                         Conversations
                       </div>
-                      {conversations.filter(c => (showArchived ? c.is_archived : !c.is_archived) && !c.is_pinned).map(conv => (
+                      {conversations.filter(c => (showArchived ? c.is_archived : !c.is_archived) && !c.is_pinned && (currentProjectId === null || c.project_id === currentProjectId)).map(conv => (
                         <div
                           key={conv.id}
                           onClick={() => setCurrentConversationId(conv.id)}
@@ -1235,6 +1273,16 @@ function App() {
             </button>
             <button
               onClick={() => {
+                openMoveToProjectModal(contextMenu.conversationId)
+              }}
+              className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700
+                flex items-center gap-2"
+            >
+              <span>📁</span>
+              <span>Move to Project</span>
+            </button>
+            <button
+              onClick={() => {
                 openExportModal(contextMenu.conversationId)
               }}
               className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700
@@ -1305,6 +1353,56 @@ function App() {
               </div>
               <button
                 onClick={closeExportModal}
+                className="w-full mt-4 px-4 py-2 border border-gray-300 dark:border-gray-600
+                  rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Move to Project Modal */}
+        {showMoveToProjectModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md w-full mx-4">
+              <h2 className="text-xl font-semibold mb-4">Move to Project</h2>
+              <p className="text-gray-600 dark:text-gray-400 mb-6">
+                Select a project to move this conversation to:
+              </p>
+              <div className="space-y-2 max-h-64 overflow-y-auto">
+                <button
+                  onClick={() => moveConversationToProject(null)}
+                  className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600
+                    rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-left"
+                >
+                  <div className="font-medium">All Conversations</div>
+                  <div className="text-sm text-gray-500 dark:text-gray-400">Remove from project</div>
+                </button>
+                {projects.map((project) => (
+                  <button
+                    key={project.id}
+                    onClick={() => moveConversationToProject(project.id)}
+                    className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600
+                      rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-left"
+                  >
+                    <div className="flex items-center gap-2">
+                      <div
+                        className="w-3 h-3 rounded-full"
+                        style={{ backgroundColor: project.color }}
+                      />
+                      <div className="font-medium">{project.name}</div>
+                    </div>
+                    {project.description && (
+                      <div className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                        {project.description}
+                      </div>
+                    )}
+                  </button>
+                ))}
+              </div>
+              <button
+                onClick={closeMoveToProjectModal}
                 className="w-full mt-4 px-4 py-2 border border-gray-300 dark:border-gray-600
                   rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
               >
