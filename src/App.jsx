@@ -108,6 +108,10 @@ function App() {
     return saved || 'comfortable'
   }) // 'compact', 'comfortable', or 'spacious'
   const [globalCustomInstructions, setGlobalCustomInstructions] = useState('')
+  const [temperature, setTemperature] = useState(() => {
+    const saved = localStorage.getItem('temperature')
+    return saved ? Number(saved) : 1.0
+  }) // Temperature (0.0-1.0)
   const messagesEndRef = useRef(null)
   const chatContainerRef = useRef(null)
   const textareaRef = useRef(null)
@@ -189,6 +193,11 @@ function App() {
   useEffect(() => {
     localStorage.setItem('messageDensity', messageDensity)
   }, [messageDensity])
+
+  // Save temperature setting to localStorage
+  useEffect(() => {
+    localStorage.setItem('temperature', temperature.toString())
+  }, [temperature])
 
   // Reload conversations when project changes
   useEffect(() => {
@@ -791,7 +800,8 @@ function App() {
       // Prepare message payload with images
       const messagePayload = {
         content: messageText,
-        role: 'user'
+        role: 'user',
+        temperature: temperature
       }
 
       if (selectedImages.length > 0) {
@@ -1212,7 +1222,8 @@ function App() {
           role: 'user',
           content: content,
           model: selectedModel,
-          parentMessageId: parentMessageId
+          parentMessageId: parentMessageId,
+          temperature: temperature
         }),
         signal: controller.signal
       })
@@ -3407,6 +3418,41 @@ function App() {
                     )}
                   </button>
                 </div>
+              </div>
+
+              {/* Temperature Control Section */}
+              <div className="mb-6">
+                <h3 className="text-lg font-medium mb-3">Temperature</h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
+                  Control the randomness of Claude's responses
+                </p>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm text-gray-600 dark:text-gray-400">More focused</span>
+                    <span className="text-sm font-medium">{temperature.toFixed(1)}</span>
+                    <span className="text-sm text-gray-600 dark:text-gray-400">More creative</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="0"
+                    max="1"
+                    step="0.1"
+                    value={temperature}
+                    onChange={(e) => setTemperature(Number(e.target.value))}
+                    className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer
+                      [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4
+                      [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-claude-orange
+                      [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4
+                      [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-claude-orange [&::-moz-range-thumb]:border-0"
+                  />
+                  <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400">
+                    <span>0.0 (Deterministic)</span>
+                    <span>1.0 (Creative)</span>
+                  </div>
+                </div>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                  Lower values make responses more focused and consistent. Higher values make them more varied and creative.
+                </p>
               </div>
 
               {/* Custom Instructions Section */}

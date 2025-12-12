@@ -638,7 +638,7 @@
       "Step 7: Send same message multiple times",
       "Step 8: Verify responses are more varied"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
