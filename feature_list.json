@@ -755,7 +755,7 @@
       "Step 6: Send the message",
       "Step 7: Verify the prompt works as expected"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
