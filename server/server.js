@@ -1490,6 +1490,136 @@ app.put('/api/settings/custom-instructions', (req, res) => {
   }
 });
 
+// Share conversation endpoints
+
+// POST /api/conversations/:id/share - Create a shareable link
+app.post('/api/conversations/:id/share', async (req, res) => {
+  try {
+    const conversationId = parseInt(req.params.id);
+
+    // Verify conversation exists
+    const conversation = dbHelpers.prepare('SELECT * FROM conversations WHERE id = ?').get(conversationId);
+    if (!conversation) {
+      return res.status(404).json({ error: 'Conversation not found' });
+    }
+
+    // Generate unique share token
+    const crypto = await import('crypto');
+    const shareToken = crypto.randomBytes(16).toString('hex');
+
+    // Create shared conversation record
+    const result = dbHelpers.prepare(`
+      INSERT INTO shared_conversations (conversation_id, share_token, is_public)
+      VALUES (?, ?, 1)
+    `).run(conversationId, shareToken);
+
+    res.json({
+      share_token: shareToken,
+      share_url: `/share/${shareToken}`,
+      id: result.lastInsertRowid
+    });
+  } catch (error) {
+    console.error('Error creating share link:', error);
+    res.status(500).json({ error: 'Failed to create share link' });
+  }
+});
+
+// GET /api/share/:token - Get shared conversation
+app.get('/api/share/:token', (req, res) => {
+  try {
+    const { token } = req.params;
+
+    // Find shared conversation
+    const shared = dbHelpers.prepare(`
+      SELECT * FROM shared_conversations WHERE share_token = ?
+    `).get(token);
+
+    if (!shared) {
+      return res.status(404).json({ error: 'Shared conversation not found' });
+    }
+
+    // Check if expired
+    if (shared.expires_at && new Date(shared.expires_at) < new Date()) {
+      return res.status(410).json({ error: 'Share link has expired' });
+    }
+
+    // Increment view count
+    dbHelpers.prepare(`
+      UPDATE shared_conversations
+      SET view_count = view_count + 1
+      WHERE share_token = ?
+    `).run(token);
+
+    // Get conversation details
+    const conversation = dbHelpers.prepare(`
+      SELECT * FROM conversations WHERE id = ?
+    `).get(shared.conversation_id);
+
+    // Get messages
+    const messages = dbHelpers.prepare(`
+      SELECT * FROM messages
+      WHERE conversation_id = ?
+      ORDER BY created_at ASC
+    `).all(shared.conversation_id);
+
+    // Get artifacts
+    const artifacts = dbHelpers.prepare(`
+      SELECT * FROM artifacts
+      WHERE conversation_id = ?
+      ORDER BY created_at ASC
+    `).all(shared.conversation_id);
+
+    res.json({
+      conversation,
+      messages,
+      artifacts,
+      view_count: shared.view_count + 1,
+      is_public: shared.is_public
+    });
+  } catch (error) {
+    console.error('Error fetching shared conversation:', error);
+    res.status(500).json({ error: 'Failed to fetch shared conversation' });
+  }
+});
+
+// DELETE /api/share/:token - Delete share link
+app.delete('/api/share/:token', (req, res) => {
+  try {
+    const { token } = req.params;
+
+    const result = dbHelpers.prepare(`
+      DELETE FROM shared_conversations WHERE share_token = ?
+    `).run(token);
+
+    if (result.changes === 0) {
+      return res.status(404).json({ error: 'Share link not found' });
+    }
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error deleting share link:', error);
+    res.status(500).json({ error: 'Failed to delete share link' });
+  }
+});
+
+// GET /api/conversations/:id/shares - Get all shares for a conversation
+app.get('/api/conversations/:id/shares', (req, res) => {
+  try {
+    const conversationId = parseInt(req.params.id);
+
+    const shares = dbHelpers.prepare(`
+      SELECT * FROM shared_conversations
+      WHERE conversation_id = ?
+      ORDER BY created_at DESC
+    `).all(conversationId);
+
+    res.json(shares);
+  } catch (error) {
+    console.error('Error fetching shares:', error);
+    res.status(500).json({ error: 'Failed to fetch shares' });
+  }
+});
+
 // Export database instance for other modules
 export { db, dbHelpers };
 

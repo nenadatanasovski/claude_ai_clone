@@ -45,7 +45,148 @@ function CodeBlock({ node, inline, className, children, ...props }) {
   )
 }
 
+// Shared Conversation View Component
+function SharedConversationView({ token }) {
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+  const [conversation, setConversation] = useState(null)
+  const [messages, setMessages] = useState([])
+  const [artifacts, setArtifacts] = useState([])
+
+  useEffect(() => {
+    fetchSharedConversation()
+  }, [token])
+
+  const fetchSharedConversation = async () => {
+    try {
+      const response = await fetch(`${API_BASE}/share/${token}`)
+
+      if (!response.ok) {
+        if (response.status === 404) {
+          setError('This shared conversation does not exist.')
+        } else if (response.status === 410) {
+          setError('This share link has expired.')
+        } else {
+          setError('Failed to load shared conversation.')
+        }
+        setLoading(false)
+        return
+      }
+
+      const data = await response.json()
+      setConversation(data.conversation)
+      setMessages(data.messages || [])
+      setArtifacts(data.artifacts || [])
+      setLoading(false)
+    } catch (err) {
+      console.error('Error fetching shared conversation:', err)
+      setError('Failed to load shared conversation.')
+      setLoading(false)
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-white dark:bg-[#1A1A1A] flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-claude-orange mx-auto mb-4"></div>
+          <p className="text-gray-600 dark:text-gray-400">Loading shared conversation...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-white dark:bg-[#1A1A1A] flex items-center justify-center">
+        <div className="text-center max-w-md mx-4">
+          <h1 className="text-2xl font-semibold mb-4 text-gray-900 dark:text-gray-100">Oops!</h1>
+          <p className="text-gray-600 dark:text-gray-400 mb-6">{error}</p>
+          <a
+            href="/"
+            className="inline-block px-6 py-3 bg-claude-orange hover:bg-claude-orange-hover
+              text-white rounded-lg transition-colors"
+          >
+            Go to Homepage
+          </a>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="min-h-screen bg-white dark:bg-[#1A1A1A] text-gray-900 dark:text-gray-100">
+      <header className="border-b border-gray-200 dark:border-gray-800 px-6 py-4">
+        <div className="max-w-5xl mx-auto flex items-center justify-between">
+          <h1 className="text-xl font-semibold">Claude</h1>
+          <div className="flex items-center gap-4">
+            <span className="text-sm text-gray-500 dark:text-gray-400">Shared Conversation (Read-only)</span>
+            <a
+              href="/"
+              className="px-4 py-2 text-sm bg-claude-orange hover:bg-claude-orange-hover
+                text-white rounded-lg transition-colors"
+            >
+              Try Claude
+            </a>
+          </div>
+        </div>
+      </header>
+
+      <main className="max-w-3xl mx-auto px-4 py-8">
+        {conversation && (
+          <div className="mb-6">
+            <h2 className="text-2xl font-semibold">{conversation.title || 'Untitled Conversation'}</h2>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+              {new Date(conversation.created_at).toLocaleDateString()}
+            </p>
+          </div>
+        )}
+
+        <div className="space-y-6">
+          {messages.map((message, idx) => (
+            <div
+              key={message.id || idx}
+              className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
+            >
+              <div
+                className={`max-w-[80%] rounded-lg px-4 py-3 ${
+                  message.role === 'user'
+                    ? 'bg-gray-100 dark:bg-gray-800'
+                    : 'bg-transparent'
+                }`}
+              >
+                <div className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+                  {message.role === 'user' ? 'You' : 'Claude'}
+                </div>
+                <div className="prose dark:prose-invert prose-sm max-w-none">
+                  <ReactMarkdown
+                    remarkPlugins={[remarkGfm]}
+                    rehypePlugins={[rehypeHighlight]}
+                    components={{
+                      code: CodeBlock
+                    }}
+                  >
+                    {message.content}
+                  </ReactMarkdown>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </main>
+    </div>
+  )
+}
+
 function App() {
+  // Check if we're on a share route
+  const path = window.location.pathname
+  const shareMatch = path.match(/^\/share\/([a-f0-9]+)$/)
+
+  if (shareMatch) {
+    return <SharedConversationView token={shareMatch[1]} />
+  }
+
   const [isDark, setIsDark] = useState(false)
   const [conversations, setConversations] = useState([])
   const [currentConversationId, setCurrentConversationId] = useState(null)
@@ -63,6 +204,10 @@ function App() {
   const [showArchived, setShowArchived] = useState(false)
   const [showExportModal, setShowExportModal] = useState(false)
   const [exportConversationId, setExportConversationId] = useState(null)
+  const [showShareModal, setShowShareModal] = useState(false)
+  const [shareConversationId, setShareConversationId] = useState(null)
+  const [shareLink, setShareLink] = useState(null)
+  const [shareLinkCopied, setShareLinkCopied] = useState(false)
   const [projects, setProjects] = useState([])
   const [currentProjectId, setCurrentProjectId] = useState(null)
   const [isProjectDropdownOpen, setIsProjectDropdownOpen] = useState(false)
@@ -1499,6 +1644,45 @@ function App() {
     setExportConversationId(null)
   }
 
+  const openShareModal = async (conversationId) => {
+    setShareConversationId(conversationId)
+    setShowShareModal(true)
+    setShareLink(null)
+    setShareLinkCopied(false)
+    closeContextMenu()
+
+    // Generate share link
+    try {
+      const response = await fetch(`${API_BASE}/conversations/${conversationId}/share`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        const fullUrl = `${window.location.origin}/share/${data.share_token}`
+        setShareLink(fullUrl)
+      }
+    } catch (error) {
+      console.error('Error creating share link:', error)
+    }
+  }
+
+  const closeShareModal = () => {
+    setShowShareModal(false)
+    setShareConversationId(null)
+    setShareLink(null)
+    setShareLinkCopied(false)
+  }
+
+  const copyShareLink = () => {
+    if (shareLink) {
+      navigator.clipboard.writeText(shareLink)
+      setShareLinkCopied(true)
+      setTimeout(() => setShareLinkCopied(false), 2000)
+    }
+  }
+
   const exportToJSON = async () => {
     try {
       const conversation = conversations.find(c => c.id === exportConversationId)
@@ -2932,6 +3116,16 @@ function App() {
             </button>
             <button
               onClick={() => {
+                openShareModal(contextMenu.conversationId)
+              }}
+              className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700
+                flex items-center gap-2"
+            >
+              <span>🔗</span>
+              <span>Share</span>
+            </button>
+            <button
+              onClick={() => {
                 const conv = conversations.find(c => c.id === contextMenu.conversationId)
                 if (conv) {
                   startEditingConversation(conv, { stopPropagation: () => {} })
@@ -2998,6 +3192,60 @@ function App() {
                   rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
               >
                 Cancel
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Share Modal */}
+        {showShareModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md w-full mx-4">
+              <h2 className="text-xl font-semibold mb-4">Share Conversation</h2>
+              <p className="text-gray-600 dark:text-gray-400 mb-6">
+                Anyone with this link can view this conversation (read-only).
+              </p>
+
+              {shareLink ? (
+                <div className="space-y-4">
+                  <div className="bg-gray-100 dark:bg-gray-700 rounded-lg p-3 break-all text-sm">
+                    {shareLink}
+                  </div>
+                  <button
+                    onClick={copyShareLink}
+                    className="w-full px-4 py-3 bg-claude-orange hover:bg-claude-orange-hover
+                      text-white rounded-lg transition-colors flex items-center justify-center gap-2"
+                  >
+                    {shareLinkCopied ? (
+                      <>
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+                        </svg>
+                        <span>Copied!</span>
+                      </>
+                    ) : (
+                      <>
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"
+                            d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
+                        </svg>
+                        <span>Copy Link</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              ) : (
+                <div className="flex items-center justify-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-claude-orange"></div>
+                </div>
+              )}
+
+              <button
+                onClick={closeShareModal}
+                className="w-full mt-4 px-4 py-2 border border-gray-300 dark:border-gray-600
+                  rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+              >
+                Close
               </button>
             </div>
           </div>
