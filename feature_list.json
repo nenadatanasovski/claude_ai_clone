@@ -1,0 +1,2226 @@
+[
+  {
+    "category": "functional",
+    "description": "Basic chat interface - send a simple message and receive a streaming response",
+    "steps": [
+      "Step 1: Navigate to the application homepage",
+      "Step 2: Verify the chat input field is visible and enabled",
+      "Step 3: Type 'Hello, can you help me?' into the input field",
+      "Step 4: Click the send button or press Enter",
+      "Step 5: Verify the user message appears in the chat area",
+      "Step 6: Verify a typing indicator appears",
+      "Step 7: Verify the assistant response streams in word-by-word",
+      "Step 8: Verify the response is complete and properly formatted"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Create a new conversation from the sidebar",
+    "steps": [
+      "Step 1: Navigate to the application homepage",
+      "Step 2: Locate the 'New Chat' button in the sidebar",
+      "Step 3: Click the 'New Chat' button",
+      "Step 4: Verify a new empty conversation is created",
+      "Step 5: Verify the input field is focused and ready"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Switch between multiple conversations",
+    "steps": [
+      "Step 1: Create two different conversations with distinct messages",
+      "Step 2: Click on the first conversation in the sidebar",
+      "Step 3: Verify the correct messages are displayed",
+      "Step 4: Click on the second conversation in the sidebar",
+      "Step 5: Verify the second conversation's messages are displayed",
+      "Step 6: Verify the previous conversation is no longer visible"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Rename a conversation inline",
+    "steps": [
+      "Step 1: Create a new conversation with at least one message",
+      "Step 2: Click on the conversation title to edit it",
+      "Step 3: Type 'My Custom Title' and press Enter or click outside",
+      "Step 4: Verify the title updates in the sidebar",
+      "Step 5: Verify the title persists after page reload"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Delete a conversation with confirmation",
+    "steps": [
+      "Step 1: Create a test conversation",
+      "Step 2: Right-click or click the menu on the conversation",
+      "Step 3: Select 'Delete' option",
+      "Step 4: Verify a confirmation dialog appears",
+      "Step 5: Confirm the deletion",
+      "Step 6: Verify the conversation is removed from the sidebar"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Code block rendering with syntax highlighting",
+    "steps": [
+      "Step 1: Send a message asking for code: 'Write a Python hello world function'",
+      "Step 2: Wait for the response to complete",
+      "Step 3: Verify the code block is rendered with syntax highlighting",
+      "Step 4: Verify the code has proper colors for keywords, strings, etc.",
+      "Step 5: Verify a copy button appears on the code block"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Copy code from code block",
+    "steps": [
+      "Step 1: Get a response with a code block",
+      "Step 2: Hover over the code block",
+      "Step 3: Click the copy button",
+      "Step 4: Verify a 'Copied!' confirmation appears",
+      "Step 5: Paste into a text editor to verify clipboard content"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Stop generation while streaming",
+    "steps": [
+      "Step 1: Send a message that will generate a long response",
+      "Step 2: While the response is streaming, click the 'Stop' button",
+      "Step 3: Verify the streaming stops immediately",
+      "Step 4: Verify the partial response remains visible",
+      "Step 5: Verify the input field is re-enabled"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Markdown rendering in messages",
+    "steps": [
+      "Step 1: Send a message: 'Format this with **bold**, *italic*, and a [link](https://example.com)'",
+      "Step 2: Wait for the response",
+      "Step 3: Verify bold text is rendered with font-weight: bold",
+      "Step 4: Verify italic text is rendered with font-style: italic",
+      "Step 5: Verify links are clickable and properly styled"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Multi-line input with Shift+Enter",
+    "steps": [
+      "Step 1: Focus the input field",
+      "Step 2: Type 'Line 1'",
+      "Step 3: Press Shift+Enter",
+      "Step 4: Type 'Line 2'",
+      "Step 5: Verify both lines appear in the textarea",
+      "Step 6: Press Enter to send",
+      "Step 7: Verify the message is sent with both lines"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Auto-resize textarea as content grows",
+    "steps": [
+      "Step 1: Note the initial height of the input textarea",
+      "Step 2: Type multiple lines of text (10+ lines)",
+      "Step 3: Verify the textarea expands vertically",
+      "Step 4: Clear the text",
+      "Step 5: Verify the textarea shrinks back to original size"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Character count display in input area",
+    "steps": [
+      "Step 1: Focus the input field",
+      "Step 2: Type a message",
+      "Step 3: Verify a character count appears",
+      "Step 4: Verify the count updates in real-time as you type",
+      "Step 5: Verify the count resets after sending"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Model selection dropdown displays available models",
+    "steps": [
+      "Step 1: Locate the model selector in the header",
+      "Step 2: Click the model selector dropdown",
+      "Step 3: Verify 'Claude Sonnet 4.5' appears as an option",
+      "Step 4: Verify 'Claude Haiku 4.5' appears as an option",
+      "Step 5: Verify 'Claude Opus 4.1' appears as an option"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Switch models mid-conversation",
+    "steps": [
+      "Step 1: Start a conversation with default model",
+      "Step 2: Send a message and receive a response",
+      "Step 3: Click the model selector",
+      "Step 4: Select a different model (e.g., Claude Haiku 4.5)",
+      "Step 5: Send another message",
+      "Step 6: Verify the new message uses the selected model"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Search conversations by title",
+    "steps": [
+      "Step 1: Create multiple conversations with different titles",
+      "Step 2: Locate the search input in the sidebar",
+      "Step 3: Type a partial title of one conversation",
+      "Step 4: Verify matching conversations are shown",
+      "Step 5: Verify non-matching conversations are hidden",
+      "Step 6: Clear the search",
+      "Step 7: Verify all conversations reappear"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Search conversations by content",
+    "steps": [
+      "Step 1: Create a conversation with specific keywords in messages",
+      "Step 2: Use the search to find those keywords",
+      "Step 3: Verify the conversation appears in results",
+      "Step 4: Click the conversation",
+      "Step 5: Verify it opens with the correct content"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Pin a conversation to keep it at the top",
+    "steps": [
+      "Step 1: Create several conversations",
+      "Step 2: Right-click on one conversation",
+      "Step 3: Select 'Pin' option",
+      "Step 4: Verify the conversation moves to a 'Pinned' section at the top",
+      "Step 5: Create new conversations",
+      "Step 6: Verify the pinned conversation stays at the top"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Archive a conversation",
+    "steps": [
+      "Step 1: Create a conversation",
+      "Step 2: Right-click on the conversation",
+      "Step 3: Select 'Archive' option",
+      "Step 4: Verify the conversation is removed from the main list",
+      "Step 5: Navigate to archived conversations view",
+      "Step 6: Verify the conversation appears there"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Duplicate a conversation",
+    "steps": [
+      "Step 1: Create a conversation with several messages",
+      "Step 2: Right-click on the conversation",
+      "Step 3: Select 'Duplicate' option",
+      "Step 4: Verify a copy of the conversation appears in the sidebar",
+      "Step 5: Open the duplicate",
+      "Step 6: Verify all messages are copied correctly"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Export conversation to JSON format",
+    "steps": [
+      "Step 1: Create a conversation with messages",
+      "Step 2: Right-click on the conversation",
+      "Step 3: Select 'Export' option",
+      "Step 4: Choose 'JSON' format",
+      "Step 5: Verify a JSON file is downloaded",
+      "Step 6: Open the file and verify it contains all messages"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Export conversation to Markdown format",
+    "steps": [
+      "Step 1: Create a conversation with messages",
+      "Step 2: Access export options",
+      "Step 3: Select 'Markdown' format",
+      "Step 4: Verify a .md file is downloaded",
+      "Step 5: Open the file and verify proper markdown formatting"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Create a new project",
+    "steps": [
+      "Step 1: Click on the project selector",
+      "Step 2: Click 'New Project' option",
+      "Step 3: Enter project name 'Test Project'",
+      "Step 4: Optionally enter description and choose color",
+      "Step 5: Save the project",
+      "Step 6: Verify the project appears in the selector"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Move conversation to a project",
+    "steps": [
+      "Step 1: Create a project",
+      "Step 2: Create a conversation",
+      "Step 3: Right-click on the conversation",
+      "Step 4: Select 'Move to Project'",
+      "Step 5: Choose the created project",
+      "Step 6: Switch to the project view",
+      "Step 7: Verify the conversation appears in that project"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Set project-specific custom instructions",
+    "steps": [
+      "Step 1: Create a project",
+      "Step 2: Open project settings",
+      "Step 3: Navigate to custom instructions section",
+      "Step 4: Enter 'Always respond in Spanish'",
+      "Step 5: Save the instructions",
+      "Step 6: Create a conversation in that project",
+      "Step 7: Send a message",
+      "Step 8: Verify the custom instructions are applied"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Create conversation folders",
+    "steps": [
+      "Step 1: Right-click in the sidebar",
+      "Step 2: Select 'New Folder'",
+      "Step 3: Name the folder 'Work Projects'",
+      "Step 4: Verify the folder appears in the sidebar",
+      "Step 5: Verify it can be expanded/collapsed"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Organize conversations into folders",
+    "steps": [
+      "Step 1: Create a folder",
+      "Step 2: Create a conversation",
+      "Step 3: Drag the conversation onto the folder",
+      "Step 4: Verify the conversation moves into the folder",
+      "Step 5: Expand the folder",
+      "Step 6: Verify the conversation is nested inside"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Delete a folder and its contents",
+    "steps": [
+      "Step 1: Create a folder with conversations inside",
+      "Step 2: Right-click on the folder",
+      "Step 3: Select 'Delete'",
+      "Step 4: Confirm deletion in the dialog",
+      "Step 5: Verify the folder is removed",
+      "Step 6: Verify conversations either move to default or are deleted based on settings"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Artifact detection - code artifact",
+    "steps": [
+      "Step 1: Send message: 'Create a React component for a button'",
+      "Step 2: Wait for response with code",
+      "Step 3: Verify the artifact panel opens on the right",
+      "Step 4: Verify the code appears in the artifact viewer",
+      "Step 5: Verify syntax highlighting is applied"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Artifact detection - HTML preview",
+    "steps": [
+      "Step 1: Send message: 'Create an HTML page with a red button'",
+      "Step 2: Wait for response with HTML artifact",
+      "Step 3: Verify the artifact panel opens",
+      "Step 4: Verify the HTML is rendered as a live preview",
+      "Step 5: Verify the red button appears in the preview"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Artifact detection - SVG preview",
+    "steps": [
+      "Step 1: Send message: 'Create an SVG circle icon'",
+      "Step 2: Wait for response with SVG artifact",
+      "Step 3: Verify the artifact panel opens",
+      "Step 4: Verify the SVG is rendered visually",
+      "Step 5: Verify the circle icon is visible"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Full-screen artifact view",
+    "steps": [
+      "Step 1: Generate an artifact",
+      "Step 2: Click the full-screen toggle button",
+      "Step 3: Verify the artifact expands to full screen",
+      "Step 4: Verify the chat area is hidden",
+      "Step 5: Click exit full-screen",
+      "Step 6: Verify the layout returns to normal"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Download artifact content",
+    "steps": [
+      "Step 1: Generate a code artifact",
+      "Step 2: Click the download button on the artifact",
+      "Step 3: Verify a file is downloaded",
+      "Step 4: Open the file",
+      "Step 5: Verify it contains the artifact content"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Edit artifact inline",
+    "steps": [
+      "Step 1: Generate a code artifact",
+      "Step 2: Click the edit button",
+      "Step 3: Modify the artifact content",
+      "Step 4: Save the changes",
+      "Step 5: Verify the updated content is displayed",
+      "Step 6: Verify the changes are persisted"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Re-prompt artifact for iteration",
+    "steps": [
+      "Step 1: Generate an artifact",
+      "Step 2: Click the 'Re-prompt' button",
+      "Step 3: Enter modification request: 'Make the button blue'",
+      "Step 4: Send the re-prompt",
+      "Step 5: Verify Claude generates an updated version",
+      "Step 6: Verify the new version appears in the artifact panel"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Artifact versioning - view previous versions",
+    "steps": [
+      "Step 1: Generate an artifact and iterate on it multiple times",
+      "Step 2: Click the version selector",
+      "Step 3: Verify multiple versions are listed",
+      "Step 4: Select a previous version",
+      "Step 5: Verify the older content is displayed",
+      "Step 6: Switch back to the latest version"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Multiple artifacts in tabs",
+    "steps": [
+      "Step 1: Generate multiple artifacts in one conversation",
+      "Step 2: Verify tabs appear at the top of the artifact panel",
+      "Step 3: Click on different tabs",
+      "Step 4: Verify the correct artifact content displays for each tab",
+      "Step 5: Verify tab labels match artifact titles"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Close artifact panel",
+    "steps": [
+      "Step 1: Generate an artifact",
+      "Step 2: Click the close/X button on the artifact panel",
+      "Step 3: Verify the artifact panel closes",
+      "Step 4: Verify the chat area expands to fill the space",
+      "Step 5: Re-open the artifact from message history",
+      "Step 6: Verify it opens again"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Image upload functionality",
+    "steps": [
+      "Step 1: Click the attachment/image button in the input area",
+      "Step 2: Select an image file from file picker",
+      "Step 3: Verify the image appears as a preview in the input area",
+      "Step 4: Add text: 'What is in this image?'",
+      "Step 5: Send the message",
+      "Step 6: Verify the image appears in the user message bubble",
+      "Step 7: Verify Claude responds about the image content"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Multiple image upload",
+    "steps": [
+      "Step 1: Click the attachment button",
+      "Step 2: Select multiple images",
+      "Step 3: Verify all images appear as previews",
+      "Step 4: Send the message",
+      "Step 5: Verify all images are included in the message"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Remove image before sending",
+    "steps": [
+      "Step 1: Upload an image",
+      "Step 2: Verify a remove/X button appears on the image preview",
+      "Step 3: Click the remove button",
+      "Step 4: Verify the image is removed from the input area"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Message regeneration",
+    "steps": [
+      "Step 1: Send a message and receive a response",
+      "Step 2: Click the regenerate button on the assistant message",
+      "Step 3: Verify the old response is replaced",
+      "Step 4: Verify a new streaming response begins",
+      "Step 5: Verify the new response may be different from the original"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Edit user message",
+    "steps": [
+      "Step 1: Send a message",
+      "Step 2: Click edit button on the user message",
+      "Step 3: Modify the message text",
+      "Step 4: Save the edit",
+      "Step 5: Verify the message updates in the chat",
+      "Step 6: Verify subsequent conversation context is preserved"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Conversation branching from edited message",
+    "steps": [
+      "Step 1: Have a conversation with multiple exchanges",
+      "Step 2: Edit a message in the middle",
+      "Step 3: Verify this creates a branch point",
+      "Step 4: Continue the conversation from the edit",
+      "Step 5: Verify you can switch between branches",
+      "Step 6: Verify each branch maintains its own context"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Theme switching - Light to Dark",
+    "steps": [
+      "Step 1: Open settings",
+      "Step 2: Navigate to appearance section",
+      "Step 3: Select 'Dark' theme",
+      "Step 4: Verify the background changes to dark colors",
+      "Step 5: Verify text colors update for contrast",
+      "Step 6: Verify code blocks use dark theme"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Theme switching - Dark to Light",
+    "steps": [
+      "Step 1: Set theme to Dark",
+      "Step 2: Open settings",
+      "Step 3: Select 'Light' theme",
+      "Step 4: Verify the background changes to light colors",
+      "Step 5: Verify all UI elements adapt to light theme"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Auto theme based on system preferences",
+    "steps": [
+      "Step 1: Open settings",
+      "Step 2: Select 'Auto' theme option",
+      "Step 3: Verify the app matches system theme",
+      "Step 4: Change system theme",
+      "Step 5: Verify the app theme updates automatically"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Font size adjustment",
+    "steps": [
+      "Step 1: Open settings",
+      "Step 2: Locate font size slider",
+      "Step 3: Increase font size",
+      "Step 4: Verify message text gets larger",
+      "Step 5: Decrease font size",
+      "Step 6: Verify message text gets smaller",
+      "Step 7: Verify the setting persists after reload"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Message density adjustment - compact, comfortable, spacious",
+    "steps": [
+      "Step 1: Have a conversation with multiple messages",
+      "Step 2: Open settings",
+      "Step 3: Select 'Compact' density",
+      "Step 4: Verify messages have reduced spacing",
+      "Step 5: Select 'Spacious' density",
+      "Step 6: Verify messages have increased spacing",
+      "Step 7: Select 'Comfortable' (default)",
+      "Step 8: Verify normal spacing"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Global custom instructions",
+    "steps": [
+      "Step 1: Open settings",
+      "Step 2: Navigate to custom instructions",
+      "Step 3: Enter: 'Always be concise'",
+      "Step 4: Save the instructions",
+      "Step 5: Start a new conversation",
+      "Step 6: Send a message",
+      "Step 7: Verify the response follows the custom instructions"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Temperature control slider",
+    "steps": [
+      "Step 1: Open advanced settings or conversation settings",
+      "Step 2: Locate temperature slider",
+      "Step 3: Set temperature to 0.0",
+      "Step 4: Send a message multiple times",
+      "Step 5: Verify responses are very consistent",
+      "Step 6: Set temperature to 1.0",
+      "Step 7: Send same message multiple times",
+      "Step 8: Verify responses are more varied"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Max tokens adjustment",
+    "steps": [
+      "Step 1: Access conversation settings",
+      "Step 2: Set max tokens to 100",
+      "Step 3: Send a message requesting a long response",
+      "Step 4: Verify the response is truncated around 100 tokens",
+      "Step 5: Increase max tokens to 4000",
+      "Step 6: Verify longer responses are now allowed"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Share conversation via link",
+    "steps": [
+      "Step 1: Create a conversation with messages",
+      "Step 2: Click share button",
+      "Step 3: Verify a share link is generated",
+      "Step 4: Copy the link",
+      "Step 5: Open in incognito/different browser",
+      "Step 6: Verify the conversation is visible",
+      "Step 7: Verify it's read-only (no input field)"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Revoke shared conversation link",
+    "steps": [
+      "Step 1: Share a conversation",
+      "Step 2: Open share settings",
+      "Step 3: Click 'Revoke access'",
+      "Step 4: Confirm revocation",
+      "Step 5: Try to access the link",
+      "Step 6: Verify access is denied or shows error"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Token usage display per message",
+    "steps": [
+      "Step 1: Send a message",
+      "Step 2: Receive a response",
+      "Step 3: Hover or click on message details",
+      "Step 4: Verify input token count is displayed",
+      "Step 5: Verify output token count is displayed",
+      "Step 6: Verify total tokens are shown"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Conversation cost estimation",
+    "steps": [
+      "Step 1: Have a conversation with multiple messages",
+      "Step 2: Open conversation details or settings",
+      "Step 3: Verify total token usage is displayed",
+      "Step 4: Verify estimated cost is shown based on model pricing",
+      "Step 5: Verify breakdown by input/output tokens"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Usage dashboard - daily view",
+    "steps": [
+      "Step 1: Navigate to usage/analytics section",
+      "Step 2: Select daily view",
+      "Step 3: Verify today's token usage is displayed",
+      "Step 4: Verify a chart or graph shows usage over time",
+      "Step 5: Verify breakdown by model if multiple used"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Usage dashboard - monthly view",
+    "steps": [
+      "Step 1: Navigate to usage section",
+      "Step 2: Select monthly view",
+      "Step 3: Verify current month's total usage",
+      "Step 4: Verify daily breakdown within the month",
+      "Step 5: Verify cost estimation for the month"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Prompt library - create custom prompt",
+    "steps": [
+      "Step 1: Open prompt library",
+      "Step 2: Click 'New Prompt'",
+      "Step 3: Enter title: 'Code Reviewer'",
+      "Step 4: Enter prompt template",
+      "Step 5: Select category and add tags",
+      "Step 6: Save the prompt",
+      "Step 7: Verify it appears in the library"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Prompt library - use saved prompt",
+    "steps": [
+      "Step 1: Create a saved prompt",
+      "Step 2: Start a new conversation",
+      "Step 3: Open prompt library",
+      "Step 4: Select the saved prompt",
+      "Step 5: Verify it populates the input field",
+      "Step 6: Send the message",
+      "Step 7: Verify the prompt works as expected"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Prompt library - browse by category",
+    "steps": [
+      "Step 1: Open prompt library",
+      "Step 2: Verify categories are displayed (e.g., Coding, Writing, Analysis)",
+      "Step 3: Click on a category",
+      "Step 4: Verify prompts filter to that category",
+      "Step 5: Switch to another category",
+      "Step 6: Verify the prompts update"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Example conversations for onboarding",
+    "steps": [
+      "Step 1: Access example conversations section",
+      "Step 2: Verify pre-made example conversations are listed",
+      "Step 3: Click on an example",
+      "Step 4: Verify it opens with messages already populated",
+      "Step 5: Verify you can continue the conversation"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Command palette - open with keyboard shortcut",
+    "steps": [
+      "Step 1: Press Cmd+K (Mac) or Ctrl+K (Windows/Linux)",
+      "Step 2: Verify the command palette opens",
+      "Step 3: Verify it shows available commands",
+      "Step 4: Press Escape",
+      "Step 5: Verify it closes"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Command palette - search and execute commands",
+    "steps": [
+      "Step 1: Open command palette (Cmd/Ctrl+K)",
+      "Step 2: Type 'new'",
+      "Step 3: Verify 'New Conversation' appears",
+      "Step 4: Press Enter",
+      "Step 5: Verify a new conversation is created"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Keyboard shortcuts - navigate conversations",
+    "steps": [
+      "Step 1: Create multiple conversations",
+      "Step 2: Press Cmd/Ctrl+Up arrow",
+      "Step 3: Verify selection moves to previous conversation",
+      "Step 4: Press Cmd/Ctrl+Down arrow",
+      "Step 5: Verify selection moves to next conversation"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Keyboard shortcuts reference modal",
+    "steps": [
+      "Step 1: Open settings or help menu",
+      "Step 2: Click 'Keyboard Shortcuts'",
+      "Step 3: Verify a modal appears",
+      "Step 4: Verify all shortcuts are listed with descriptions",
+      "Step 5: Verify shortcuts are grouped by category"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Collapsible sidebar",
+    "steps": [
+      "Step 1: Click the sidebar collapse button",
+      "Step 2: Verify the sidebar slides closed",
+      "Step 3: Verify the chat area expands",
+      "Step 4: Click to expand sidebar again",
+      "Step 5: Verify it slides back open"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Sidebar resize with drag handle",
+    "steps": [
+      "Step 1: Locate the resize handle on the sidebar edge",
+      "Step 2: Click and drag to the right",
+      "Step 3: Verify the sidebar width increases",
+      "Step 4: Drag to the left",
+      "Step 5: Verify the sidebar width decreases",
+      "Step 6: Verify the chat area adjusts accordingly"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Conversation grouping by date - Today",
+    "steps": [
+      "Step 1: Create a conversation today",
+      "Step 2: View the sidebar",
+      "Step 3: Verify a 'Today' section appears",
+      "Step 4: Verify the conversation is listed under 'Today'"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Conversation grouping by date - Yesterday",
+    "steps": [
+      "Step 1: Create a conversation (or mock timestamp to yesterday)",
+      "Step 2: View the sidebar",
+      "Step 3: Verify a 'Yesterday' section appears",
+      "Step 4: Verify the conversation is listed under 'Yesterday'"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Conversation grouping by date - Previous 7 days",
+    "steps": [
+      "Step 1: Create conversations from various days this week",
+      "Step 2: View the sidebar",
+      "Step 3: Verify a 'Previous 7 days' section appears",
+      "Step 4: Verify conversations are correctly grouped"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Conversation grouping by date - Previous 30 days",
+    "steps": [
+      "Step 1: Create or mock conversations from this month",
+      "Step 2: Verify a 'Previous 30 days' section appears",
+      "Step 3: Verify appropriate conversations are grouped there"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Auto-generate conversation title from first exchange",
+    "steps": [
+      "Step 1: Create a new conversation",
+      "Step 2: Send a message: 'Help me write a Python script'",
+      "Step 3: Receive a response",
+      "Step 4: Verify the conversation title auto-generates",
+      "Step 5: Verify the title is relevant to the content"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Typing indicator animation",
+    "steps": [
+      "Step 1: Send a message",
+      "Step 2: While waiting for response, observe the chat area",
+      "Step 3: Verify a typing indicator appears (e.g., animated dots)",
+      "Step 4: Verify it shows Claude is thinking/typing",
+      "Step 5: Verify it disappears when the response starts streaming"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Loading spinner during generation",
+    "steps": [
+      "Step 1: Send a message",
+      "Step 2: Verify a loading spinner or indicator appears on send button",
+      "Step 3: Verify the input is disabled during generation",
+      "Step 4: Wait for completion",
+      "Step 5: Verify the spinner disappears",
+      "Step 6: Verify the input re-enables"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Welcome screen for new conversations",
+    "steps": [
+      "Step 1: Create a new conversation",
+      "Step 2: Verify a welcome message or screen appears",
+      "Step 3: Verify suggested prompts are shown",
+      "Step 4: Click a suggested prompt",
+      "Step 5: Verify it populates the input field"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Suggested prompts on empty conversation",
+    "steps": [
+      "Step 1: Open a new conversation",
+      "Step 2: Verify 3-5 suggested prompts appear",
+      "Step 3: Verify they cover different use cases",
+      "Step 4: Click one",
+      "Step 5: Verify it sends that message"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Database persistence - conversations survive reload",
+    "steps": [
+      "Step 1: Create a conversation with messages",
+      "Step 2: Note the conversation ID or title",
+      "Step 3: Reload the page",
+      "Step 4: Verify the conversation still appears in sidebar",
+      "Step 5: Open it",
+      "Step 6: Verify all messages are intact"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Database persistence - settings survive reload",
+    "steps": [
+      "Step 1: Change theme to dark",
+      "Step 2: Change font size",
+      "Step 3: Reload the page",
+      "Step 4: Verify theme is still dark",
+      "Step 5: Verify font size is preserved"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Error handling - network failure",
+    "steps": [
+      "Step 1: Disable network connection",
+      "Step 2: Try to send a message",
+      "Step 3: Verify an error message appears",
+      "Step 4: Verify the error is user-friendly",
+      "Step 5: Re-enable network",
+      "Step 6: Verify retry option works"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Error handling - API key invalid",
+    "steps": [
+      "Step 1: Set an invalid API key",
+      "Step 2: Try to send a message",
+      "Step 3: Verify an authentication error appears",
+      "Step 4: Verify clear instructions to fix it",
+      "Step 5: Set valid API key",
+      "Step 6: Verify messages work again"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Error handling - rate limit",
+    "steps": [
+      "Step 1: Trigger rate limit (send many requests rapidly)",
+      "Step 2: Verify rate limit error message appears",
+      "Step 3: Verify it explains the limitation",
+      "Step 4: Wait for rate limit to reset",
+      "Step 5: Verify normal operation resumes"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Streaming response - gradual rendering",
+    "steps": [
+      "Step 1: Send a message requesting a long response",
+      "Step 2: Observe the response area",
+      "Step 3: Verify text appears word-by-word or chunk-by-chunk",
+      "Step 4: Verify smooth, continuous streaming",
+      "Step 5: Verify no jarring jumps or layout shifts"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Streaming response - markdown renders live",
+    "steps": [
+      "Step 1: Ask for formatted response with markdown",
+      "Step 2: Watch the streaming response",
+      "Step 3: Verify markdown formatting applies in real-time",
+      "Step 4: Verify headers, lists, bold, etc. render as they stream"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Context window indicator",
+    "steps": [
+      "Step 1: Have a long conversation",
+      "Step 2: Locate the context window indicator",
+      "Step 3: Verify it shows current token usage vs. limit",
+      "Step 4: Continue conversation",
+      "Step 5: Verify the indicator updates",
+      "Step 6: Verify warning when approaching limit"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Model capabilities display",
+    "steps": [
+      "Step 1: Open model selector",
+      "Step 2: Hover or click on a model",
+      "Step 3: Verify it shows capabilities (context window, strengths, etc.)",
+      "Step 4: Compare different models",
+      "Step 5: Verify information is accurate and helpful"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Model pricing info display",
+    "steps": [
+      "Step 1: View model selection interface",
+      "Step 2: Verify pricing per million tokens is shown",
+      "Step 3: Verify separate pricing for input/output",
+      "Step 4: Verify the information is clearly labeled as display-only"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Accessibility - keyboard navigation",
+    "steps": [
+      "Step 1: Use only Tab key to navigate",
+      "Step 2: Verify focus moves through interactive elements",
+      "Step 3: Verify visible focus indicators",
+      "Step 4: Navigate through sidebar conversations",
+      "Step 5: Navigate to input field",
+      "Step 6: Verify all major functions are keyboard-accessible"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Accessibility - screen reader support",
+    "steps": [
+      "Step 1: Enable screen reader (VoiceOver, NVDA, etc.)",
+      "Step 2: Navigate the interface",
+      "Step 3: Verify ARIA labels are present",
+      "Step 4: Verify semantic HTML is used",
+      "Step 5: Verify messages are announced",
+      "Step 6: Verify interactive elements have proper labels"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Accessibility - focus management after actions",
+    "steps": [
+      "Step 1: Send a message using keyboard",
+      "Step 2: Verify focus moves appropriately after send",
+      "Step 3: Open a modal",
+      "Step 4: Verify focus moves into modal",
+      "Step 5: Close modal",
+      "Step 6: Verify focus returns to previous element"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "High contrast mode",
+    "steps": [
+      "Step 1: Open accessibility settings",
+      "Step 2: Enable high contrast mode",
+      "Step 3: Verify colors have increased contrast",
+      "Step 4: Verify text is easily readable",
+      "Step 5: Verify borders and separators are visible"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Reduced motion support",
+    "steps": [
+      "Step 1: Enable reduced motion in system settings",
+      "Step 2: Reload the app",
+      "Step 3: Perform actions that normally animate",
+      "Step 4: Verify animations are reduced or removed",
+      "Step 5: Verify functionality still works without animations"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Project analytics - usage stats",
+    "steps": [
+      "Step 1: Create a project with several conversations",
+      "Step 2: Use the conversations to generate messages",
+      "Step 3: Open project analytics",
+      "Step 4: Verify total messages count",
+      "Step 5: Verify total tokens used",
+      "Step 6: Verify conversation count in project"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Conversation templates",
+    "steps": [
+      "Step 1: Create a conversation with a specific structure",
+      "Step 2: Save it as a template",
+      "Step 3: Create new conversation from template",
+      "Step 4: Verify the structure is pre-populated",
+      "Step 5: Verify you can customize from there"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Project templates",
+    "steps": [
+      "Step 1: Create a project with specific settings",
+      "Step 2: Save as template",
+      "Step 3: Create new project from template",
+      "Step 4: Verify settings are copied",
+      "Step 5: Verify custom instructions are copied"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Mermaid diagram rendering",
+    "steps": [
+      "Step 1: Ask Claude to create a Mermaid diagram",
+      "Step 2: Verify the artifact panel opens",
+      "Step 3: Verify the diagram renders visually",
+      "Step 4: Verify nodes and connections are visible",
+      "Step 5: Verify it's interactive if applicable"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "React component preview artifact",
+    "steps": [
+      "Step 1: Ask for a React component",
+      "Step 2: Verify artifact panel opens",
+      "Step 3: Verify the component code is shown",
+      "Step 4: Verify a live preview renders the component",
+      "Step 5: Verify interactivity works in preview"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Text document artifact",
+    "steps": [
+      "Step 1: Ask Claude to write a formal document",
+      "Step 2: Verify artifact opens as text document",
+      "Step 3: Verify proper formatting",
+      "Step 4: Verify download as .txt or .md works"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "LaTeX/math equation rendering",
+    "steps": [
+      "Step 1: Send a message asking for a mathematical formula",
+      "Step 2: Verify LaTeX syntax is rendered as formatted equations",
+      "Step 3: Verify inline equations render correctly",
+      "Step 4: Verify block equations are properly displayed"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Unread message indicators",
+    "steps": [
+      "Step 1: Have multiple conversations",
+      "Step 2: Receive a new message in one conversation (or mock it)",
+      "Step 3: Verify an unread indicator (dot, badge, etc.) appears",
+      "Step 4: Open that conversation",
+      "Step 5: Verify the indicator clears"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Last message timestamp display",
+    "steps": [
+      "Step 1: View conversation list",
+      "Step 2: Verify each conversation shows last message time",
+      "Step 3: Verify format (e.g., '2 minutes ago', 'Yesterday', etc.)",
+      "Step 4: Send a new message",
+      "Step 5: Verify timestamp updates"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "User profile display",
+    "steps": [
+      "Step 1: Locate user profile section (bottom of sidebar)",
+      "Step 2: Verify user name/email is displayed",
+      "Step 3: Verify avatar or initials appear",
+      "Step 4: Click on profile",
+      "Step 5: Verify profile menu or settings open"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Update user profile information",
+    "steps": [
+      "Step 1: Open user profile settings",
+      "Step 2: Update name",
+      "Step 3: Upload new avatar",
+      "Step 4: Save changes",
+      "Step 5: Verify name updates throughout UI",
+      "Step 6: Verify avatar updates"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "API key management - add new key",
+    "steps": [
+      "Step 1: Open settings",
+      "Step 2: Navigate to API keys section",
+      "Step 3: Click 'Add API Key'",
+      "Step 4: Enter key name and value",
+      "Step 5: Save",
+      "Step 6: Verify key appears in list (partially masked)"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "API key management - delete key",
+    "steps": [
+      "Step 1: View API keys list",
+      "Step 2: Click delete on a key",
+      "Step 3: Confirm deletion",
+      "Step 4: Verify key is removed",
+      "Step 5: Verify app prompts for new key if none remain"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Data export - full account data",
+    "steps": [
+      "Step 1: Open settings",
+      "Step 2: Navigate to data export",
+      "Step 3: Request full data export",
+      "Step 4: Verify download begins",
+      "Step 5: Extract and verify all conversations are included",
+      "Step 6: Verify user settings are included"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Privacy settings - conversation history",
+    "steps": [
+      "Step 1: Open privacy settings",
+      "Step 2: Verify option to disable conversation history",
+      "Step 3: Toggle the setting",
+      "Step 4: Verify confirmation of what this means",
+      "Step 5: Test that new conversations respect the setting"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Code theme selection",
+    "steps": [
+      "Step 1: Open settings",
+      "Step 2: Navigate to code theme options",
+      "Step 3: Verify multiple themes available (e.g., VS Code, Monokai, GitHub)",
+      "Step 4: Select a different theme",
+      "Step 5: View a code block",
+      "Step 6: Verify the new theme is applied"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Language preferences setting",
+    "steps": [
+      "Step 1: Open settings",
+      "Step 2: Find language preferences",
+      "Step 3: Select a different language (if supported)",
+      "Step 4: Verify UI elements update to that language",
+      "Step 5: Switch back to default language"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Onboarding tour for new users",
+    "steps": [
+      "Step 1: Simulate first-time user (clear local storage)",
+      "Step 2: Load the app",
+      "Step 3: Verify welcome/onboarding tour starts",
+      "Step 4: Walk through tour steps",
+      "Step 5: Verify key features are highlighted",
+      "Step 6: Complete tour",
+      "Step 7: Verify it doesn't show again"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Quick tips display",
+    "steps": [
+      "Step 1: Navigate to help or tips section",
+      "Step 2: Verify tips are organized by category",
+      "Step 3: Read a tip",
+      "Step 4: Verify tips are actionable and clear",
+      "Step 5: Verify option to dismiss or mark as read"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Response suggestions below messages",
+    "steps": [
+      "Step 1: Receive an assistant message",
+      "Step 2: Verify 2-3 suggested follow-up prompts appear",
+      "Step 3: Click one suggestion",
+      "Step 4: Verify it populates the input field",
+      "Step 5: Send the message",
+      "Step 6: Verify contextually relevant response"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Related prompts discovery",
+    "steps": [
+      "Step 1: Complete a conversation",
+      "Step 2: View related prompts section",
+      "Step 3: Verify suggestions are relevant to conversation topic",
+      "Step 4: Click a related prompt",
+      "Step 5: Verify it starts a new or continued conversation"
+    ],
+    "passes": false
+  },
+  {
+    "category": "style",
+    "description": "Overall UI matches claude.ai design language",
+    "steps": [
+      "Step 1: Navigate to claude.ai",
+      "Step 2: Take screenshots of key areas",
+      "Step 3: Navigate to the clone app",
+      "Step 4: Compare layouts, colors, spacing",
+      "Step 5: Verify close visual similarity"
+    ],
+    "passes": false
+  },
+  {
+    "category": "style",
+    "description": "Primary color scheme - orange/amber accents",
+    "steps": [
+      "Step 1: Navigate through the app",
+      "Step 2: Verify primary buttons use orange/amber (#CC785C or similar)",
+      "Step 3: Verify hover states use variations of the primary color",
+      "Step 4: Verify the color is used consistently for CTAs"
+    ],
+    "passes": false
+  },
+  {
+    "category": "style",
+    "description": "Light mode background colors",
+    "steps": [
+      "Step 1: Switch to light mode",
+      "Step 2: Verify main background is white or very light",
+      "Step 3: Verify surface elements use light gray (#F5F5F5 or similar)",
+      "Step 4: Verify text is near black for contrast",
+      "Step 5: Take screenshot to verify professional appearance"
+    ],
+    "passes": false
+  },
+  {
+    "category": "style",
+    "description": "Dark mode background colors",
+    "steps": [
+      "Step 1: Switch to dark mode",
+      "Step 2: Verify main background is dark gray (#1A1A1A or similar)",
+      "Step 3: Verify surface elements use slightly lighter gray (#2A2A2A)",
+      "Step 4: Verify text is off-white for readability",
+      "Step 5: Verify code blocks use appropriate dark theme"
+    ],
+    "passes": false
+  },
+  {
+    "category": "style",
+    "description": "Typography - font family consistency",
+    "steps": [
+      "Step 1: Inspect various text elements",
+      "Step 2: Verify sans-serif system font is used (Inter, SF Pro, etc.)",
+      "Step 3: Verify code uses monospace (JetBrains Mono, Consolas, etc.)",
+      "Step 4: Verify consistent font families throughout"
+    ],
+    "passes": false
+  },
+  {
+    "category": "style",
+    "description": "Typography - font sizes and hierarchy",
+    "steps": [
+      "Step 1: View different UI sections",
+      "Step 2: Verify headings are larger and bold",
+      "Step 3: Verify body text is 16px base size",
+      "Step 4: Verify clear visual hierarchy",
+      "Step 5: Verify comfortable line height (leading-relaxed)"
+    ],
+    "passes": false
+  },
+  {
+    "category": "style",
+    "description": "Message bubble styling - user messages",
+    "steps": [
+      "Step 1: Send a user message",
+      "Step 2: Verify it's right-aligned",
+      "Step 3: Verify it has a subtle background color",
+      "Step 4: Verify rounded corners",
+      "Step 5: Verify proper padding"
+    ],
+    "passes": false
+  },
+  {
+    "category": "style",
+    "description": "Message bubble styling - assistant messages",
+    "steps": [
+      "Step 1: Receive an assistant message",
+      "Step 2: Verify it's left-aligned",
+      "Step 3: Verify minimal or no background",
+      "Step 4: Verify avatar or indicator is present",
+      "Step 5: Verify proper spacing from user messages"
+    ],
+    "passes": false
+  },
+  {
+    "category": "style",
+    "description": "Button styling - primary buttons",
+    "steps": [
+      "Step 1: Locate primary buttons (e.g., Send, New Chat)",
+      "Step 2: Verify orange/amber background",
+      "Step 3: Verify white text",
+      "Step 4: Verify rounded corners",
+      "Step 5: Hover over button",
+      "Step 6: Verify hover effect (color change or shadow)"
+    ],
+    "passes": false
+  },
+  {
+    "category": "style",
+    "description": "Button styling - secondary buttons",
+    "steps": [
+      "Step 1: Locate secondary buttons",
+      "Step 2: Verify border style with transparent background",
+      "Step 3: Verify hover fills with color",
+      "Step 4: Verify consistent sizing",
+      "Step 5: Verify clear visual distinction from primary buttons"
+    ],
+    "passes": false
+  },
+  {
+    "category": "style",
+    "description": "Icon button styling",
+    "steps": [
+      "Step 1: Locate icon-only buttons (e.g., copy, delete)",
+      "Step 2: Verify square or circular shape",
+      "Step 3: Hover over icon button",
+      "Step 4: Verify subtle background appears on hover",
+      "Step 5: Verify icon color is consistent"
+    ],
+    "passes": false
+  },
+  {
+    "category": "style",
+    "description": "Input field styling",
+    "steps": [
+      "Step 1: Focus on main input textarea",
+      "Step 2: Verify rounded borders",
+      "Step 3: Verify focus ring appears (blue or branded color)",
+      "Step 4: Verify placeholder text is gray and readable",
+      "Step 5: Verify comfortable padding inside field"
+    ],
+    "passes": false
+  },
+  {
+    "category": "style",
+    "description": "Card styling for conversation items",
+    "steps": [
+      "Step 1: View conversation list in sidebar",
+      "Step 2: Verify each item has subtle border or shadow",
+      "Step 3: Verify rounded corners (8px)",
+      "Step 4: Hover over a conversation",
+      "Step 5: Verify hover effect (shadow increase or background change)"
+    ],
+    "passes": false
+  },
+  {
+    "category": "style",
+    "description": "Smooth transitions on interactive elements",
+    "steps": [
+      "Step 1: Hover over buttons",
+      "Step 2: Verify smooth color/shadow transition (150-300ms)",
+      "Step 3: Click buttons",
+      "Step 4: Verify smooth state changes",
+      "Step 5: Open/close modals",
+      "Step 6: Verify smooth fade or slide animations"
+    ],
+    "passes": false
+  },
+  {
+    "category": "style",
+    "description": "Fade-in animation for new messages",
+    "steps": [
+      "Step 1: Send a message",
+      "Step 2: Observe user message appearing",
+      "Step 3: Verify it fades in smoothly",
+      "Step 4: Observe assistant response",
+      "Step 5: Verify it also fades in"
+    ],
+    "passes": false
+  },
+  {
+    "category": "style",
+    "description": "Slide animation for sidebar",
+    "steps": [
+      "Step 1: Collapse the sidebar",
+      "Step 2: Verify it slides closed smoothly",
+      "Step 3: Expand the sidebar",
+      "Step 4: Verify it slides open smoothly",
+      "Step 5: Verify no janky or instant jumps"
+    ],
+    "passes": false
+  },
+  {
+    "category": "style",
+    "description": "Skeleton loaders for content",
+    "steps": [
+      "Step 1: Load the app or navigate to a slow-loading section",
+      "Step 2: Verify skeleton/placeholder content appears",
+      "Step 3: Verify it mimics the layout of actual content",
+      "Step 4: Wait for content to load",
+      "Step 5: Verify smooth transition from skeleton to real content"
+    ],
+    "passes": false
+  },
+  {
+    "category": "style",
+    "description": "Consistent spacing and padding throughout UI",
+    "steps": [
+      "Step 1: Navigate through different sections",
+      "Step 2: Verify consistent spacing between elements (4px, 8px, 16px, etc.)",
+      "Step 3: Verify padding inside cards and containers is consistent",
+      "Step 4: Take screenshots and measure if needed",
+      "Step 5: Verify professional, cohesive appearance"
+    ],
+    "passes": false
+  },
+  {
+    "category": "style",
+    "description": "Border and divider styling",
+    "steps": [
+      "Step 1: Locate borders between sections",
+      "Step 2: Verify light gray in light mode (#E5E5E5 or similar)",
+      "Step 3: Switch to dark mode",
+      "Step 4: Verify dark gray borders (#404040 or similar)",
+      "Step 5: Verify borders are subtle but visible"
+    ],
+    "passes": false
+  },
+  {
+    "category": "style",
+    "description": "Code block visual styling",
+    "steps": [
+      "Step 1: Generate a message with a code block",
+      "Step 2: Verify background color contrasts with message",
+      "Step 3: Verify rounded corners on code block",
+      "Step 4: Verify proper padding inside block",
+      "Step 5: Verify monospace font is used",
+      "Step 6: Verify copy button is styled consistently"
+    ],
+    "passes": false
+  },
+  {
+    "category": "style",
+    "description": "Inline code styling",
+    "steps": [
+      "Step 1: Generate inline code in a message (e.g., `code`)",
+      "Step 2: Verify it has a gray background (bg-gray-100)",
+      "Step 3: Verify it uses monospace font",
+      "Step 4: Verify slight padding around the text",
+      "Step 5: Verify it stands out from regular text"
+    ],
+    "passes": false
+  },
+  {
+    "category": "style",
+    "description": "Artifact panel visual design",
+    "steps": [
+      "Step 1: Open an artifact",
+      "Step 2: Verify clean header with title and badges",
+      "Step 3: Verify content area is well-defined",
+      "Step 4: Verify buttons are clearly visible and styled",
+      "Step 5: Verify panel has subtle border separating from chat"
+    ],
+    "passes": false
+  },
+  {
+    "category": "style",
+    "description": "Modal/overlay visual design",
+    "steps": [
+      "Step 1: Open a modal (e.g., settings)",
+      "Step 2: Verify semi-transparent backdrop",
+      "Step 3: Verify modal is centered and elevated",
+      "Step 4: Verify clear close button",
+      "Step 5: Verify consistent styling with rest of app"
+    ],
+    "passes": false
+  },
+  {
+    "category": "style",
+    "description": "Settings modal tabbed interface",
+    "steps": [
+      "Step 1: Open settings",
+      "Step 2: Verify tabs are clearly visible",
+      "Step 3: Verify active tab is highlighted",
+      "Step 4: Click between tabs",
+      "Step 5: Verify smooth transitions",
+      "Step 6: Verify content areas are well-organized"
+    ],
+    "passes": false
+  },
+  {
+    "category": "style",
+    "description": "Error message styling",
+    "steps": [
+      "Step 1: Trigger an error (e.g., network failure)",
+      "Step 2: Verify error message is red or warning color",
+      "Step 3: Verify error icon is present",
+      "Step 4: Verify message is clear and readable",
+      "Step 5: Verify it stands out without being jarring"
+    ],
+    "passes": false
+  },
+  {
+    "category": "style",
+    "description": "Success message styling",
+    "steps": [
+      "Step 1: Trigger a success action (e.g., save settings)",
+      "Step 2: Verify success message is green",
+      "Step 3: Verify checkmark or success icon",
+      "Step 4: Verify message auto-dismisses after a few seconds",
+      "Step 5: Verify smooth fade-out animation"
+    ],
+    "passes": false
+  },
+  {
+    "category": "style",
+    "description": "Loading state visual feedback",
+    "steps": [
+      "Step 1: Trigger loading state (send message)",
+      "Step 2: Verify clear loading indicator",
+      "Step 3: Verify disabled state on input/buttons is visible",
+      "Step 4: Verify loading spinner is styled consistently",
+      "Step 5: Verify smooth transition when loading completes"
+    ],
+    "passes": false
+  },
+  {
+    "category": "style",
+    "description": "Empty state illustrations/messages",
+    "steps": [
+      "Step 1: View empty conversation list",
+      "Step 2: Verify friendly empty state message",
+      "Step 3: Verify illustration or icon if present",
+      "Step 4: Verify clear call-to-action (e.g., 'Start a conversation')",
+      "Step 5: Verify it's visually balanced"
+    ],
+    "passes": false
+  },
+  {
+    "category": "style",
+    "description": "Focus indicators for accessibility",
+    "steps": [
+      "Step 1: Use Tab key to navigate",
+      "Step 2: Verify visible focus rings on interactive elements",
+      "Step 3: Verify focus ring color is consistent (blue or brand color)",
+      "Step 4: Verify focus ring has sufficient contrast",
+      "Step 5: Verify focus indicators are never removed without replacement"
+    ],
+    "passes": false
+  },
+  {
+    "category": "style",
+    "description": "Avatar and user profile visuals",
+    "steps": [
+      "Step 1: View user profile area",
+      "Step 2: Verify avatar is circular or square with rounded corners",
+      "Step 3: If no image, verify initials are shown with colored background",
+      "Step 4: Verify consistent size for avatars throughout app",
+      "Step 5: Verify avatar is crisp and not pixelated"
+    ],
+    "passes": false
+  },
+  {
+    "category": "style",
+    "description": "Badge styling (model, type indicators)",
+    "steps": [
+      "Step 1: Locate badges (e.g., model name, artifact type)",
+      "Step 2: Verify pill/rounded shape",
+      "Step 3: Verify background color differentiates from main content",
+      "Step 4: Verify text is small but readable",
+      "Step 5: Verify consistent styling across different badges"
+    ],
+    "passes": false
+  },
+  {
+    "category": "style",
+    "description": "Tooltip styling",
+    "steps": [
+      "Step 1: Hover over elements with tooltips (e.g., icon buttons)",
+      "Step 2: Verify tooltip appears after short delay",
+      "Step 3: Verify dark background with light text (or inverted for theme)",
+      "Step 4: Verify small arrow pointing to element",
+      "Step 5: Verify tooltip text is concise and helpful"
+    ],
+    "passes": false
+  },
+  {
+    "category": "style",
+    "description": "Dropdown menu styling",
+    "steps": [
+      "Step 1: Open a dropdown (e.g., model selector)",
+      "Step 2: Verify menu appears with smooth animation",
+      "Step 3: Verify subtle shadow or border",
+      "Step 4: Hover over menu items",
+      "Step 5: Verify hover highlight is clear",
+      "Step 6: Verify selected item is indicated"
+    ],
+    "passes": false
+  },
+  {
+    "category": "style",
+    "description": "Context menu styling",
+    "steps": [
+      "Step 1: Right-click on a conversation",
+      "Step 2: Verify context menu appears",
+      "Step 3: Verify menu items are clearly separated",
+      "Step 4: Verify icons next to menu items if present",
+      "Step 5: Verify hover states are visible",
+      "Step 6: Verify destructive actions (delete) are highlighted differently"
+    ],
+    "passes": false
+  },
+  {
+    "category": "style",
+    "description": "Scrollbar styling",
+    "steps": [
+      "Step 1: Scroll through message history",
+      "Step 2: Verify scrollbar is styled (not default browser style)",
+      "Step 3: Verify it's subtle but visible",
+      "Step 4: Verify it matches app theme (light/dark)",
+      "Step 5: Verify smooth scrolling behavior"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Responsive design - mobile layout single column",
+    "steps": [
+      "Step 1: Resize browser to mobile width (< 640px)",
+      "Step 2: Verify layout switches to single column",
+      "Step 3: Verify sidebar is hidden by default",
+      "Step 4: Verify hamburger menu appears to toggle sidebar",
+      "Step 5: Verify chat area takes full width"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Responsive design - tablet layout two columns",
+    "steps": [
+      "Step 1: Resize to tablet width (640px - 1024px)",
+      "Step 2: Verify two-column layout (sidebar + chat)",
+      "Step 3: Verify artifact panel collapses or overlays",
+      "Step 4: Verify touch-friendly button sizes",
+      "Step 5: Verify all functionality remains accessible"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Responsive design - desktop three columns",
+    "steps": [
+      "Step 1: View on desktop width (> 1024px)",
+      "Step 2: Verify three-column layout (sidebar + chat + artifacts)",
+      "Step 3: Verify all panels are visible simultaneously",
+      "Step 4: Verify optimal use of screen space",
+      "Step 5: Verify no horizontal scrolling needed"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Mobile - collapsible sidebar with overlay",
+    "steps": [
+      "Step 1: View on mobile",
+      "Step 2: Tap hamburger menu",
+      "Step 3: Verify sidebar slides in from left",
+      "Step 4: Verify it overlays the chat area",
+      "Step 5: Tap outside sidebar",
+      "Step 6: Verify it closes",
+      "Step 7: Verify chat area is accessible again"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Touch-optimized button sizes on mobile",
+    "steps": [
+      "Step 1: View on mobile or touch device",
+      "Step 2: Verify all buttons are at least 44x44px (touch target size)",
+      "Step 3: Tap various buttons",
+      "Step 4: Verify easy to tap without mis-clicks",
+      "Step 5: Verify adequate spacing between interactive elements"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Swipe gestures for navigation on mobile",
+    "steps": [
+      "Step 1: View on mobile",
+      "Step 2: Swipe right on chat area",
+      "Step 3: Verify sidebar opens",
+      "Step 4: Swipe left",
+      "Step 5: Verify sidebar closes",
+      "Step 6: Verify smooth animation during swipe"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Progressive Web App (PWA) - installable",
+    "steps": [
+      "Step 1: Open app in supported browser",
+      "Step 2: Verify install prompt appears or is available",
+      "Step 3: Click install",
+      "Step 4: Verify app installs to home screen or app list",
+      "Step 5: Launch from installed icon",
+      "Step 6: Verify it opens in standalone mode"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "PWA - offline capability basics",
+    "steps": [
+      "Step 1: Install PWA",
+      "Step 2: Load the app while online",
+      "Step 3: Disconnect from network",
+      "Step 4: Verify app shell still loads",
+      "Step 5: Verify previous conversations are cached and viewable",
+      "Step 6: Verify clear indication when offline"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "PWA - app manifest and icons",
+    "steps": [
+      "Step 1: Inspect app manifest file",
+      "Step 2: Verify app name, description, and theme color",
+      "Step 3: Verify icons for various sizes are included",
+      "Step 4: Install PWA",
+      "Step 5: Verify correct icon appears on home screen",
+      "Step 6: Verify splash screen uses theme colors"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Comprehensive end-to-end workflow - new user to completed task",
+    "steps": [
+      "Step 1: Open app as new user",
+      "Step 2: Complete onboarding if present",
+      "Step 3: Create a project called 'Work'",
+      "Step 4: Set project custom instructions: 'Be professional'",
+      "Step 5: Create a new conversation in the project",
+      "Step 6: Send message: 'Write a Python script to process CSV files'",
+      "Step 7: Verify code artifact appears",
+      "Step 8: Download the artifact",
+      "Step 9: Edit the artifact to add a feature",
+      "Step 10: Re-prompt: 'Add error handling'",
+      "Step 11: Verify updated artifact",
+      "Step 12: Rename conversation to 'CSV Processor'",
+      "Step 13: Create a folder 'Python Scripts'",
+      "Step 14: Move conversation into folder",
+      "Step 15: Export conversation to Markdown",
+      "Step 16: Verify all steps completed successfully"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Comprehensive workflow - multi-conversation project management",
+    "steps": [
+      "Step 1: Create project 'Product Launch'",
+      "Step 2: Create 3 conversations: 'Marketing Copy', 'Technical Specs', 'Timeline'",
+      "Step 3: Assign all to the project",
+      "Step 4: Send messages in each conversation",
+      "Step 5: Pin the 'Timeline' conversation",
+      "Step 6: Search for keyword across all conversations",
+      "Step 7: Verify search finds relevant results",
+      "Step 8: Switch between conversations",
+      "Step 9: View project analytics",
+      "Step 10: Verify token usage across project",
+      "Step 11: Archive the 'Marketing Copy' conversation",
+      "Step 12: Verify it no longer appears in main list but is in archive"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Comprehensive workflow - artifact iteration and collaboration",
+    "steps": [
+      "Step 1: Start conversation",
+      "Step 2: Request: 'Create a landing page with HTML and CSS'",
+      "Step 3: Verify HTML artifact appears with live preview",
+      "Step 4: View full-screen preview",
+      "Step 5: Exit full-screen",
+      "Step 6: Edit artifact to change headline",
+      "Step 7: Save changes",
+      "Step 8: Re-prompt: 'Make it mobile responsive'",
+      "Step 9: Verify new version created",
+      "Step 10: Browse artifact version history",
+      "Step 11: Compare version 1 and version 2",
+      "Step 12: Download final version",
+      "Step 13: Share conversation link",
+      "Step 14: Verify shared link shows artifacts in read-only mode"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Comprehensive workflow - settings customization and persistence",
+    "steps": [
+      "Step 1: Open settings modal",
+      "Step 2: Switch to dark theme",
+      "Step 3: Increase font size to large",
+      "Step 4: Select 'Spacious' message density",
+      "Step 5: Change code theme to 'Monokai'",
+      "Step 6: Add global custom instruction: 'Explain like I'm a beginner'",
+      "Step 7: Set temperature to 0.7",
+      "Step 8: Save all settings",
+      "Step 9: Reload the page",
+      "Step 10: Verify dark theme persists",
+      "Step 11: Verify font size persists",
+      "Step 12: Send a message and verify custom instruction is applied",
+      "Step 13: View a code block and verify Monokai theme"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Comprehensive workflow - multi-modal interaction",
+    "steps": [
+      "Step 1: Start new conversation",
+      "Step 2: Upload an image of a chart or diagram",
+      "Step 3: Add text: 'Analyze this data and create a summary table'",
+      "Step 4: Send message",
+      "Step 5: Verify Claude describes the image",
+      "Step 6: Verify Claude generates a table artifact",
+      "Step 7: Upload another image",
+      "Step 8: Ask: 'Compare these two images'",
+      "Step 9: Verify Claude references both images",
+      "Step 10: Verify conversation history shows both images clearly",
+      "Step 11: Export conversation",
+      "Step 12: Verify images are included in export"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Comprehensive workflow - keyboard power user",
+    "steps": [
+      "Step 1: Open app",
+      "Step 2: Press Cmd/Ctrl+K to open command palette",
+      "Step 3: Type 'new' and press Enter to create conversation",
+      "Step 4: Type message and press Enter to send",
+      "Step 5: While response is streaming, press Esc or stop shortcut",
+      "Step 6: Press Cmd/Ctrl+K again",
+      "Step 7: Navigate to settings using arrow keys and Enter",
+      "Step 8: Use Tab to navigate through settings",
+      "Step 9: Close settings with Esc",
+      "Step 10: Use arrow keys to navigate conversations in sidebar",
+      "Step 11: Press Enter to open selected conversation",
+      "Step 12: Verify all major functions accessible via keyboard"
+    ],
+    "passes": false
+  },
+  {
+    "category": "style",
+    "description": "Visual polish - smooth loading experience",
+    "steps": [
+      "Step 1: Clear cache and reload app",
+      "Step 2: Verify splash screen or initial loading state",
+      "Step 3: Verify skeleton loaders appear for conversations",
+      "Step 4: Verify smooth transition as content loads",
+      "Step 5: Verify no flashing or layout shifts",
+      "Step 6: Verify professional first impression"
+    ],
+    "passes": false
+  },
+  {
+    "category": "style",
+    "description": "Visual polish - consistent micro-interactions",
+    "steps": [
+      "Step 1: Hover over various buttons and interactive elements",
+      "Step 2: Verify all have consistent hover effects",
+      "Step 3: Click buttons and verify subtle press animations",
+      "Step 4: Open/close panels and verify smooth transitions",
+      "Step 5: Verify overall polish and attention to detail"
+    ],
+    "passes": false
+  },
+  {
+    "category": "style",
+    "description": "Visual polish - professional appearance overall",
+    "steps": [
+      "Step 1: View the app as a whole",
+      "Step 2: Compare side-by-side with claude.ai",
+      "Step 3: Verify similar level of polish",
+      "Step 4: Verify no obvious bugs or visual glitches",
+      "Step 5: Verify typography is crisp and readable",
+      "Step 6: Verify colors are pleasing and professional",
+      "Step 7: Verify spacing creates a balanced layout",
+      "Step 8: Verify the app looks production-ready"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Backend health check endpoint responds",
+    "steps": [
+      "Step 1: Navigate to /api/health or similar endpoint",
+      "Step 2: Verify 200 OK response",
+      "Step 3: Verify response includes status: 'ok' or similar",
+      "Step 4: Verify timestamp or version info if present"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Database migrations run successfully",
+    "steps": [
+      "Step 1: Check database schema",
+      "Step 2: Verify all tables exist (users, projects, conversations, etc.)",
+      "Step 3: Verify columns match schema definition",
+      "Step 4: Verify indexes are created",
+      "Step 5: Run a sample query to verify database is operational"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Claude API integration - successful message send",
+    "steps": [
+      "Step 1: Send a simple message",
+      "Step 2: Verify backend makes request to Claude API",
+      "Step 3: Verify API key is correctly included in request",
+      "Step 4: Verify response is received from Claude",
+      "Step 5: Verify response is formatted and sent to frontend",
+      "Step 6: Verify message appears in UI"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Server-Sent Events (SSE) streaming works correctly",
+    "steps": [
+      "Step 1: Send a message that generates a long response",
+      "Step 2: Open network tab and monitor SSE connection",
+      "Step 3: Verify SSE stream is established",
+      "Step 4: Verify chunks of text are received progressively",
+      "Step 5: Verify frontend displays text in real-time",
+      "Step 6: Verify stream closes properly when done"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "CORS configured correctly for frontend",
+    "steps": [
+      "Step 1: Make API request from frontend",
+      "Step 2: Verify no CORS errors in console",
+      "Step 3: Verify response is received successfully",
+      "Step 4: Try from different origin (if applicable)",
+      "Step 5: Verify CORS headers are set appropriately"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Error handling - graceful degradation on API errors",
+    "steps": [
+      "Step 1: Trigger an API error (invalid request, etc.)",
+      "Step 2: Verify error is caught on backend",
+      "Step 3: Verify user-friendly error message is returned",
+      "Step 4: Verify frontend displays the error",
+      "Step 5: Verify app remains stable and usable",
+      "Step 6: Verify user can retry or take corrective action"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Security - API keys are not exposed in frontend",
+    "steps": [
+      "Step 1: Inspect frontend JavaScript code",
+      "Step 2: Verify API keys are not hardcoded",
+      "Step 3: Verify API requests go through backend proxy",
+      "Step 4: Verify keys are stored securely on backend",
+      "Step 5: Verify no sensitive data in browser storage"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Performance - app loads in under 3 seconds",
+    "steps": [
+      "Step 1: Clear cache",
+      "Step 2: Reload app with network throttling (fast 3G)",
+      "Step 3: Measure time to interactive",
+      "Step 4: Verify app is usable in under 3 seconds",
+      "Step 5: Verify perceived performance is good with loaders"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Performance - smooth scrolling with hundreds of messages",
+    "steps": [
+      "Step 1: Create conversation with 100+ messages",
+      "Step 2: Scroll up and down",
+      "Step 3: Verify smooth 60fps scrolling",
+      "Step 4: Verify no lag or stuttering",
+      "Step 5: Verify virtualization or optimization is working"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Performance - efficient re-rendering on updates",
+    "steps": [
+      "Step 1: Open React DevTools profiler",
+      "Step 2: Perform actions (send message, switch conversation)",
+      "Step 3: Verify only necessary components re-render",
+      "Step 4: Verify no unnecessary re-renders",
+      "Step 5: Verify app feels snappy and responsive"
+    ],
+    "passes": false
+  }
+]
