@@ -85,6 +85,8 @@ function App() {
   const [currentArtifact, setCurrentArtifact] = useState(null)
   const [showArtifactPanel, setShowArtifactPanel] = useState(false)
   const [isArtifactFullscreen, setIsArtifactFullscreen] = useState(false)
+  const [isEditingArtifact, setIsEditingArtifact] = useState(false)
+  const [editedArtifactContent, setEditedArtifactContent] = useState('')
   const messagesEndRef = useRef(null)
   const chatContainerRef = useRef(null)
   const textareaRef = useRef(null)
@@ -1573,6 +1575,21 @@ function App() {
                   )}
                 </div>
                 <div className="flex items-center gap-2">
+                  {!isEditingArtifact && currentArtifact.type === 'code' && (
+                    <button
+                      onClick={() => {
+                        setIsEditingArtifact(true);
+                        setEditedArtifactContent(currentArtifact.content);
+                      }}
+                      className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                      title="Edit artifact"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                          d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                      </svg>
+                    </button>
+                  )}
                   <button
                     onClick={() => {
                       // Create download function
@@ -1680,7 +1697,18 @@ function App() {
 
               {/* Artifact Content */}
               <div className="flex-1 overflow-y-auto">
-                {currentArtifact.type === 'html' ? (
+                {isEditingArtifact ? (
+                  // Edit Mode - Textarea
+                  <div className="h-full flex flex-col">
+                    <textarea
+                      value={editedArtifactContent}
+                      onChange={(e) => setEditedArtifactContent(e.target.value)}
+                      className="flex-1 p-4 text-sm font-mono bg-white dark:bg-[#1A1A1A]
+                        border-0 focus:outline-none resize-none"
+                      placeholder="Edit artifact content..."
+                    />
+                  </div>
+                ) : currentArtifact.type === 'html' ? (
                   // HTML Preview
                   <div className="h-full bg-white">
                     <iframe
@@ -1706,7 +1734,56 @@ function App() {
               </div>
 
               {/* Artifact Actions */}
-              {artifacts.length > 1 && (
+              {isEditingArtifact ? (
+                // Edit Mode Actions - Save/Cancel
+                <div className="border-t border-gray-200 dark:border-gray-800 p-3 flex gap-2">
+                  <button
+                    onClick={() => {
+                      setIsEditingArtifact(false);
+                      setEditedArtifactContent('');
+                    }}
+                    className="flex-1 px-3 py-2 text-sm bg-gray-100 dark:bg-gray-800 rounded
+                      hover:bg-gray-200 dark:hover:bg-gray-700"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={async () => {
+                      try {
+                        const response = await fetch(`${API_BASE}/artifacts/${currentArtifact.id}`, {
+                          method: 'PUT',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ content: editedArtifactContent })
+                        });
+
+                        if (!response.ok) {
+                          throw new Error('Failed to update artifact');
+                        }
+
+                        const updatedArtifact = await response.json();
+
+                        // Update the current artifact and artifacts list
+                        setCurrentArtifact(updatedArtifact);
+                        setArtifacts(artifacts.map(art =>
+                          art.id === updatedArtifact.id ? updatedArtifact : art
+                        ));
+
+                        // Exit edit mode
+                        setIsEditingArtifact(false);
+                        setEditedArtifactContent('');
+                      } catch (error) {
+                        console.error('Error saving artifact:', error);
+                        alert('Failed to save artifact changes');
+                      }
+                    }}
+                    className="flex-1 px-3 py-2 text-sm bg-[--accent-color] text-white rounded
+                      hover:bg-[--accent-hover] transition-colors"
+                  >
+                    Save
+                  </button>
+                </div>
+              ) : artifacts.length > 1 ? (
+                // Navigation Actions - Previous/Next
                 <div className="border-t border-gray-200 dark:border-gray-800 p-3 flex gap-2">
                   <button
                     onClick={() => {
@@ -1735,7 +1812,7 @@ function App() {
                     Next
                   </button>
                 </div>
-              )}
+              ) : null}
             </aside>
           )}
         </div>

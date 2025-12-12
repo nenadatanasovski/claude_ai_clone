@@ -1156,6 +1156,38 @@ app.get('/api/artifacts/:id', (req, res) => {
   }
 });
 
+// PUT update artifact content
+app.put('/api/artifacts/:id', (req, res) => {
+  try {
+    const { id } = req.params;
+    const { content } = req.body;
+
+    if (!content) {
+      return res.status(400).json({ error: 'Content is required' });
+    }
+
+    // Check if artifact exists
+    const artifact = dbHelpers.prepare('SELECT * FROM artifacts WHERE id = ?').get(id);
+    if (!artifact) {
+      return res.status(404).json({ error: 'Artifact not found' });
+    }
+
+    // Update the artifact content and updated_at timestamp
+    dbHelpers.prepare(`
+      UPDATE artifacts
+      SET content = ?, updated_at = CURRENT_TIMESTAMP
+      WHERE id = ?
+    `).run(content, id);
+
+    // Return the updated artifact
+    const updatedArtifact = dbHelpers.prepare('SELECT * FROM artifacts WHERE id = ?').get(id);
+    res.json(updatedArtifact);
+  } catch (error) {
+    console.error('Error updating artifact:', error);
+    res.status(500).json({ error: 'Failed to update artifact' });
+  }
+});
+
 // Export database instance for other modules
 export { db, dbHelpers };
 
