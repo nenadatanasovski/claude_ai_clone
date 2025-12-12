@@ -45,6 +45,48 @@ function CodeBlock({ node, inline, className, children, ...props }) {
   )
 }
 
+// Helper function to group conversations by date
+function groupConversationsByDate(conversations) {
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+
+  const yesterday = new Date(today)
+  yesterday.setDate(yesterday.getDate() - 1)
+
+  const sevenDaysAgo = new Date(today)
+  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
+
+  const thirtyDaysAgo = new Date(today)
+  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
+
+  const groups = {
+    today: [],
+    yesterday: [],
+    previous7Days: [],
+    previous30Days: [],
+    older: []
+  }
+
+  conversations.forEach(conv => {
+    const convDate = new Date(conv.last_message_at || conv.created_at)
+    convDate.setHours(0, 0, 0, 0)
+
+    if (convDate.getTime() === today.getTime()) {
+      groups.today.push(conv)
+    } else if (convDate.getTime() === yesterday.getTime()) {
+      groups.yesterday.push(conv)
+    } else if (convDate >= sevenDaysAgo) {
+      groups.previous7Days.push(conv)
+    } else if (convDate >= thirtyDaysAgo) {
+      groups.previous30Days.push(conv)
+    } else {
+      groups.older.push(conv)
+    }
+  })
+
+  return groups
+}
+
 // Shared Conversation View Component
 function SharedConversationView({ token }) {
   const [loading, setLoading] = useState(true)
@@ -2784,73 +2826,122 @@ function App() {
                     </>
                   )}
 
-                  {/* Regular Conversations */}
-                  {conversations.filter(c => (showArchived ? c.is_archived : !c.is_archived) && !c.is_pinned && (currentProjectId === null || c.project_id === currentProjectId)).length > 0 && (
-                    <>
-                      <div className="text-sm font-medium text-gray-500 dark:text-gray-400 px-2">
-                        Conversations
-                      </div>
-                      {conversations.filter(c => {
-                        // Filter out conversations that are in folders
-                        const isInFolder = Object.values(folderConversations).some(convIds => convIds.includes(c.id))
-                        return (showArchived ? c.is_archived : !c.is_archived) && !c.is_pinned && (currentProjectId === null || c.project_id === currentProjectId) && !isInFolder
-                      }).map(conv => (
-                        <div
-                          key={conv.id}
-                          draggable
-                          onDragStart={(e) => handleDragStart(e, conv.id)}
-                          onClick={() => setCurrentConversationId(conv.id)}
-                          onContextMenu={(e) => handleContextMenu(e, conv.id)}
-                          className={`group relative px-2 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800
-                            cursor-pointer text-sm ${
-                              conv.id === currentConversationId ? 'bg-gray-100 dark:bg-gray-800' : ''
-                            }`}
-                        >
-                      {editingConversationId === conv.id ? (
-                        <input
-                          ref={editInputRef}
-                          type="text"
-                          value={editingTitle}
-                          onChange={(e) => setEditingTitle(e.target.value)}
-                          onKeyDown={(e) => handleTitleKeyDown(e, conv.id)}
-                          onBlur={() => saveConversationTitle(conv.id)}
-                          onClick={(e) => e.stopPropagation()}
-                          className="w-full px-1 py-0.5 bg-white dark:bg-gray-900 border border-claude-orange
-                            rounded focus:outline-none text-sm"
-                        />
-                      ) : (
-                        <>
-                          <div
-                            onClick={(e) => startEditingConversation(conv, e)}
-                            className="truncate pr-6"
-                          >
-                            {conv.title}
-                          </div>
-                          <button
-                            onClick={(e) => deleteConversation(conv.id, e)}
-                            className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100
-                              p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition-opacity"
-                            title="Delete conversation"
-                          >
-                            <svg
-                              width="16"
-                              height="16"
-                              viewBox="0 0 24 24"
-                              fill="none"
-                              stroke="currentColor"
-                              strokeWidth="2"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
+                  {/* Regular Conversations - Grouped by Date */}
+                  {(() => {
+                    const filteredConversations = conversations.filter(c => {
+                      const isInFolder = Object.values(folderConversations).some(convIds => convIds.includes(c.id))
+                      return (showArchived ? c.is_archived : !c.is_archived) && !c.is_pinned && (currentProjectId === null || c.project_id === currentProjectId) && !isInFolder
+                    })
+
+                    if (filteredConversations.length === 0) return null
+
+                    const dateGroups = groupConversationsByDate(filteredConversations)
+
+                    const renderConversation = (conv) => (
+                      <div
+                        key={conv.id}
+                        draggable
+                        onDragStart={(e) => handleDragStart(e, conv.id)}
+                        onClick={() => setCurrentConversationId(conv.id)}
+                        onContextMenu={(e) => handleContextMenu(e, conv.id)}
+                        className={`group relative px-2 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800
+                          cursor-pointer text-sm ${
+                            conv.id === currentConversationId ? 'bg-gray-100 dark:bg-gray-800' : ''
+                          }`}
+                      >
+                        {editingConversationId === conv.id ? (
+                          <input
+                            ref={editInputRef}
+                            type="text"
+                            value={editingTitle}
+                            onChange={(e) => setEditingTitle(e.target.value)}
+                            onKeyDown={(e) => handleTitleKeyDown(e, conv.id)}
+                            onBlur={() => saveConversationTitle(conv.id)}
+                            onClick={(e) => e.stopPropagation()}
+                            className="w-full px-1 py-0.5 bg-white dark:bg-gray-900 border border-claude-orange
+                              rounded focus:outline-none text-sm"
+                          />
+                        ) : (
+                          <>
+                            <div
+                              onClick={(e) => startEditingConversation(conv, e)}
+                              className="truncate pr-6"
                             >
-                              <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2M10 11v6M14 11v6" />
-                            </svg>
-                          </button>
-                        </>
-                      )}
-                    </div>
-                  ))}
-                    </>
-                  )}
+                              {conv.title}
+                            </div>
+                            <button
+                              onClick={(e) => deleteConversation(conv.id, e)}
+                              className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100
+                                p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition-opacity"
+                              title="Delete conversation"
+                            >
+                              <svg
+                                width="16"
+                                height="16"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="2"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                              >
+                                <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2M10 11v6M14 11v6" />
+                              </svg>
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    )
+
+                    return (
+                      <>
+                        {dateGroups.today.length > 0 && (
+                          <>
+                            <div className="text-sm font-medium text-gray-500 dark:text-gray-400 px-2">
+                              Today
+                            </div>
+                            {dateGroups.today.map(renderConversation)}
+                          </>
+                        )}
+
+                        {dateGroups.yesterday.length > 0 && (
+                          <>
+                            <div className="text-sm font-medium text-gray-500 dark:text-gray-400 px-2 mt-4">
+                              Yesterday
+                            </div>
+                            {dateGroups.yesterday.map(renderConversation)}
+                          </>
+                        )}
+
+                        {dateGroups.previous7Days.length > 0 && (
+                          <>
+                            <div className="text-sm font-medium text-gray-500 dark:text-gray-400 px-2 mt-4">
+                              Previous 7 days
+                            </div>
+                            {dateGroups.previous7Days.map(renderConversation)}
+                          </>
+                        )}
+
+                        {dateGroups.previous30Days.length > 0 && (
+                          <>
+                            <div className="text-sm font-medium text-gray-500 dark:text-gray-400 px-2 mt-4">
+                              Previous 30 days
+                            </div>
+                            {dateGroups.previous30Days.map(renderConversation)}
+                          </>
+                        )}
+
+                        {dateGroups.older.length > 0 && (
+                          <>
+                            <div className="text-sm font-medium text-gray-500 dark:text-gray-400 px-2 mt-4">
+                              Older
+                            </div>
+                            {dateGroups.older.map(renderConversation)}
+                          </>
+                        )}
+                      </>
+                    )
+                  })()}
                 </>
               )}
 

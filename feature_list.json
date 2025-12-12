@@ -864,7 +864,7 @@
       "Step 3: Verify a 'Today' section appears",
       "Step 4: Verify the conversation is listed under 'Today'"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -875,7 +875,7 @@
       "Step 3: Verify a 'Yesterday' section appears",
       "Step 4: Verify the conversation is listed under 'Yesterday'"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -886,7 +886,7 @@
       "Step 3: Verify a 'Previous 7 days' section appears",
       "Step 4: Verify conversations are correctly grouped"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -896,7 +896,7 @@
       "Step 2: Verify a 'Previous 30 days' section appears",
       "Step 3: Verify appropriate conversations are grouped there"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
