@@ -328,7 +328,10 @@ function App() {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
   const [sidebarWidth, setSidebarWidth] = useState(256) // Sidebar width in pixels (min: 200, max: 500)
   const [isResizing, setIsResizing] = useState(false)
-  const [theme, setTheme] = useState('light') // 'light', 'dark', or 'auto'
+  const [theme, setTheme] = useState(() => {
+    const saved = localStorage.getItem('theme')
+    return saved || 'light'
+  }) // 'light', 'dark', or 'auto'
   const [fontSize, setFontSize] = useState(() => {
     const saved = localStorage.getItem('fontSize')
     return saved ? Number(saved) : 16
@@ -541,6 +544,11 @@ function App() {
       mediaQuery.addEventListener('change', handleChange)
       return () => mediaQuery.removeEventListener('change', handleChange)
     }
+  }, [theme])
+
+  // Save theme setting to localStorage
+  useEffect(() => {
+    localStorage.setItem('theme', theme)
   }, [theme])
 
   // Save font size setting to localStorage

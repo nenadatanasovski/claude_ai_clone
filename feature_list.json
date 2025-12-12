@@ -982,7 +982,7 @@
       "Step 4: Verify theme is still dark",
       "Step 5: Verify font size is preserved"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
