@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Test Image Remove Feature</title>
+  <script>
+    async function testImageRemove() {
+      const results = [];
+
+      try {
+        // Step 1: Upload an image
+        results.push('Step 1: Uploading image...');
+        const canvas = document.createElement('canvas');
+        canvas.width = 200;
+        canvas.height = 200;
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#9333EA';
+        ctx.fillRect(0, 0, 200, 200);
+        ctx.fillStyle = '#FBBF24';
+        ctx.font = 'bold 24px Arial';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('TEST IMAGE', 100, 100);
+
+        const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+        const file = new File([blob], 'test-image.png', { type: 'image/png' });
+
+        const fileInput = document.querySelector('input[type="file"]');
+        const dataTransfer = new DataTransfer();
+        dataTransfer.items.add(file);
+        fileInput.files = dataTransfer.files;
+        fileInput.dispatchEvent(new Event('change', { bubbles: true }));
+
+        await new Promise(resolve => setTimeout(resolve, 500));
+
+        // Step 2: Check if image preview appears
+        const imagePreview = document.querySelector('div.relative.group img');
+        if (imagePreview) {
+          results.push('✅ Step 1: Image uploaded successfully');
+          results.push('✅ Step 2: Image preview appears');
+        } else {
+          results.push('❌ Step 1: Image preview not found');
+          document.getElementById('results').innerHTML = results.join('<br>');
+          return;
+        }
+
+        // Step 3: Check if remove button exists
+        const removeButton = document.querySelector('div.relative.group button');
+        if (removeButton) {
+          results.push('✅ Step 2: Remove button exists');
+        } else {
+          results.push('❌ Step 2: Remove button not found');
+          document.getElementById('results').innerHTML = results.join('<br>');
+          return;
+        }
+
+        // Step 4: Click remove button
+        results.push('Step 3: Clicking remove button...');
+        removeButton.click();
+
+        await new Promise(resolve => setTimeout(resolve, 300));
+
+        // Step 5: Verify image is removed
+        const imageAfterRemove = document.querySelector('div.relative.group img');
+        if (!imageAfterRemove) {
+          results.push('✅ Step 3: Image removed successfully');
+          results.push('✅ Step 4: Image no longer appears in input area');
+          results.push('<br><strong>🎉 All tests passed!</strong>');
+        } else {
+          results.push('❌ Step 3: Image still appears after clicking remove');
+        }
+
+      } catch (error) {
+        results.push('❌ Error: ' + error.message);
+      }
+
+      document.getElementById('results').innerHTML = results.join('<br>');
+    }
+
+    // Run test after page loads
+    window.addEventListener('load', () => {
+      setTimeout(testImageRemove, 2000);
+    });
+  </script>
+</head>
+<body>
+  <h1>Testing Feature #40: Remove Image Before Sending</h1>
+  <div id="results">Waiting for app to load...</div>
+  <hr>
+  <iframe src="http://localhost:5173" width="100%" height="800px"></iframe>
+</body>
+</html>

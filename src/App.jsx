@@ -846,6 +846,141 @@ function App() {
     }
   }
 
+  const regenerateMessage = async (messageId) => {
+    if (isLoading || !currentConversationId) {
+      return
+    }
+
+    try {
+      // Find the assistant message and the user message before it
+      const messageIndex = messages.findIndex(m => m.id === messageId)
+      if (messageIndex === -1 || messageIndex === 0) {
+        return
+      }
+
+      // Find the user message that prompted this assistant response
+      const userMessageIndex = messageIndex - 1
+      if (messages[userMessageIndex].role !== 'user') {
+        return
+      }
+
+      const userMessage = messages[userMessageIndex]
+
+      // Remove the old assistant message from UI
+      setMessages(prev => prev.filter(m => m.id !== messageId))
+
+      setIsLoading(true)
+
+      // Create abort controller for this request
+      abortControllerRef.current = new AbortController()
+
+      // Prepare message payload (resend the user message)
+      const messagePayload = {
+        content: userMessage.content,
+        role: 'user',
+        regenerate: true  // Flag to indicate this is a regeneration
+      }
+
+      if (userMessage.images) {
+        messagePayload.images = userMessage.images.map(img => ({
+          type: img.type,
+          data: img.data || img.preview
+        }))
+      }
+
+      // Send message to API for regeneration
+      const response = await fetch(`${API_BASE}/conversations/${currentConversationId}/messages`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(messagePayload),
+        signal: abortControllerRef.current.signal
+      })
+
+      if (response.headers.get('content-type')?.includes('text/event-stream')) {
+        // Handle streaming response
+        setIsStreaming(true)
+        const reader = response.body.getReader()
+        streamReaderRef.current = reader
+        const decoder = new TextDecoder()
+        let assistantMessage = {
+          id: Date.now() + 1,
+          role: 'assistant',
+          content: '',
+          created_at: new Date().toISOString()
+        }
+        setMessages(prev => [...prev, assistantMessage])
+
+        try {
+          while (true) {
+            const { done, value } = await reader.read()
+            if (done) break
+
+            const chunk = decoder.decode(value)
+            const lines = chunk.split('\n')
+
+            for (const line of lines) {
+              if (line.startsWith('data: ')) {
+                try {
+                  const data = JSON.parse(line.slice(6))
+                  if (data.type === 'content') {
+                    assistantMessage.content += data.text
+                    setMessages(prev => {
+                      const newMessages = [...prev]
+                      newMessages[newMessages.length - 1] = { ...assistantMessage }
+                      return newMessages
+                    })
+                  } else if (data.type === 'done') {
+                    assistantMessage.id = data.messageId
+                  }
+                } catch (e) {
+                  // Skip invalid JSON
+                }
+              }
+            }
+          }
+
+          // Load artifacts after response complete
+          if (assistantMessage.id) {
+            const artifactsResponse = await fetch(`${API_BASE}/messages/${assistantMessage.id}/artifacts`)
+            const artifacts = await artifactsResponse.json()
+            if (artifacts.length > 0) {
+              setMessageArtifacts(prev => ({
+                ...prev,
+                [assistantMessage.id]: artifacts
+              }))
+            }
+          }
+        } catch (error) {
+          if (error.name !== 'AbortError') {
+            console.error('Error reading stream:', error)
+          }
+        } finally {
+          setIsStreaming(false)
+          streamReaderRef.current = null
+        }
+      } else {
+        // Handle regular JSON response
+        const data = await response.json()
+        await loadMessages(currentConversationId)
+      }
+
+      // Reload conversations to update the list
+      loadConversations()
+    } catch (error) {
+      if (error.name === 'AbortError') {
+        console.log('Regeneration aborted by user')
+      } else {
+        console.error('Error regenerating message:', error)
+        alert('Error regenerating message: ' + error.message)
+      }
+    } finally {
+      setIsLoading(false)
+      setIsStreaming(false)
+      streamReaderRef.current = null
+      abortControllerRef.current = null
+    }
+  }
+
   const handleKeyDown = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
@@ -1775,6 +1910,28 @@ function App() {
                                     d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
                                 </svg>
                                 View {messageArtifacts[message.id].length} Artifact{messageArtifacts[message.id].length > 1 ? 's' : ''}
+                              </button>
+                            </div>
+                          )}
+                          {/* Regenerate button for assistant messages */}
+                          {message.role === 'assistant' && idx === messages.length - 1 && !isStreaming && (
+                            <div className="mt-2 flex gap-2">
+                              <button
+                                onClick={() => regenerateMessage(message.id)}
+                                disabled={isLoading}
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium
+                                  rounded-md border border-gray-300 dark:border-gray-600
+                                  text-gray-700 dark:text-gray-300
+                                  hover:bg-gray-100 dark:hover:bg-gray-800
+                                  disabled:opacity-50 disabled:cursor-not-allowed
+                                  transition-colors"
+                                title="Regenerate response"
+                              >
+                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                </svg>
+                                Regenerate
                               </button>
                             </div>
                           )}

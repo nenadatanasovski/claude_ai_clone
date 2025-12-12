@@ -517,7 +517,7 @@
       "Step 4: Verify a new streaming response begins",
       "Step 5: Verify the new response may be different from the original"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
