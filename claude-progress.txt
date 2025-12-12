@@ -1,6 +1,196 @@
 CLAUDE.AI CLONE - DEVELOPMENT PROGRESS
 ======================================
 
+SESSION 16 - FEATURE #14: SWITCH MODELS MID-CONVERSATION
+=========================================================
+Date: December 12, 2025
+Agent: Feature Implementation Agent
+
+SUMMARY
+=======
+
+Session 16 focused on implementing model switching:
+- ✅ Verified Features #1 still working (verification testing)
+- ✅ Implemented Feature #14: Switch models mid-conversation
+- ✅ Feature fully tested and verified with browser automation
+- ✅ Updated feature_list.json
+- ✅ Code committed in clean, working state
+
+**Progress: 14/175 features passing (8.0%)**
+
+VERIFICATION TESTING (STEP 3)
+==============================
+
+**Feature #1: Basic Chat Interface** ✅ STILL PASSING
+- Sent message "Hello, can you help me?"
+- ✅ Message sent successfully and response received
+- ✅ Both messages visible in chat area
+- ✅ Input field cleared after sending
+- ✅ Character count showing correctly
+- ✅ No issues found
+
+FEATURE #14 IMPLEMENTATION
+===========================
+
+**Feature #14: Switch Models Mid-Conversation** ✅ COMPLETED
+
+Implementation Details:
+
+**Backend Changes (server/server.js):**
+
+Enhanced PUT /api/conversations/:id endpoint (lines 525, 541-544):
+- Added 'model' field to destructured request body
+- Added conditional check: if model !== undefined
+- Adds 'model = ?' to updates array
+- Pushes model value to values array
+- Existing logic handles the SQL UPDATE with proper parameterization
+
+Code changes:
+```javascript
+const { title, is_archived, is_pinned, model } = req.body;
+// ... other fields ...
+if (model !== undefined) {
+  updates.push('model = ?');
+  values.push(model);
+}
+```
+
+**Frontend Changes (src/App.jsx):**
+
+1. Created updateConversationModel() function (lines 173-185):
+   - Accepts conversationId and modelId parameters
+   - Returns early if no conversationId (guards against errors)
+   - Calls PUT /api/conversations/:id with model in body
+   - Uses try-catch for error handling
+   - Silent update (no UI feedback needed as model selector already updated)
+
+2. Updated model selector onClick handler (line 437):
+   - Added call to updateConversationModel(currentConversationId, model.id)
+   - Executes after setSelectedModel and setIsModelDropdownOpen
+   - Persists the model change to database immediately
+
+3. Enhanced loadMessages() function (lines 134-150):
+   - Added GET request to fetch conversation details before loading messages
+   - Extracts model from conversation object
+   - Sets selectedModel state to conversation.model
+   - Ensures model selector always reflects conversation's actual model
+   - Two sequential fetches: conversation details, then messages
+
+**How It Works:**
+
+Model Selection Flow:
+1. User clicks model selector button → dropdown opens
+2. User clicks different model (e.g., Claude Haiku 4.5)
+3. setSelectedModel updates state → UI shows new model immediately
+4. updateConversationModel calls PUT endpoint → model saved to database
+5. Dropdown closes automatically
+
+Model Persistence Flow:
+1. User switches to different conversation
+2. useEffect triggers loadMessages with new conversationId
+3. loadMessages fetches conversation details (including model)
+4. setSelectedModel updates to conversation's saved model
+5. Model selector displays correct model for the conversation
+
+**Testing:**
+
+All 6 test steps verified with browser automation:
+
+Step 1: Start conversation with default model ✅
+- Opened new conversation
+- Model selector showed "Claude Sonnet 4.5" (default)
+
+Step 2: Send message and receive response ✅
+- Sent: "Hello, this is my first message"
+- Response received: "I'm a mock response..."
+- Message visible in chat area
+
+Step 3: Click model selector ✅
+- Clicked "Claude Sonnet 4.5" button
+- Dropdown opened showing all 3 models:
+  * Claude Sonnet 4.5 - Most capable model
+  * Claude Haiku 4.5 - Fast and efficient
+  * Claude Opus 4.1 - Most intelligent
+- Screenshot: feature14_step3_dropdown_open.png
+
+Step 4: Select different model ✅
+- Clicked "Claude Haiku 4.5" option
+- Model selector updated to show "Claude Haiku 4.5"
+- Dropdown closed automatically
+- Backend logs confirmed: PUT /api/conversations/68
+- Screenshot: feature14_step4_haiku_selected.png
+
+Step 5: Send another message ✅
+- Sent: "This is my second message with the new model"
+- Response received: "I'm a mock response..."
+- Both messages now visible in chat
+- Model selector still shows "Claude Haiku 4.5"
+- Screenshot: feature14_step5_second_message.png
+
+Step 6: Verify model persisted ✅
+- Clicked "+ New Chat" button
+- New conversation created with default "Claude Sonnet 4.5"
+- Clicked back to previous conversation (second in sidebar)
+- Model selector correctly showed "Claude Haiku 4.5" (not Sonnet!)
+- Both previous messages displayed correctly
+- Model persisted successfully across conversation switches
+- Screenshot: feature14_step6_verify_model_persisted.png
+
+**Backend API Logs:**
+```
+POST /api/conversations           (created conversation 68 with default model)
+POST /api/conversations/68/messages (first message sent)
+PUT /api/conversations/68          (model updated to Haiku) ← KEY REQUEST
+POST /api/conversations/68/messages (second message sent with Haiku model)
+GET /api/conversations/68          (fetched conversation with model)
+```
+
+**Database Schema:**
+The conversations table already had a 'model' column:
+- Default: 'claude-sonnet-4-20250514'
+- Updated via PUT endpoint when user selects different model
+- Retrieved via GET endpoint when switching conversations
+
+CURRENT STATUS
+==============
+
+**Total Features:** 175
+**Passing:** 14 ✅ (Features #1-14)
+**Failing:** 161
+**Progress:** 8.0% (14/175)
+
+**Working Features:**
+1. ✅ Basic chat interface
+2. ✅ Create new conversations
+3. ✅ Switch between conversations
+4. ✅ Rename conversations
+5. ✅ Delete conversations
+6. ✅ Code block syntax highlighting
+7. ✅ Copy code from code blocks
+8. ✅ Stop generation while streaming
+9. ✅ Markdown rendering (bold, italic, links)
+10. ✅ Multi-line input with Shift+Enter
+11. ✅ Auto-resize textarea as content grows
+12. ✅ Character count display in input area
+13. ✅ Model selection dropdown displays available models
+14. ✅ Switch models mid-conversation
+
+**Next Priority:**
+15. Search conversations by title
+16. Search conversations by content
+17. Pin important conversations
+
+GIT COMMITS THIS SESSION
+=========================
+8392703 - Implement Feature #14: Switch models mid-conversation - verified end-to-end
+
+========================================================================
+PREVIOUS SESSION NOTES (SESSION 15)
+========================================================================
+
+CLAUDE.AI CLONE - DEVELOPMENT PROGRESS
+======================================
+
 SESSION 15 - FEATURE #12: CHARACTER COUNT DISPLAY
 ==================================================
 Date: December 12, 2025
