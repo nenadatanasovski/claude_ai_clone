@@ -112,6 +112,10 @@ function App() {
     const saved = localStorage.getItem('temperature')
     return saved ? Number(saved) : 1.0
   }) // Temperature (0.0-1.0)
+  const [maxTokens, setMaxTokens] = useState(() => {
+    const saved = localStorage.getItem('maxTokens')
+    return saved ? Number(saved) : 4096
+  }) // Max tokens (100-4096)
   const messagesEndRef = useRef(null)
   const chatContainerRef = useRef(null)
   const textareaRef = useRef(null)
@@ -198,6 +202,11 @@ function App() {
   useEffect(() => {
     localStorage.setItem('temperature', temperature.toString())
   }, [temperature])
+
+  // Save maxTokens setting to localStorage
+  useEffect(() => {
+    localStorage.setItem('maxTokens', maxTokens.toString())
+  }, [maxTokens])
 
   // Reload conversations when project changes
   useEffect(() => {
@@ -293,11 +302,23 @@ function App() {
 
   const loadMessages = async (conversationId) => {
     try {
-      // Load conversation details to get the model
+      // Load conversation details to get the model and settings
       const convResponse = await fetch(`${API_BASE}/conversations/${conversationId}`)
       const conversation = await convResponse.json()
       if (conversation.model) {
         setSelectedModel(conversation.model)
+      }
+
+      // Load max_tokens from conversation settings
+      if (conversation.settings) {
+        try {
+          const settings = JSON.parse(conversation.settings)
+          if (settings.max_tokens !== undefined) {
+            setMaxTokens(settings.max_tokens)
+          }
+        } catch (error) {
+          console.error('Error parsing conversation settings:', error)
+        }
       }
 
       // Load messages
@@ -760,6 +781,20 @@ function App() {
     }
   }
 
+  const updateConversationSettings = async (conversationId, settings) => {
+    if (!conversationId) return
+
+    try {
+      await fetch(`${API_BASE}/conversations/${conversationId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ settings })
+      })
+    } catch (error) {
+      console.error('Error updating conversation settings:', error)
+    }
+  }
+
   const sendMessage = async () => {
     if (!inputValue.trim() || isLoading) {
       return
@@ -801,7 +836,8 @@ function App() {
       const messagePayload = {
         content: messageText,
         role: 'user',
-        temperature: temperature
+        temperature: temperature,
+        maxTokens: maxTokens
       }
 
       if (selectedImages.length > 0) {
@@ -1223,7 +1259,8 @@ function App() {
           content: content,
           model: selectedModel,
           parentMessageId: parentMessageId,
-          temperature: temperature
+          temperature: temperature,
+          maxTokens: maxTokens
         }),
         signal: controller.signal
       })
@@ -3452,6 +3489,48 @@ function App() {
                 </div>
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
                   Lower values make responses more focused and consistent. Higher values make them more varied and creative.
+                </p>
+              </div>
+
+              {/* Max Tokens Control Section */}
+              <div className="mb-6">
+                <h3 className="text-lg font-medium mb-3">Max Tokens</h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
+                  Control the maximum length of Claude's responses
+                </p>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm text-gray-600 dark:text-gray-400">Shorter</span>
+                    <span className="text-sm font-medium">{maxTokens}</span>
+                    <span className="text-sm text-gray-600 dark:text-gray-400">Longer</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="100"
+                    max="4096"
+                    step="100"
+                    value={maxTokens}
+                    onChange={async (e) => {
+                      const newMaxTokens = Number(e.target.value)
+                      setMaxTokens(newMaxTokens)
+                      // Update current conversation settings if a conversation is active
+                      if (currentConversationId) {
+                        await updateConversationSettings(currentConversationId, { max_tokens: newMaxTokens })
+                      }
+                    }}
+                    className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer
+                      [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4
+                      [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-claude-orange
+                      [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4
+                      [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-claude-orange [&::-moz-range-thumb]:border-0"
+                  />
+                  <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400">
+                    <span>100 (Brief)</span>
+                    <span>4096 (Comprehensive)</span>
+                  </div>
+                </div>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                  Lower values limit response length. Higher values allow longer, more detailed responses.
                 </p>
               </div>
 

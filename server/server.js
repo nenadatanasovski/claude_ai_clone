@@ -446,7 +446,7 @@ app.get('/api/conversations/:id/messages', (req, res) => {
 // Send a message (streaming with SSE)
 app.post('/api/conversations/:id/messages', async (req, res) => {
   try {
-    const { content, role = 'user', images } = req.body;
+    const { content, role = 'user', images, maxTokens } = req.body;
     const conversationId = req.params.id;
 
     // Get conversation details
@@ -591,10 +591,23 @@ app.post('/api/conversations/:id/messages', async (req, res) => {
       content: msg.content
     }));
 
+    // Parse conversation settings
+    let conversationSettings = {};
+    try {
+      if (conversation.settings) {
+        conversationSettings = JSON.parse(conversation.settings);
+      }
+    } catch (error) {
+      console.error('Error parsing conversation settings:', error);
+    }
+
+    // Get max_tokens from request, conversation settings, or use default
+    const finalMaxTokens = maxTokens || conversationSettings.max_tokens || 4096;
+
     // Prepare API parameters
     const apiParams = {
       model: conversation.model,
-      max_tokens: 4096,
+      max_tokens: finalMaxTokens,
       messages: messages,
     };
 
@@ -648,7 +661,7 @@ app.post('/api/conversations/:id/messages', async (req, res) => {
 // Update conversation
 app.put('/api/conversations/:id', (req, res) => {
   try {
-    const { title, is_archived, is_pinned, model, project_id } = req.body;
+    const { title, is_archived, is_pinned, model, project_id, settings } = req.body;
     const updates = [];
     const values = [];
 
@@ -671,6 +684,10 @@ app.put('/api/conversations/:id', (req, res) => {
     if (project_id !== undefined) {
       updates.push('project_id = ?');
       values.push(project_id);
+    }
+    if (settings !== undefined) {
+      updates.push('settings = ?');
+      values.push(JSON.stringify(settings));
     }
 
     if (updates.length > 0) {
