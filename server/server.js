@@ -59,10 +59,13 @@ const dbHelpers = {
         // Use exec instead of run to get the result properly
         // First, bind parameters manually since exec doesn't support placeholders well
         let boundSql = sql;
-        params.forEach((param, i) => {
-          const placeholder = '?';
-          const value = param === null ? 'NULL' : `'${String(param).replace(/'/g, "''")}'`;
-          boundSql = boundSql.replace(placeholder, value);
+
+        // Replace placeholders one at a time (replace only first occurrence each time)
+        params.forEach((param) => {
+          const value = param === null || param === undefined
+            ? 'NULL'
+            : `'${String(param).replace(/'/g, "''")}'`;
+          boundSql = boundSql.replace('?', value);
         });
 
         db.exec(boundSql);
