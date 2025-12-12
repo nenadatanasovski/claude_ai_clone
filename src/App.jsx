@@ -153,10 +153,8 @@ function App() {
       } else {
         // Handle regular JSON response
         const data = await response.json()
-        setMessages(prev => {
-          const filtered = prev.filter(m => m.id !== userMessage.id)
-          return [...filtered, data.userMessage, data.assistantMessage]
-        })
+        // Reload all messages from the database to ensure consistency
+        await loadMessages(conversationId)
       }
 
       // Reload conversations to update the list

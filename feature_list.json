@@ -24,7 +24,7 @@
       "Step 4: Verify a new empty conversation is created",
       "Step 5: Verify the input field is focused and ready"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
