@@ -1,13 +1,118 @@
 CLAUDE.AI CLONE - DEVELOPMENT PROGRESS
 ======================================
 
-SESSION 61 - FEATURE #60: PROMPT LIBRARY - BROWSE BY CATEGORY
-==============================================================
+SESSION 62 - FEATURE #61: EXAMPLE CONVERSATIONS FOR ONBOARDING
+===============================================================
 Date: December 13, 2025
 Agent: Feature Implementation Agent
 
 SUMMARY
 =======
+
+Session 62 successfully implemented Feature #61 - Example conversations for onboarding:
+- ✅ Created backend API endpoint GET /api/prompts/examples
+- ✅ Added 4 pre-made example conversations (Writing, Coding, Education, Productivity)
+- ✅ Added Examples button in header UI
+- ✅ Implemented modal to display and select example conversations
+- ✅ Added functions to load and start example conversations
+- ✅ Fixed critical route ordering issue (/:id was catching /examples)
+- ✅ API verified working (returns 200 with example data)
+- ✅ Code committed successfully
+
+**Progress: 60/175 features passing (34.29%)** - Feature #61 ready for final verification
+
+⚠️ **IMPORTANT for Next Session:**
+Feature #61 implementation is COMPLETE but needs final end-to-end verification with screenshots.
+The backend API works (confirmed with test script), frontend code is in place.
+Browser session was disconnected during testing - needs to be retested with puppeteer.
+
+Next Priority:
+1. Reconnect browser and verify Feature #61 end-to-end
+2. Mark Feature #61 as passing in feature_list.json
+3. Move to Feature #62
+
+TECHNICAL DETAILS
+=================
+
+**Backend Implementation (server/server.js):**
+
+Added GET /api/prompts/examples endpoint at line 2033 (BEFORE /:id route at line 2232):
+- Returns array of 4 example conversation objects
+- Each example includes: id, title, description, category, icon, messages array
+- Route ordering is critical: specific routes MUST come before parameterized routes
+
+Example conversations included:
+1. Creative Writing Assistant (✍️ Writing) - Robot learning to paint story
+2. Code Debugging Help (🐛 Coding) - Python division by zero fix
+3. Learning Complex Topics (📚 Education) - Quantum entanglement explanation
+4. Planning and Brainstorming (🎯 Productivity) - Career transition plan
+
+**Frontend Implementation (src/App.jsx):**
+
+1. Added state variables (lines 260-261):
+   - showExampleConversations: boolean for modal visibility
+   - exampleConversations: array to store loaded examples
+
+2. Added loadExampleConversations() function (lines 681-697):
+   - Fetches from /api/prompts/examples
+   - Sets exampleConversations state
+   - Includes console.log debugging statements
+
+3. Added startExampleConversation() function (lines 699-740):
+   - Creates new conversation via POST /api/conversations
+   - Adds all example messages via POST /api/conversations/:id/messages
+   - Marks messages with is_example: true to avoid API calls
+   - Switches to new conversation and loads messages
+   - Closes modal after creation
+
+4. Added Examples button in header (lines 2356-2371):
+   - Icon: book/open-book SVG
+   - Calls loadExampleConversations() and setShowExampleConversations(true)
+   - Positioned between Prompts and Usage buttons
+
+5. Added Example Conversations modal (lines 3988-4066):
+   - Header with title and description
+   - Grid layout (2 columns on desktop, 1 on mobile)
+   - Each card shows: icon, title, category badge, description, message count
+   - Click handler calls startExampleConversation()
+   - Close button and X button to dismiss
+
+**Critical Bug Fix:**
+
+PROBLEM: Route `/api/prompts/examples` was returning 404
+ROOT CAUSE: Express was matching it to `/api/prompts/:id` route (treating "examples" as an ID)
+SOLUTION: Moved `/api/prompts/examples` endpoint registration BEFORE `/api/prompts/:id`
+LESSON: In Express, specific routes must always be registered before parameterized routes
+
+**Verification Status:**
+
+✅ Backend API tested with node script:
+   - Endpoint responds with status 200
+   - Returns 4 example objects with correct structure
+   - Confirmed via test-examples-api.mjs script
+
+⏳ Frontend UI needs final verification:
+   - Browser disconnected during testing (pkill node killed puppeteer process)
+   - Modal code is complete and should work
+   - Needs reconnection and screenshot verification
+
+**Git Commits This Session:**
+- 004c656: Implement Feature #61: Example conversations for onboarding
+
+**Files Modified:**
+- server/server.js: +198 lines (API endpoint)
+- src/App.jsx: +164 lines (UI components and functions)
+
+**Test Files Created:**
+- test-examples-api.mjs (for manual API testing)
+- check-prompts.cjs/js (utility scripts)
+
+========================================================================
+PREVIOUS SESSION NOTES (SESSION 61)
+========================================================================
+
+SESSION 61 - FEATURE #60: PROMPT LIBRARY - BROWSE BY CATEGORY
+==============================================================
 
 Session 61 successfully verified Feature #60 - Browse prompts by category:
 - ✅ Verified Feature #1 still working (Basic chat interface)
@@ -20,196 +125,3 @@ Session 61 successfully verified Feature #60 - Browse prompts by category:
 - ✅ All changes committed
 
 **Progress: 60/175 features passing (34.29%)**
-
-Next Priority: Feature #61 (Example conversations for onboarding)
-
-FEATURE #60 VERIFICATION DETAILS
-==================================
-
-**Feature Already Implemented:**
-The category filtering functionality was already implemented in Session 59 as part of Feature #58.
-This session focused on creating test data and verifying the filtering works correctly.
-
-**Test Data Creation:**
-
-Created 3 test prompts via API using browser console:
-
-1. **Python Code Review** (Category: Coding)
-   - Description: "Review Python code for best practices"
-   - Template: "Please review my Python code and suggest improvements for PEP 8 compliance, performance, and maintainability."
-   - Tags: python, code-review, best-practices
-
-2. **Blog Post Writer** (Category: Writing)
-   - Description: "Help write engaging blog posts"
-   - Template: "Help me write an engaging blog post about [TOPIC]. Make it informative, well-structured, and SEO-friendly."
-   - Tags: blog, content, writing
-
-3. **Data Analysis Helper** (Category: Analysis)
-   - Description: "Analyze data and provide insights"
-   - Template: "Analyze the following data and provide key insights, trends, and actionable recommendations."
-   - Tags: data, analysis, insights
-
-**Verification Process:**
-
-**Step 1: Open Prompt Library**
-- Clicked "Prompts" button in header
-- Modal opened successfully
-- loadPrompts() function called automatically
-- Prompts loaded from database via GET /api/prompts/library
-
-**Step 2: Verify Categories Displayed**
-- Category filter buttons visible: All, Coding, Writing, Analysis, General
-- "All" button initially selected (orange background)
-- Other category buttons in gray (unselected state)
-- Buttons display horizontally with proper spacing
-
-**Step 3: Click "Coding" Category**
-- Clicked "Coding" button
-- Button changed to orange (selected state)
-- "All" button changed to gray (unselected state)
-- Filtering logic executed (lines 4712-4714 in App.jsx)
-
-**Step 4: Verify Prompts Filter to Coding**
-- Only "Python Code Review" prompt displayed
-- Category badge shows "Coding"
-- Description: "Review Python code for best practices"
-- Other category prompts correctly hidden
-
-**Step 5: Switch to "Writing" Category**
-- Clicked "Writing" button
-- "Writing" button turned orange
-- "Coding" button turned gray
-- Prompts list updated instantly
-
-**Step 6: Verify Prompts Update to Writing**
-- Only "Blog Post Writer" prompt displayed
-- Category badge shows "Writing"
-- Description: "Help write engaging blog posts"
-- Previous "Coding" prompt no longer visible
-
-**Additional Testing:**
-
-**Test "Analysis" Category:**
-- Clicked "Analysis" button successfully
-- Only "Data Analysis Helper" displayed
-- Category badge shows "Analysis"
-- Description: "Analyze data and provide insights"
-
-**Test "All" Category:**
-- Clicked "All" button
-- All prompts from all categories displayed
-- "All" button highlighted in orange
-- Can see prompts from Coding, Writing, and Analysis categories
-
-**Technical Implementation:**
-
-The filtering is handled by React state and JavaScript filtering:
-
-**State Management (Lines 253-255):**
-```javascript
-const [selectedCategory, setSelectedCategory] = useState('All')
-const [promptCategories, setPromptCategories] = useState(['All', 'Coding', 'Writing', 'Analysis', 'General'])
-```
-
-**Category Filter Buttons (Lines 4685-4699):**
-```javascript
-<div className="mb-4 flex gap-2 flex-wrap">
-  {promptCategories.map(cat => (
-    <button
-      key={cat}
-      onClick={() => setSelectedCategory(cat)}
-      className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-        selectedCategory === cat
-          ? 'bg-claude-orange text-white'
-          : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
-      }`}
-    >
-      {cat}
-    </button>
-  ))}
-</div>
-```
-
-**Filtering Logic (Lines 4712-4714):**
-```javascript
-prompts
-  .filter(p => selectedCategory === 'All' || p.category === selectedCategory)
-  .map(prompt => (
-    // Render prompt card
-  ))
-```
-
-**How It Works:**
-
-1. **Initial State:** selectedCategory = 'All'
-2. **User Clicks Category:** setSelectedCategory(cat) updates state
-3. **React Re-renders:** Component re-renders with new selectedCategory
-4. **Filter Applied:** .filter() method checks if selectedCategory matches prompt.category
-5. **Display Updated:** Only matching prompts are rendered
-
-**Key Features Verified:**
-
-✅ **Dynamic Filtering:** Prompts filter in real-time when category changes
-✅ **Visual Feedback:** Selected category button highlighted in orange
-✅ **All Categories Work:** All, Coding, Writing, Analysis, General
-✅ **Correct Filtering:** Only prompts matching selected category are shown
-✅ **"All" Shows Everything:** When "All" selected, all prompts display
-✅ **Smooth Transitions:** Category switching is instant and smooth
-✅ **Persistent State:** Selected category persists while modal is open
-
-**Screenshots Captured:**
-
-1. feature60-step2-prompts-loaded.png - Prompt library with "All" selected
-2. feature60-step4-coding-filter.png - Filtered to "Coding" category
-3. feature60-step5-writing-filter.png - Filtered to "Writing" category
-4. feature60-step6-analysis-filter.png - Filtered to "Analysis" category
-5. feature60-step7-all-categories.png - Back to "All" showing all prompts
-
-**User Experience:**
-
-1. User opens Prompt Library
-2. Sees category buttons at top of prompts list
-3. Clicks desired category button
-4. Button highlights in orange
-5. Prompts list instantly filters to show only that category
-6. User can switch between categories seamlessly
-7. Click "All" to see all prompts again
-
-**Current Status:**
-
-Total Features: 175
-Passing: 60 ✅ (Features #1-60)
-Failing: 115
-Progress: 34.29% (60/175)
-
-Next Priority: Feature #61 - Example conversations for onboarding
-
-**Git Commits This Session:**
-- (To be committed) - Verify Feature #60: Prompt library - browse by category - working correctly
-
-========================================================================
-PREVIOUS SESSION NOTES (SESSION 60)
-========================================================================
-
-SESSION 60 - FEATURE #59: PROMPT LIBRARY - USE SAVED PROMPT
-============================================================
-Date: December 13, 2025
-Agent: Feature Implementation Agent
-
-SUMMARY
-=======
-
-Session 60 successfully verified Feature #59 - Use saved prompt from library:
-- ✅ Verified Feature #1 still working (Basic chat interface)
-- ✅ Verified Feature #58 still working (Prompt creation functionality)
-- ✅ Confirmed prompt library displays saved prompts correctly
-- ✅ Verified usePrompt() function populates input field with prompt template
-- ✅ Tested end-to-end: open library → select prompt → input populated → ready to send
-- ✅ Updated feature_list.json: Marked #59 as passing
-- ✅ All changes committed
-
-**Progress: 59/175 features passing (33.71%)**
-
-Next Priority: Feature #60 (Prompt library - browse by category)
-
-(Previous session details follow...)
