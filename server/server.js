@@ -602,6 +602,7 @@ app.post('/api/conversations/:id/messages', async (req, res) => {
                            content.toLowerCase().includes('integral') ||
                            content.toLowerCase().includes('derivative');
 
+      // Debug: log math detection
       console.log('[Math Detection]', { content, isMathRequest });
 
       // Check if custom instructions specify behavior
