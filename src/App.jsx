@@ -402,6 +402,10 @@ function App() {
   const [editedUserName, setEditedUserName] = useState('')
   const [editedUserEmail, setEditedUserEmail] = useState('')
   const [editedUserAvatar, setEditedUserAvatar] = useState('')
+  const [apiKeys, setApiKeys] = useState([]) // List of user API keys
+  const [showAddApiKeyModal, setShowAddApiKeyModal] = useState(false) // Show add API key modal
+  const [newApiKeyName, setNewApiKeyName] = useState('') // Name for new API key
+  const [newApiKeyValue, setNewApiKeyValue] = useState('') // Value for new API key
   const [reducedMotion, setReducedMotion] = useState(() => {
     const saved = localStorage.getItem('reducedMotion')
     if (saved !== null) return saved === 'true'
@@ -889,6 +893,13 @@ function App() {
     }
   }, [showKeyboardShortcutsModal, showSettingsModal])
 
+  // Load API keys when Settings modal opens
+  useEffect(() => {
+    if (showSettingsModal) {
+      loadApiKeys()
+    }
+  }, [showSettingsModal])
+
   const loadUser = async () => {
     try {
       const response = await fetch(`${API_BASE}/auth/me`)
@@ -920,6 +931,68 @@ function App() {
       await loadUser()
     } catch (error) {
       console.error('Error saving profile:', error)
+    }
+  }
+
+  // API Key Management Functions
+  const loadApiKeys = async () => {
+    try {
+      const response = await fetch(`${API_BASE}/keys`)
+      const data = await response.json()
+      setApiKeys(data)
+    } catch (error) {
+      console.error('Error loading API keys:', error)
+    }
+  }
+
+  const addApiKey = async () => {
+    try {
+      if (!newApiKeyName.trim() || !newApiKeyValue.trim()) {
+        alert('Please provide both a key name and API key value')
+        return
+      }
+
+      const response = await fetch(`${API_BASE}/keys`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          key_name: newApiKeyName,
+          api_key: newApiKeyValue
+        })
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to add API key')
+      }
+
+      const data = await response.json()
+      setApiKeys([data, ...apiKeys])
+      setShowAddApiKeyModal(false)
+      setNewApiKeyName('')
+      setNewApiKeyValue('')
+    } catch (error) {
+      console.error('Error adding API key:', error)
+      alert('Failed to add API key. Please try again.')
+    }
+  }
+
+  const deleteApiKey = async (keyId) => {
+    try {
+      const confirmed = window.confirm('Are you sure you want to delete this API key? This action cannot be undone.')
+      if (!confirmed) return
+
+      const response = await fetch(`${API_BASE}/keys/${keyId}`, {
+        method: 'DELETE'
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to delete API key')
+      }
+
+      setApiKeys(apiKeys.filter(key => key.id !== keyId))
+    } catch (error) {
+      console.error('Error deleting API key:', error)
+      alert('Failed to delete API key. Please try again.')
     }
   }
 
@@ -6122,6 +6195,65 @@ function App() {
                 </div>
               </div>
 
+              {/* API Keys Section */}
+              <div className="mb-6">
+                <h3 className="text-lg font-medium mb-3">API Keys</h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
+                  Manage your Anthropic API keys
+                </p>
+
+                {/* Add API Key Button */}
+                <button
+                  onClick={() => setShowAddApiKeyModal(true)}
+                  className="mb-4 px-4 py-2 bg-claude-orange hover:bg-claude-orange-hover
+                    text-white rounded-lg transition-colors flex items-center gap-2"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                  </svg>
+                  Add API Key
+                </button>
+
+                {/* API Keys List */}
+                {apiKeys.length === 0 ? (
+                  <div className="text-center py-8 text-gray-500 dark:text-gray-400 border border-gray-200 dark:border-gray-700 rounded-lg">
+                    <svg className="w-12 h-12 mx-auto mb-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+                    </svg>
+                    <p className="text-sm">No API keys added yet</p>
+                    <p className="text-xs mt-1">Add an API key to get started</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {apiKeys.map((key) => (
+                      <div
+                        key={key.id}
+                        className="flex items-center justify-between p-4 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+                      >
+                        <div className="flex-1">
+                          <div className="font-medium">{key.key_name}</div>
+                          <div className="text-sm text-gray-600 dark:text-gray-400 font-mono mt-1">
+                            {key.api_key_masked}
+                          </div>
+                          <div className="text-xs text-gray-500 dark:text-gray-500 mt-1">
+                            Added {new Date(key.created_at).toLocaleDateString()}
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => deleteApiKey(key.id)}
+                          className="ml-4 p-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                          title="Delete API key"
+                        >
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
               {/* Custom Instructions Section */}
               <div className="mb-6">
                 <h3 className="text-lg font-medium mb-3">Custom Instructions</h3>
@@ -6367,6 +6499,73 @@ function App() {
                     text-white rounded-lg transition-colors"
                 >
                   Save Changes
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Add API Key Modal */}
+        {showAddApiKeyModal && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+            <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md w-full mx-4">
+              <h2 className="text-xl font-semibold mb-4">Add API Key</h2>
+
+              <div className="space-y-4 mb-6">
+                {/* Key Name Input */}
+                <div>
+                  <label className="block text-sm font-medium mb-2">Key Name</label>
+                  <input
+                    type="text"
+                    value={newApiKeyName}
+                    onChange={(e) => setNewApiKeyName(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg
+                      bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100
+                      focus:ring-2 focus:ring-claude-orange focus:border-transparent"
+                    placeholder="e.g., My Personal Key"
+                  />
+                  <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                    Give your API key a memorable name
+                  </p>
+                </div>
+
+                {/* API Key Value Input */}
+                <div>
+                  <label className="block text-sm font-medium mb-2">API Key</label>
+                  <input
+                    type="password"
+                    value={newApiKeyValue}
+                    onChange={(e) => setNewApiKeyValue(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg
+                      bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 font-mono
+                      focus:ring-2 focus:ring-claude-orange focus:border-transparent"
+                    placeholder="sk-ant-..."
+                  />
+                  <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                    Your Anthropic API key starting with sk-ant-
+                  </p>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex justify-end gap-3">
+                <button
+                  onClick={() => {
+                    setShowAddApiKeyModal(false)
+                    setNewApiKeyName('')
+                    setNewApiKeyValue('')
+                  }}
+                  className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg
+                    hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={addApiKey}
+                  className="px-4 py-2 bg-claude-orange hover:bg-claude-orange-hover
+                    text-white rounded-lg transition-colors"
+                >
+                  Add Key
                 </button>
               </div>
             </div>

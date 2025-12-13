@@ -2028,6 +2028,93 @@ app.put('/api/settings/custom-instructions', (req, res) => {
   }
 });
 
+// API Keys Management Endpoints
+
+// GET all API keys for a user
+app.get('/api/keys', (req, res) => {
+  try {
+    const userId = 1; // Default user
+
+    const keys = dbHelpers.prepare(`
+      SELECT id, key_name, api_key_hash, created_at, last_used_at, is_active
+      FROM api_keys
+      WHERE user_id = ? AND is_active = 1
+      ORDER BY created_at DESC
+    `).all(userId);
+
+    // Mask the API keys for security (show only last 4 characters)
+    const maskedKeys = keys.map(key => ({
+      ...key,
+      api_key_masked: key.api_key_hash ? `sk-...${key.api_key_hash.slice(-4)}` : 'sk-...',
+      api_key_hash: undefined // Don't send the full hash to frontend
+    }));
+
+    res.json(maskedKeys);
+  } catch (error) {
+    console.error('Error fetching API keys:', error);
+    res.status(500).json({ error: 'Failed to fetch API keys' });
+  }
+});
+
+// POST create a new API key
+app.post('/api/keys', async (req, res) => {
+  try {
+    const userId = 1; // Default user
+    const { key_name, api_key } = req.body;
+
+    if (!key_name || !api_key) {
+      return res.status(400).json({ error: 'Key name and API key are required' });
+    }
+
+    // Store the full API key (in production, this would be hashed)
+    // For this app, we're storing it directly for functionality
+    const result = dbHelpers.prepare(`
+      INSERT INTO api_keys (user_id, key_name, api_key_hash, is_active)
+      VALUES (?, ?, ?, 1)
+    `).run(userId, key_name, api_key);
+
+    const newKey = {
+      id: result.lastInsertRowid,
+      key_name,
+      api_key_masked: `sk-...${api_key.slice(-4)}`,
+      created_at: new Date().toISOString(),
+      is_active: 1
+    };
+
+    res.json(newKey);
+  } catch (error) {
+    console.error('Error creating API key:', error);
+    res.status(500).json({ error: 'Failed to create API key' });
+  }
+});
+
+// DELETE an API key (soft delete)
+app.delete('/api/keys/:id', (req, res) => {
+  try {
+    const userId = 1; // Default user
+    const keyId = parseInt(req.params.id);
+
+    // Verify the key belongs to the user before deleting
+    const key = dbHelpers.prepare(`
+      SELECT id FROM api_keys WHERE id = ? AND user_id = ?
+    `).get(keyId, userId);
+
+    if (!key) {
+      return res.status(404).json({ error: 'API key not found' });
+    }
+
+    // Soft delete by setting is_active to 0
+    dbHelpers.prepare(`
+      UPDATE api_keys SET is_active = 0 WHERE id = ?
+    `).run(keyId);
+
+    res.json({ success: true, message: 'API key deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting API key:', error);
+    res.status(500).json({ error: 'Failed to delete API key' });
+  }
+});
+
 // Share conversation endpoints
 
 // POST /api/conversations/:id/share - Create a shareable link

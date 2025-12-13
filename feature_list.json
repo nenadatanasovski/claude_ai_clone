@@ -1287,7 +1287,7 @@
       "Step 5: Save",
       "Step 6: Verify key appears in list (partially masked)"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
