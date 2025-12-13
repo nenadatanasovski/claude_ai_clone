@@ -1092,7 +1092,7 @@
       "Step 5: Navigate to input field",
       "Step 6: Verify all major functions are keyboard-accessible"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
