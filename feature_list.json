@@ -1312,7 +1312,7 @@
       "Step 5: Extract and verify all conversations are included",
       "Step 6: Verify user settings are included"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",

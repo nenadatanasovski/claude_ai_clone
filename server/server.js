@@ -3201,6 +3201,104 @@ app.delete('/api/project-templates/:id', (req, res) => {
   }
 });
 
+// GET /api/export/full-data - Export all user data
+app.get('/api/export/full-data', (req, res) => {
+  try {
+    const userId = 1; // Default user ID
+
+    // Get user profile
+    const user = dbHelpers.prepare('SELECT * FROM users WHERE id = ?').get(userId);
+
+    // Get all conversations
+    const conversations = dbHelpers.prepare(`
+      SELECT * FROM conversations
+      WHERE user_id = ? AND is_deleted = 0
+      ORDER BY created_at DESC
+    `).all(userId);
+
+    // Get all messages for each conversation
+    const conversationsWithMessages = conversations.map(conv => {
+      const messages = dbHelpers.prepare(`
+        SELECT * FROM messages
+        WHERE conversation_id = ?
+        ORDER BY created_at ASC
+      `).all(conv.id);
+
+      return {
+        ...conv,
+        messages
+      };
+    });
+
+    // Get all projects
+    const projects = dbHelpers.prepare(`
+      SELECT * FROM projects
+      WHERE user_id = ? AND is_archived = 0
+      ORDER BY created_at DESC
+    `).all(userId);
+
+    // Get all folders
+    const folders = dbHelpers.prepare(`
+      SELECT * FROM conversation_folders
+      WHERE user_id = ?
+      ORDER BY created_at DESC
+    `).all(userId);
+
+    // Get all artifacts
+    const artifacts = dbHelpers.prepare(`
+      SELECT a.* FROM artifacts a
+      JOIN messages m ON a.message_id = m.id
+      JOIN conversations c ON m.conversation_id = c.id
+      WHERE c.user_id = ?
+      ORDER BY a.created_at DESC
+    `).all(userId);
+
+    // Get all prompts from library
+    const prompts = dbHelpers.prepare(`
+      SELECT * FROM prompt_library
+      WHERE user_id = ?
+      ORDER BY created_at DESC
+    `).all(userId);
+
+    // Compile export data
+    const exportData = {
+      export_metadata: {
+        export_date: new Date().toISOString(),
+        version: '1.0',
+        app_name: 'Claude.ai Clone'
+      },
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        preferences: user.preferences,
+        custom_instructions: user.custom_instructions,
+        created_at: user.created_at
+      },
+      conversations: conversationsWithMessages,
+      projects,
+      folders,
+      artifacts,
+      prompts,
+      statistics: {
+        total_conversations: conversations.length,
+        total_messages: conversationsWithMessages.reduce((acc, conv) => acc + conv.messages.length, 0),
+        total_projects: projects.length,
+        total_artifacts: artifacts.length
+      }
+    };
+
+    // Set headers for file download
+    res.setHeader('Content-Type', 'application/json');
+    res.setHeader('Content-Disposition', `attachment; filename="claude-data-export-${new Date().toISOString().split('T')[0]}.json"`);
+
+    res.json(exportData);
+  } catch (error) {
+    console.error('Error exporting data:', error);
+    res.status(500).json({ error: 'Failed to export data' });
+  }
+});
+
 // Export database instance for other modules
 export { db, dbHelpers };
 
