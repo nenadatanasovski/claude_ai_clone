@@ -594,6 +594,16 @@ app.post('/api/conversations/:id/messages', async (req, res) => {
                                    content.toLowerCase().includes('policy document') ||
                                    (content.toLowerCase().includes('document') && (content.toLowerCase().includes('write') || content.toLowerCase().includes('create')));
 
+      // Check for math/LaTeX equation requests
+      const isMathRequest = content.toLowerCase().includes('math') ||
+                           content.toLowerCase().includes('equation') ||
+                           content.toLowerCase().includes('formula') ||
+                           content.toLowerCase().includes('quadratic') ||
+                           content.toLowerCase().includes('integral') ||
+                           content.toLowerCase().includes('derivative');
+
+      console.log('[Math Detection]', { content, isMathRequest });
+
       // Check if custom instructions specify behavior
       let mockResponse;
       if (images && images.length > 0) {
@@ -788,6 +798,46 @@ John Doe, Chief Executive Officer
 \`\`\`
 
 This formal document demonstrates proper formatting, structure, and professional tone suitable for business use.`;
+      } else if (isMathRequest) {
+        mockResponse = `Here are some mathematical formulas demonstrating LaTeX rendering:
+
+## Quadratic Formula
+
+The quadratic formula is used to solve equations of the form $ax^2 + bx + c = 0$:
+
+$$x = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}$$
+
+## Pythagorean Theorem
+
+For a right triangle with sides $a$ and $b$, and hypotenuse $c$:
+
+$$a^2 + b^2 = c^2$$
+
+## Calculus - Derivative
+
+The derivative of $f(x) = x^n$ is:
+
+$$\\frac{d}{dx}(x^n) = nx^{n-1}$$
+
+## Integration
+
+The integral of $\\frac{1}{x}$ is:
+
+$$\\int \\frac{1}{x} dx = \\ln|x| + C$$
+
+## Euler's Formula
+
+One of the most beautiful equations in mathematics:
+
+$$e^{i\\pi} + 1 = 0$$
+
+These are inline equations: The area of a circle is $A = \\pi r^2$ and the circumference is $C = 2\\pi r$.
+
+## Summation
+
+The sum of the first $n$ natural numbers:
+
+$$\\sum_{i=1}^{n} i = \\frac{n(n+1)}{2}$$`;
       } else if (isCodeRequest) {
         mockResponse = "Here's a simple Python hello world function:\n\n```python\ndef hello_world():\n    print('Hello, World!')\n    return 'Hello, World!'\n\n# Call the function\nhello_world()\n```\n\nThis function prints 'Hello, World!' to the console and returns the string.";
       } else if (isLongRequest) {

@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
+import remarkMath from 'remark-math'
+import rehypeKatex from 'rehype-katex'
 import rehypeHighlight from 'rehype-highlight'
 import 'highlight.js/styles/github-dark.css'
 
@@ -218,8 +220,8 @@ function SharedConversationView({ token }) {
                 </div>
                 <div className="prose dark:prose-invert prose-sm max-w-none">
                   <ReactMarkdown
-                    remarkPlugins={[remarkGfm]}
-                    rehypePlugins={[rehypeHighlight]}
+                    remarkPlugins={[remarkGfm, remarkMath]}
+                    rehypePlugins={[rehypeKatex, rehypeHighlight]}
                     components={{
                       code: CodeBlock
                     }}
@@ -4097,8 +4099,8 @@ function App() {
                           ) : (
                             <div className="prose dark:prose-invert prose-sm max-w-none" style={{ fontSize: `${fontSize}px` }}>
                               <ReactMarkdown
-                                remarkPlugins={[remarkGfm]}
-                                rehypePlugins={[rehypeHighlight]}
+                                remarkPlugins={[remarkGfm, remarkMath]}
+                                rehypePlugins={[rehypeKatex, rehypeHighlight]}
                                 components={{
                                   code: CodeBlock
                                 }}
@@ -4715,7 +4717,12 @@ function App() {
                   <div className="h-full bg-white dark:bg-gray-50 overflow-auto">
                     <div className="max-w-4xl mx-auto p-8">
                       <div className="prose prose-lg max-w-none">
-                        <ReactMarkdown>{currentArtifact.content}</ReactMarkdown>
+                        <ReactMarkdown
+                          remarkPlugins={[remarkGfm, remarkMath]}
+                          rehypePlugins={[rehypeKatex, rehypeHighlight]}
+                        >
+                          {currentArtifact.content}
+                        </ReactMarkdown>
                       </div>
                     </div>
                   </div>
