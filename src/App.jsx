@@ -369,6 +369,13 @@ function App() {
   const [showProjectTemplatesModal, setShowProjectTemplatesModal] = useState(false) // Show project templates modal
   const [showExampleConversations, setShowExampleConversations] = useState(false) // Show example conversations modal
   const [exampleConversations, setExampleConversations] = useState([]) // List of example conversations
+  const [showTipsModal, setShowTipsModal] = useState(false) // Show tips modal
+  const [tips, setTips] = useState([]) // All tips organized by category
+  const [selectedTipCategory, setSelectedTipCategory] = useState('All') // Selected tip category filter
+  const [readTips, setReadTips] = useState(() => {
+    const saved = localStorage.getItem('readTips')
+    return saved ? JSON.parse(saved) : []
+  }) // Array of tip IDs that have been marked as read
   const [showCommandPalette, setShowCommandPalette] = useState(false) // Show command palette modal
   const [commandPaletteQuery, setCommandPaletteQuery] = useState('') // Search query in command palette
   const [editingMessageId, setEditingMessageId] = useState(null)
@@ -1338,6 +1345,193 @@ function App() {
       console.error('Error starting example conversation:', error)
       alert('Failed to start example conversation')
     }
+  }
+
+  // Load tips and best practices
+  const loadTips = () => {
+    // Static tips data organized by category
+    const tipsData = [
+      {
+        id: 1,
+        category: 'Getting Started',
+        title: 'Use Clear and Specific Prompts',
+        content: 'The more specific your prompt, the better the response. Instead of "Write code," try "Write a Python function that calculates factorial."',
+        actionable: 'Be specific in your requests'
+      },
+      {
+        id: 2,
+        category: 'Getting Started',
+        title: 'Provide Context',
+        content: 'Give Claude context about your project, goals, and constraints. This helps generate more relevant responses.',
+        actionable: 'Share background information'
+      },
+      {
+        id: 3,
+        category: 'Getting Started',
+        title: 'Break Down Complex Tasks',
+        content: 'For complex projects, break them into smaller steps and work through them one at a time.',
+        actionable: 'Start with small, focused tasks'
+      },
+      {
+        id: 4,
+        category: 'Productivity',
+        title: 'Use Keyboard Shortcuts',
+        content: 'Press Enter to send messages and Shift+Enter for new lines. Use Cmd/Ctrl+K to open the command palette.',
+        actionable: 'Master keyboard shortcuts'
+      },
+      {
+        id: 5,
+        category: 'Productivity',
+        title: 'Organize with Projects',
+        content: 'Group related conversations into projects for better organization and context sharing.',
+        actionable: 'Create projects for different topics'
+      },
+      {
+        id: 6,
+        category: 'Productivity',
+        title: 'Save Useful Prompts',
+        content: 'Use the prompt library to save and reuse prompts that work well for you.',
+        actionable: 'Build your prompt library'
+      },
+      {
+        id: 7,
+        category: 'Productivity',
+        title: 'Use Templates',
+        content: 'Save conversations as templates to quickly start similar discussions in the future.',
+        actionable: 'Create conversation templates'
+      },
+      {
+        id: 8,
+        category: 'Code & Development',
+        title: 'Request Code Explanations',
+        content: 'Ask Claude to explain code step-by-step to understand how it works.',
+        actionable: 'Ask for detailed explanations'
+      },
+      {
+        id: 9,
+        category: 'Code & Development',
+        title: 'Iterate on Code',
+        content: 'Don\'t hesitate to ask for improvements, optimizations, or different approaches to code.',
+        actionable: 'Request refinements and alternatives'
+      },
+      {
+        id: 10,
+        category: 'Code & Development',
+        title: 'Copy Code Easily',
+        content: 'Use the copy button on code blocks to quickly copy code to your clipboard.',
+        actionable: 'Click the copy button on code blocks'
+      },
+      {
+        id: 11,
+        category: 'Writing & Content',
+        title: 'Specify Tone and Style',
+        content: 'Tell Claude the desired tone (formal, casual, technical) and style for better results.',
+        actionable: 'Define your writing style'
+      },
+      {
+        id: 12,
+        category: 'Writing & Content',
+        title: 'Provide Examples',
+        content: 'Show Claude examples of the style or format you want, and it will match them.',
+        actionable: 'Share example outputs'
+      },
+      {
+        id: 13,
+        category: 'Writing & Content',
+        title: 'Ask for Multiple Versions',
+        content: 'Request multiple variations of content to find the one that works best.',
+        actionable: 'Explore different approaches'
+      },
+      {
+        id: 14,
+        category: 'Advanced Features',
+        title: 'Adjust Model Settings',
+        content: 'Switch between Claude models based on your needs: Sonnet for balance, Haiku for speed, Opus for complex reasoning.',
+        actionable: 'Choose the right model'
+      },
+      {
+        id: 15,
+        category: 'Advanced Features',
+        title: 'Use Custom Instructions',
+        content: 'Set custom instructions in settings to give Claude consistent context across conversations.',
+        actionable: 'Configure custom instructions'
+      },
+      {
+        id: 16,
+        category: 'Advanced Features',
+        title: 'Track Your Usage',
+        content: 'Monitor token usage and costs in the usage dashboard to stay within your budget.',
+        actionable: 'Check the usage dashboard'
+      },
+      {
+        id: 17,
+        category: 'Best Practices',
+        title: 'Review and Verify',
+        content: 'Always review Claude\'s responses, especially for critical information or code.',
+        actionable: 'Double-check important outputs'
+      },
+      {
+        id: 18,
+        category: 'Best Practices',
+        title: 'Provide Feedback',
+        content: 'If a response isn\'t quite right, explain what\'s wrong and Claude can improve it.',
+        actionable: 'Give specific feedback'
+      },
+      {
+        id: 19,
+        category: 'Best Practices',
+        title: 'Search Your Conversations',
+        content: 'Use the search feature to find past conversations and avoid repeating questions.',
+        actionable: 'Search before asking again'
+      },
+      {
+        id: 20,
+        category: 'Best Practices',
+        title: 'Export Important Conversations',
+        content: 'Export conversations to JSON or Markdown to keep records of valuable discussions.',
+        actionable: 'Save important conversations'
+      }
+    ]
+    setTips(tipsData)
+  }
+
+  // Mark a tip as read
+  const markTipAsRead = (tipId) => {
+    if (!readTips.includes(tipId)) {
+      const updatedReadTips = [...readTips, tipId]
+      setReadTips(updatedReadTips)
+      localStorage.setItem('readTips', JSON.stringify(updatedReadTips))
+    }
+  }
+
+  // Dismiss a tip (same as marking as read)
+  const dismissTip = (tipId) => {
+    markTipAsRead(tipId)
+  }
+
+  // Get tip categories
+  const getTipCategories = () => {
+    const categories = ['All', ...new Set(tips.map(tip => tip.category))]
+    return categories
+  }
+
+  // Filter tips by category
+  const getFilteredTips = () => {
+    if (selectedTipCategory === 'All') {
+      return tips
+    }
+    return tips.filter(tip => tip.category === selectedTipCategory)
+  }
+
+  // Open tips modal
+  const openTipsModal = () => {
+    loadTips()
+    setShowTipsModal(true)
+  }
+
+  // Close tips modal
+  const closeTipsModal = () => {
+    setShowTipsModal(false)
   }
 
   // Create a new prompt
@@ -3723,6 +3917,23 @@ function App() {
                 <span className="text-sm">Examples</span>
               </button>
 
+              {/* Tips Button */}
+              <button
+                type="button"
+                onClick={openTipsModal}
+                className="px-3 py-1.5 rounded-lg border border-gray-300 dark:border-gray-700
+                  hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors flex items-center gap-2
+                  focus:outline-none focus:ring-2 focus:ring-claude-orange focus:ring-offset-2
+                  dark:focus:ring-offset-gray-900"
+                title="Browse quick tips and best practices"
+                aria-label="Browse quick tips and best practices"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                </svg>
+                <span className="text-sm">Tips</span>
+              </button>
+
               {/* Usage Dashboard Button */}
               <button
                 type="button"
@@ -5841,6 +6052,141 @@ function App() {
                   onClick={() => setShowExampleConversations(false)}
                   className="px-6 py-2 border border-gray-300 dark:border-gray-700 rounded-lg
                     hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-gray-700 dark:text-gray-300"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Tips Modal */}
+        {showTipsModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white dark:bg-gray-900 rounded-lg shadow-2xl w-full max-w-5xl max-h-[90vh] overflow-hidden flex flex-col">
+              {/* Header */}
+              <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-800">
+                <div>
+                  <h2 className="text-2xl font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                    <svg className="w-7 h-7 text-claude-orange" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                    </svg>
+                    Quick Tips & Best Practices
+                  </h2>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                    Actionable tips to get the most out of Claude
+                  </p>
+                </div>
+                <button
+                  onClick={closeTipsModal}
+                  className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              {/* Category Filter */}
+              <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-800">
+                <div className="flex flex-wrap gap-2">
+                  {getTipCategories().map((category) => (
+                    <button
+                      key={category}
+                      onClick={() => setSelectedTipCategory(category)}
+                      className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors
+                        ${selectedTipCategory === category
+                          ? 'bg-claude-orange text-white'
+                          : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
+                        }`}
+                    >
+                      {category}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Content */}
+              <div className="flex-1 overflow-y-auto p-6">
+                <div className="space-y-4">
+                  {getFilteredTips().map((tip) => {
+                    const isRead = readTips.includes(tip.id)
+                    return (
+                      <div
+                        key={tip.id}
+                        className={`p-5 border rounded-lg transition-all
+                          ${isRead
+                            ? 'border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 opacity-60'
+                            : 'border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 hover:border-claude-orange hover:shadow-md'
+                          }`}
+                      >
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-3 mb-2">
+                              <h3 className="font-semibold text-lg text-gray-900 dark:text-white">
+                                {tip.title}
+                              </h3>
+                              {isRead && (
+                                <span className="inline-flex items-center px-2 py-1 text-xs rounded bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300">
+                                  ✓ Read
+                                </span>
+                              )}
+                            </div>
+                            <span className="inline-block px-2 py-1 text-xs rounded bg-claude-orange bg-opacity-10 text-claude-orange mb-3">
+                              {tip.category}
+                            </span>
+                            <p className="text-gray-700 dark:text-gray-300 mb-3">
+                              {tip.content}
+                            </p>
+                            <div className="flex items-center gap-2 text-sm">
+                              <span className="inline-flex items-center px-3 py-1 rounded-full bg-blue-50 dark:bg-blue-900 text-blue-700 dark:text-blue-300">
+                                💡 {tip.actionable}
+                              </span>
+                            </div>
+                          </div>
+                          <div className="flex flex-col gap-2">
+                            {!isRead && (
+                              <button
+                                onClick={() => markTipAsRead(tip.id)}
+                                className="px-3 py-1 text-xs rounded bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 hover:bg-green-200 dark:hover:bg-green-800 transition-colors"
+                                title="Mark as read"
+                              >
+                                Mark Read
+                              </button>
+                            )}
+                            <button
+                              onClick={() => dismissTip(tip.id)}
+                              className="px-3 py-1 text-xs rounded bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                              title="Dismiss tip"
+                            >
+                              Dismiss
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+
+                {getFilteredTips().length === 0 && (
+                  <div className="text-center py-12 text-gray-500 dark:text-gray-400">
+                    <svg className="w-16 h-16 mx-auto mb-4 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                    </svg>
+                    <p>No tips in this category</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Footer */}
+              <div className="p-6 border-t border-gray-200 dark:border-gray-800 flex justify-between items-center">
+                <div className="text-sm text-gray-600 dark:text-gray-400">
+                  {readTips.length} of {tips.length} tips marked as read
+                </div>
+                <button
+                  onClick={closeTipsModal}
+                  className="px-6 py-2 bg-claude-orange hover:bg-claude-orange-dark text-white rounded-lg
+                    transition-colors font-medium"
                 >
                   Close
                 </button>

@@ -1375,7 +1375,7 @@
       "Step 4: Verify tips are actionable and clear",
       "Step 5: Verify option to dismiss or mark as read"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
