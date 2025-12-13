@@ -63,6 +63,33 @@ function TypingIndicator() {
   )
 }
 
+// Skeleton loader component for conversation items
+function ConversationSkeleton() {
+  return (
+    <div className="px-2 py-2 rounded-lg animate-pulse" role="status" aria-label="Loading conversation">
+      <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-3/4 mb-2"></div>
+      <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-1/2"></div>
+    </div>
+  )
+}
+
+// Skeleton loader component for messages
+function MessageSkeleton({ isUser = false }) {
+  return (
+    <div className={`flex ${isUser ? 'justify-end' : 'justify-start'} mb-4 animate-pulse`} role="status" aria-label="Loading message">
+      <div className={`max-w-3xl ${isUser ? 'w-2/3' : 'w-full'}`}>
+        <div className={`px-4 py-3 rounded-2xl ${isUser ? 'bg-gray-200 dark:bg-gray-700' : ''}`}>
+          <div className="space-y-2">
+            <div className="h-4 bg-gray-300 dark:bg-gray-600 rounded w-full"></div>
+            <div className="h-4 bg-gray-300 dark:bg-gray-600 rounded w-5/6"></div>
+            <div className="h-4 bg-gray-300 dark:bg-gray-600 rounded w-4/6"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // Helper function to group conversations by date
 function groupConversationsByDate(conversations) {
   const today = new Date()
@@ -288,6 +315,8 @@ function App() {
   const [inputValue, setInputValue] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [isStreaming, setIsStreaming] = useState(false)
+  const [isLoadingConversations, setIsLoadingConversations] = useState(true)
+  const [isLoadingMessages, setIsLoadingMessages] = useState(false)
   const [selectedImages, setSelectedImages] = useState([])
   const [editingConversationId, setEditingConversationId] = useState(null)
   const [editingTitle, setEditingTitle] = useState('')
@@ -1066,6 +1095,7 @@ function App() {
 
   const loadConversations = async (searchTerm = '') => {
     try {
+      setIsLoadingConversations(true)
       let url = `${API_BASE}/conversations`
       if (searchTerm && searchTerm.trim() !== '') {
         url = `${API_BASE}/search/conversations?q=${encodeURIComponent(searchTerm)}`
@@ -1075,11 +1105,16 @@ function App() {
       setConversations(data)
     } catch (error) {
       console.error('Error loading conversations:', error)
+    } finally {
+      setIsLoadingConversations(false)
     }
   }
 
   const loadMessages = async (conversationId) => {
     try {
+      setIsLoadingMessages(true)
+      setMessages([]) // Clear messages immediately to show skeleton
+
       // Load conversation details to get the model and settings
       const convResponse = await fetch(`${API_BASE}/conversations/${conversationId}`)
       const conversation = await convResponse.json()
@@ -1144,6 +1179,8 @@ function App() {
       loadBranches(conversationId)
     } catch (error) {
       console.error('Error loading messages:', error)
+    } finally {
+      setIsLoadingMessages(false)
     }
   }
 
@@ -4266,7 +4303,18 @@ function App() {
             </div>
 
             <div className="space-y-2">
-              {conversations.filter(c => (showArchived ? c.is_archived : !c.is_archived) && (currentProjectId === null || c.project_id === currentProjectId)).length > 0 && (
+              {isLoadingConversations ? (
+                <>
+                  {/* Skeleton loaders for conversations */}
+                  <div className="space-y-2">
+                    <ConversationSkeleton />
+                    <ConversationSkeleton />
+                    <ConversationSkeleton />
+                    <ConversationSkeleton />
+                    <ConversationSkeleton />
+                  </div>
+                </>
+              ) : conversations.filter(c => (showArchived ? c.is_archived : !c.is_archived) && (currentProjectId === null || c.project_id === currentProjectId)).length > 0 && (
                 <>
                   {/* Pinned Conversations */}
                   {conversations.filter(c => (showArchived ? c.is_archived : !c.is_archived) && c.is_pinned && (currentProjectId === null || c.project_id === currentProjectId)).length > 0 && (
@@ -4706,7 +4754,16 @@ function App() {
                     aria-live="polite"
                     aria-label="Chat messages"
                   >
-                    {messages.map((message, idx) => (
+                    {isLoadingMessages ? (
+                      <>
+                        {/* Skeleton loaders for messages */}
+                        <MessageSkeleton isUser={true} />
+                        <MessageSkeleton isUser={false} />
+                        <MessageSkeleton isUser={true} />
+                        <MessageSkeleton isUser={false} />
+                      </>
+                    ) : (
+                      messages.map((message, idx) => (
                       <div
                         key={message.id || idx}
                         className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'} animate-fadeIn`}
@@ -5052,6 +5109,8 @@ function App() {
                           </div>
                         </div>
                       </div>
+                    )}
+                    ))
                     )}
                     <div ref={messagesEndRef} />
                   </div>

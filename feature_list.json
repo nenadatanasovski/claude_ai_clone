@@ -1604,7 +1604,7 @@
       "Step 4: Wait for content to load",
       "Step 5: Verify smooth transition from skeleton to real content"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "style",
