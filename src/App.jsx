@@ -5029,7 +5029,8 @@ function App() {
                           )}
                         </div>
                       </div>
-                    ))}
+                    )))
+                    }
                     {isLoading && !isStreaming && (
                       <TypingIndicator />
                     )}
