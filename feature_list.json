@@ -1786,7 +1786,7 @@
       "Step 4: Verify small arrow pointing to element",
       "Step 5: Verify tooltip text is concise and helpful"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "style",

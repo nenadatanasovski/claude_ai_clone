@@ -90,6 +90,72 @@ function MessageSkeleton({ isUser = false }) {
   )
 }
 
+// Tooltip component with arrow
+function Tooltip({ children, text, position = 'top' }) {
+  const [isVisible, setIsVisible] = useState(false)
+  const timeoutRef = useRef(null)
+
+  const showTooltip = () => {
+    timeoutRef.current = setTimeout(() => {
+      setIsVisible(true)
+    }, 500) // 500ms delay
+  }
+
+  const hideTooltip = () => {
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current)
+    }
+    setIsVisible(false)
+  }
+
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current)
+      }
+    }
+  }, [])
+
+  const positionClasses = {
+    top: 'bottom-full left-1/2 -translate-x-1/2 mb-2',
+    bottom: 'top-full left-1/2 -translate-x-1/2 mt-2',
+    left: 'right-full top-1/2 -translate-y-1/2 mr-2',
+    right: 'left-full top-1/2 -translate-y-1/2 ml-2'
+  }
+
+  const arrowClasses = {
+    top: 'top-full left-1/2 -translate-x-1/2 border-l-transparent border-r-transparent border-b-transparent border-l-[6px] border-r-[6px] border-t-[6px] border-t-gray-900 dark:border-t-gray-100',
+    bottom: 'bottom-full left-1/2 -translate-x-1/2 border-l-transparent border-r-transparent border-t-transparent border-l-[6px] border-r-[6px] border-b-[6px] border-b-gray-900 dark:border-b-gray-100',
+    left: 'left-full top-1/2 -translate-y-1/2 border-t-transparent border-b-transparent border-r-transparent border-t-[6px] border-b-[6px] border-l-[6px] border-l-gray-900 dark:border-l-gray-100',
+    right: 'right-full top-1/2 -translate-y-1/2 border-t-transparent border-b-transparent border-l-transparent border-t-[6px] border-b-[6px] border-r-[6px] border-r-gray-900 dark:border-r-gray-100'
+  }
+
+  return (
+    <div
+      className="relative inline-block"
+      onMouseEnter={showTooltip}
+      onMouseLeave={hideTooltip}
+      onFocus={showTooltip}
+      onBlur={hideTooltip}
+    >
+      {children}
+      {isVisible && text && (
+        <div
+          className={`absolute ${positionClasses[position]} z-50 pointer-events-none`}
+          role="tooltip"
+        >
+          <div className="relative">
+            <div className="bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 text-xs font-medium px-3 py-1.5 rounded-lg shadow-lg whitespace-nowrap">
+              {text}
+            </div>
+            <div className={`absolute ${arrowClasses[position]}`}></div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 // Empty state component for conversation list
 function EmptyConversationList() {
   return (
@@ -4420,27 +4486,28 @@ function App() {
                                   </span>
                                 )}
                               </div>
-                              <button
-                                onClick={(e) => deleteConversation(conv.id, e)}
-                                className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100
-                                  focus:opacity-100 p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition-opacity
-                                  focus:outline-none focus:ring-2 focus:ring-claude-orange"
-                                title="Delete conversation"
-                                aria-label={`Delete conversation: ${conv.title}`}
-                              >
-                                <svg
-                                  width="16"
-                                  height="16"
-                                  viewBox="0 0 24 24"
-                                  fill="none"
-                                  stroke="currentColor"
-                                  strokeWidth="2"
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
+                              <Tooltip text="Delete conversation" position="right">
+                                <button
+                                  onClick={(e) => deleteConversation(conv.id, e)}
+                                  className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100
+                                    focus:opacity-100 p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition-opacity
+                                    focus:outline-none focus:ring-2 focus:ring-claude-orange"
+                                  aria-label={`Delete conversation: ${conv.title}`}
                                 >
-                                  <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2M10 11v6M14 11v6" />
-                                </svg>
-                              </button>
+                                  <svg
+                                    width="16"
+                                    height="16"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    strokeWidth="2"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                  >
+                                    <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2M10 11v6M14 11v6" />
+                                  </svg>
+                                </button>
+                              </Tooltip>
                             </>
                           )}
                         </div>
@@ -5240,21 +5307,22 @@ function App() {
                     aria-describedby="message-help-text"
                   />
                   {/* Image attachment button */}
-                  <button
-                    type="button"
-                    onClick={() => fileInputRef.current?.click()}
-                    disabled={isLoading || isStreaming}
-                    className="absolute left-2 bottom-2 p-2 rounded-lg hover:bg-gray-100
-                      dark:hover:bg-gray-800 transition-colors
-                      disabled:opacity-50 disabled:cursor-not-allowed"
-                    title="Attach image"
-                    aria-label="Attach image"
-                  >
-                    <svg className="w-5 h-5 text-gray-600 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                        d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
-                    </svg>
-                  </button>
+                  <Tooltip text="Attach image" position="top">
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={isLoading || isStreaming}
+                      className="absolute left-2 bottom-2 p-2 rounded-lg hover:bg-gray-100
+                        dark:hover:bg-gray-800 transition-colors
+                        disabled:opacity-50 disabled:cursor-not-allowed"
+                      aria-label="Attach image"
+                    >
+                      <svg className="w-5 h-5 text-gray-600 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                          d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+                      </svg>
+                    </button>
+                  </Tooltip>
 
                   {isStreaming ? (
                     <button
@@ -5428,11 +5496,11 @@ function App() {
                         d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                     </svg>
                   </button>
-                  <button
-                    onClick={() => setIsArtifactFullscreen(!isArtifactFullscreen)}
-                    className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-                    title={isArtifactFullscreen ? "Exit fullscreen" : "Fullscreen"}
-                  >
+                  <Tooltip text={isArtifactFullscreen ? "Exit fullscreen" : "Fullscreen"} position="bottom">
+                    <button
+                      onClick={() => setIsArtifactFullscreen(!isArtifactFullscreen)}
+                      className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                    >
                     {isArtifactFullscreen ? (
                       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
@@ -5444,19 +5512,21 @@ function App() {
                           d="M3.75 3.75v4.5m0-4.5h4.5m-4.5 0L9 9M3.75 20.25v-4.5m0 4.5h4.5m-4.5 0L9 15M20.25 3.75h-4.5m4.5 0v4.5m0-4.5L15 9m5.25 11.25h-4.5m4.5 0v-4.5m0 4.5L15 15" />
                       </svg>
                     )}
-                  </button>
-                  <button
-                    onClick={() => {
-                      setShowArtifactPanel(false)
-                      setIsArtifactFullscreen(false)
-                    }}
-                    className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-                    title="Close artifact panel"
-                  >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  </button>
+                    </button>
+                  </Tooltip>
+                  <Tooltip text="Close artifact panel" position="bottom">
+                    <button
+                      onClick={() => {
+                        setShowArtifactPanel(false)
+                        setIsArtifactFullscreen(false)
+                      }}
+                      className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </Tooltip>
                 </div>
               </div>
 
