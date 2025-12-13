@@ -1824,7 +1824,7 @@
       "Step 4: Verify it matches app theme (light/dark)",
       "Step 5: Verify smooth scrolling behavior"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
