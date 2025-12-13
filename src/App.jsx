@@ -105,6 +105,40 @@ function groupConversationsByDate(conversations) {
   return groups
 }
 
+// Helper function to format timestamp relative to now
+function formatRelativeTime(timestamp) {
+  if (!timestamp) return ''
+
+  const now = new Date()
+  const date = new Date(timestamp)
+  const diffMs = now - date
+  const diffSeconds = Math.floor(diffMs / 1000)
+  const diffMinutes = Math.floor(diffSeconds / 60)
+  const diffHours = Math.floor(diffMinutes / 60)
+  const diffDays = Math.floor(diffHours / 24)
+
+  if (diffSeconds < 60) {
+    return 'Just now'
+  } else if (diffMinutes < 60) {
+    return `${diffMinutes} ${diffMinutes === 1 ? 'minute' : 'minutes'} ago`
+  } else if (diffHours < 24) {
+    return `${diffHours} ${diffHours === 1 ? 'hour' : 'hours'} ago`
+  } else if (diffDays === 1) {
+    return 'Yesterday'
+  } else if (diffDays < 7) {
+    return `${diffDays} days ago`
+  } else if (diffDays < 30) {
+    const weeks = Math.floor(diffDays / 7)
+    return `${weeks} ${weeks === 1 ? 'week' : 'weeks'} ago`
+  } else if (diffDays < 365) {
+    const months = Math.floor(diffDays / 30)
+    return `${months} ${months === 1 ? 'month' : 'months'} ago`
+  } else {
+    const years = Math.floor(diffDays / 365)
+    return `${years} ${years === 1 ? 'year' : 'years'} ago`
+  }
+}
+
 // Shared Conversation View Component
 function SharedConversationView({ token }) {
   const [loading, setLoading] = useState(true)
@@ -3700,9 +3734,16 @@ function App() {
                             <>
                               <div
                                 onClick={(e) => startEditingConversation(conv, e)}
-                                className="truncate pr-6"
+                                className="flex flex-col gap-1 truncate pr-6"
                               >
-                                📌 {conv.title}
+                                <div className="truncate">
+                                  📌 {conv.title}
+                                </div>
+                                {conv.last_message_at && (
+                                  <span className="text-xs text-gray-500 dark:text-gray-400">
+                                    {formatRelativeTime(conv.last_message_at)}
+                                  </span>
+                                )}
                               </div>
                               <button
                                 onClick={(e) => deleteConversation(conv.id, e)}
@@ -3784,16 +3825,23 @@ function App() {
                           <>
                             <div
                               onClick={(e) => startEditingConversation(conv, e)}
-                              className="flex items-center gap-2 truncate pr-6"
+                              className="flex flex-col gap-1 truncate pr-6"
                             >
-                              {conv.has_unread ? (
-                                <span
-                                  className="flex-shrink-0 w-2 h-2 bg-claude-orange rounded-full"
-                                  aria-label="Unread messages"
-                                  title="Unread messages"
-                                />
-                              ) : null}
-                              <span className="truncate">{conv.title}</span>
+                              <div className="flex items-center gap-2 truncate">
+                                {conv.has_unread ? (
+                                  <span
+                                    className="flex-shrink-0 w-2 h-2 bg-claude-orange rounded-full"
+                                    aria-label="Unread messages"
+                                    title="Unread messages"
+                                  />
+                                ) : null}
+                                <span className="truncate">{conv.title}</span>
+                              </div>
+                              {conv.last_message_at && (
+                                <span className="text-xs text-gray-500 dark:text-gray-400">
+                                  {formatRelativeTime(conv.last_message_at)}
+                                </span>
+                              )}
                             </div>
                             <button
                               onClick={(e) => deleteConversation(conv.id, e)}
