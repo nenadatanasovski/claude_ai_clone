@@ -324,6 +324,13 @@ function App() {
   const [templateCategory, setTemplateCategory] = useState('General')
   const [templates, setTemplates] = useState([]) // All conversation templates
   const [showTemplatesModal, setShowTemplatesModal] = useState(false) // Show templates modal
+  const [showSaveAsProjectTemplateModal, setShowSaveAsProjectTemplateModal] = useState(false) // Show save project as template modal
+  const [saveAsProjectTemplateId, setSaveAsProjectTemplateId] = useState(null) // Project to save as template
+  const [projectTemplateName, setProjectTemplateName] = useState('')
+  const [projectTemplateDescription, setProjectTemplateDescription] = useState('')
+  const [projectTemplateCategory, setProjectTemplateCategory] = useState('General')
+  const [projectTemplates, setProjectTemplates] = useState([]) // All project templates
+  const [showProjectTemplatesModal, setShowProjectTemplatesModal] = useState(false) // Show project templates modal
   const [showExampleConversations, setShowExampleConversations] = useState(false) // Show example conversations modal
   const [exampleConversations, setExampleConversations] = useState([]) // List of example conversations
   const [showCommandPalette, setShowCommandPalette] = useState(false) // Show command palette modal
@@ -2702,6 +2709,99 @@ function App() {
     }
   }
 
+  // Project Template functions
+  const loadProjectTemplates = async () => {
+    try {
+      const response = await fetch(`${API_BASE}/project-templates`)
+      if (response.ok) {
+        const data = await response.json()
+        setProjectTemplates(data)
+      }
+    } catch (error) {
+      console.error('Error loading project templates:', error)
+    }
+  }
+
+  const openSaveAsProjectTemplateModal = (projectId) => {
+    setSaveAsProjectTemplateId(projectId)
+    setShowSaveAsProjectTemplateModal(true)
+    setProjectTemplateName('')
+    setProjectTemplateDescription('')
+    setProjectTemplateCategory('General')
+  }
+
+  const closeSaveAsProjectTemplateModal = () => {
+    setShowSaveAsProjectTemplateModal(false)
+    setSaveAsProjectTemplateId(null)
+    setProjectTemplateName('')
+    setProjectTemplateDescription('')
+    setProjectTemplateCategory('General')
+  }
+
+  const saveProjectAsTemplate = async () => {
+    if (!projectTemplateName.trim()) {
+      alert('Please enter a template name')
+      return
+    }
+
+    try {
+      const response = await fetch(`${API_BASE}/project-templates`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          projectId: saveAsProjectTemplateId,
+          name: projectTemplateName,
+          description: projectTemplateDescription,
+          category: projectTemplateCategory
+        })
+      })
+
+      if (response.ok) {
+        closeSaveAsProjectTemplateModal()
+        // Reload templates
+        await loadProjectTemplates()
+        alert('Project template saved successfully!')
+      }
+    } catch (error) {
+      console.error('Error saving project template:', error)
+      alert('Failed to save project template')
+    }
+  }
+
+  const openProjectTemplatesModal = async () => {
+    await loadProjectTemplates()
+    setShowProjectTemplatesModal(true)
+  }
+
+  const closeProjectTemplatesModal = () => {
+    setShowProjectTemplatesModal(false)
+  }
+
+  const createProjectFromTemplate = async (templateId) => {
+    try {
+      const response = await fetch(`${API_BASE}/project-templates/${templateId}/use`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      })
+
+      if (response.ok) {
+        const newProject = await response.json()
+
+        // Reload projects
+        await loadProjects()
+
+        // Switch to the new project
+        setCurrentProject(newProject.id)
+
+        closeProjectTemplatesModal()
+        alert('Project created from template!')
+      }
+    } catch (error) {
+      console.error('Error creating project from template:', error)
+      alert('Failed to create project from template')
+    }
+  }
+
   const openExportModal = (conversationId) => {
     setExportConversationId(conversationId)
     setShowExportModal(true)
@@ -3170,9 +3270,23 @@ function App() {
                           setIsProjectDropdownOpen(false)
                         }}
                         className="w-full text-left px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700
-                          transition-colors last:rounded-b-lg text-claude-orange font-medium text-sm"
+                          transition-colors text-claude-orange font-medium text-sm"
                       >
                         + New Project
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          openProjectTemplatesModal()
+                          setIsProjectDropdownOpen(false)
+                        }}
+                        className="w-full text-left px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700
+                          transition-colors last:rounded-b-lg text-gray-700 dark:text-gray-300 font-medium text-sm flex items-center gap-2"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                        Project Templates
                       </button>
                     </div>
                   </div>
@@ -5035,6 +5149,16 @@ function App() {
                   Cancel
                 </button>
                 <button
+                  onClick={() => {
+                    closeProjectSettings()
+                    openSaveAsProjectTemplateModal(editingProject)
+                  }}
+                  className="flex-1 px-4 py-2 border border-claude-orange
+                    text-claude-orange rounded-lg hover:bg-orange-50 dark:hover:bg-gray-700 transition-colors"
+                >
+                  Save as Template
+                </button>
+                <button
                   onClick={saveProjectSettings}
                   className="flex-1 px-4 py-2 bg-claude-orange hover:bg-claude-orange-hover
                     text-white rounded-lg transition-colors"
@@ -6438,6 +6562,157 @@ function App() {
               <div className="p-6 border-t border-gray-200 dark:border-gray-800 flex justify-end">
                 <button
                   onClick={() => setShowPromptLibrary(false)}
+                  className="px-6 py-2 border border-gray-300 dark:border-gray-700 rounded-lg
+                    hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-gray-700 dark:text-gray-300"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Save as Project Template Modal */}
+        {showSaveAsProjectTemplateModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white dark:bg-gray-900 rounded-lg shadow-2xl w-full max-w-md">
+              <div className="p-6">
+                <h2 className="text-2xl font-semibold mb-4 text-gray-900 dark:text-white">
+                  Save Project as Template
+                </h2>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Template Name *
+                    </label>
+                    <input
+                      type="text"
+                      value={projectTemplateName}
+                      onChange={(e) => setProjectTemplateName(e.target.value)}
+                      placeholder="e.g., Python Data Analysis Project"
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg
+                        bg-white dark:bg-gray-900 text-gray-900 dark:text-white
+                        focus:ring-2 focus:ring-claude-orange focus:border-transparent"
+                      autoFocus
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Description
+                    </label>
+                    <textarea
+                      value={projectTemplateDescription}
+                      onChange={(e) => setProjectTemplateDescription(e.target.value)}
+                      placeholder="Brief description of this project template..."
+                      rows={3}
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg
+                        bg-white dark:bg-gray-900 text-gray-900 dark:text-white
+                        focus:ring-2 focus:ring-claude-orange focus:border-transparent resize-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Category
+                    </label>
+                    <select
+                      value={projectTemplateCategory}
+                      onChange={(e) => setProjectTemplateCategory(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg
+                        bg-white dark:bg-gray-900 text-gray-900 dark:text-white
+                        focus:ring-2 focus:ring-claude-orange focus:border-transparent"
+                    >
+                      <option value="General">General</option>
+                      <option value="Development">Development</option>
+                      <option value="Research">Research</option>
+                      <option value="Writing">Writing</option>
+                      <option value="Design">Design</option>
+                    </select>
+                  </div>
+                </div>
+                <div className="mt-6 flex gap-3">
+                  <button
+                    onClick={closeSaveAsProjectTemplateModal}
+                    className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg
+                      hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-gray-700 dark:text-gray-300"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={saveProjectAsTemplate}
+                    className="flex-1 bg-claude-orange hover:bg-claude-orange-hover text-white
+                      font-medium py-2 rounded-lg transition-colors"
+                  >
+                    Save Template
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Project Templates Modal */}
+        {showProjectTemplatesModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white dark:bg-gray-900 rounded-lg shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
+              <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-800">
+                <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">
+                  Project Templates
+                </h2>
+                <button
+                  onClick={closeProjectTemplatesModal}
+                  className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              <div className="flex-1 overflow-y-auto p-6">
+                {projectTemplates.length === 0 ? (
+                  <div className="text-center py-12 text-gray-500 dark:text-gray-400">
+                    <svg className="w-16 h-16 mx-auto mb-4 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+                    </svg>
+                    <p className="text-lg">No project templates yet</p>
+                    <p className="text-sm mt-2">Open a project settings and click "Save as Template" to create one</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {projectTemplates.map(template => (
+                      <div
+                        key={template.id}
+                        className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg
+                          hover:border-claude-orange dark:hover:border-claude-orange transition-colors cursor-pointer
+                          bg-gray-50 dark:bg-gray-800"
+                        onClick={() => createProjectFromTemplate(template.id)}
+                      >
+                        <div className="flex items-start justify-between mb-2">
+                          <h3 className="font-semibold text-gray-900 dark:text-white flex-1">
+                            {template.name}
+                          </h3>
+                          <span className="text-xs px-2 py-1 rounded bg-claude-orange bg-opacity-10 text-claude-orange">
+                            {template.category}
+                          </span>
+                        </div>
+                        {template.description && (
+                          <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
+                            {template.description}
+                          </p>
+                        )}
+                        <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
+                          <span>Project: {template.template_structure?.name || 'Untitled'}</span>
+                          <span>Used {template.usage_count} times</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="p-6 border-t border-gray-200 dark:border-gray-800 flex justify-end">
+                <button
+                  onClick={closeProjectTemplatesModal}
                   className="px-6 py-2 border border-gray-300 dark:border-gray-700 rounded-lg
                     hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-gray-700 dark:text-gray-300"
                 >

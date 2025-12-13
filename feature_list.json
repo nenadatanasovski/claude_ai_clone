@@ -1179,7 +1179,7 @@
       "Step 4: Verify settings are copied",
       "Step 5: Verify custom instructions are copied"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",

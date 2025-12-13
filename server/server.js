@@ -289,6 +289,20 @@ dbHelpers.exec(`
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id)
   );
+
+  CREATE TABLE IF NOT EXISTS project_templates (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER,
+    name TEXT NOT NULL,
+    description TEXT,
+    template_structure TEXT NOT NULL,
+    category TEXT,
+    is_public BOOLEAN DEFAULT 0,
+    usage_count INTEGER DEFAULT 0,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id)
+  );
 `);
 
 // Create a default user if none exists
@@ -2614,6 +2628,150 @@ app.delete('/api/templates/:id', (req, res) => {
   } catch (error) {
     console.error('Error deleting template:', error);
     res.status(500).json({ error: 'Failed to delete template' });
+  }
+});
+
+// ============================================================================
+// PROJECT TEMPLATES ENDPOINTS
+// ============================================================================
+
+// GET /api/project-templates - Get all project templates
+app.get('/api/project-templates', (req, res) => {
+  try {
+    const userId = 1; // Using default user
+
+    const templates = dbHelpers.prepare(`
+      SELECT * FROM project_templates
+      WHERE user_id = ? OR is_public = 1
+      ORDER BY created_at DESC
+    `).all(userId);
+
+    res.json(templates.map(t => ({
+      ...t,
+      template_structure: JSON.parse(t.template_structure),
+      is_public: Boolean(t.is_public)
+    })));
+  } catch (error) {
+    console.error('Error fetching project templates:', error);
+    res.status(500).json({ error: 'Failed to fetch project templates' });
+  }
+});
+
+// POST /api/project-templates - Create a template from a project
+app.post('/api/project-templates', (req, res) => {
+  try {
+    const { projectId, name, description, category } = req.body;
+    const userId = 1; // Using default user
+
+    if (!projectId || !name) {
+      return res.status(400).json({ error: 'projectId and name are required' });
+    }
+
+    // Get the project
+    const project = dbHelpers.prepare(
+      'SELECT * FROM projects WHERE id = ?'
+    ).get(projectId);
+
+    if (!project) {
+      return res.status(404).json({ error: 'Project not found' });
+    }
+
+    // Create the template structure
+    const templateStructure = {
+      name: project.name,
+      description: project.description,
+      color: project.color,
+      custom_instructions: project.custom_instructions
+    };
+
+    // Insert the template
+    const result = dbHelpers.prepare(`
+      INSERT INTO project_templates (user_id, name, description, template_structure, category)
+      VALUES (?, ?, ?, ?, ?)
+    `).run(
+      userId,
+      name,
+      description || '',
+      JSON.stringify(templateStructure),
+      category || 'General'
+    );
+
+    const template = dbHelpers.prepare(
+      'SELECT * FROM project_templates WHERE id = ?'
+    ).get(result.lastInsertRowid);
+
+    res.json({
+      ...template,
+      template_structure: JSON.parse(template.template_structure),
+      is_public: Boolean(template.is_public)
+    });
+  } catch (error) {
+    console.error('Error creating project template:', error);
+    res.status(500).json({ error: 'Failed to create project template' });
+  }
+});
+
+// POST /api/project-templates/:id/use - Create a new project from a template
+app.post('/api/project-templates/:id/use', (req, res) => {
+  try {
+    const templateId = parseInt(req.params.id);
+    const userId = 1; // Using default user
+
+    // Get the template
+    const template = dbHelpers.prepare(
+      'SELECT * FROM project_templates WHERE id = ?'
+    ).get(templateId);
+
+    if (!template) {
+      return res.status(404).json({ error: 'Template not found' });
+    }
+
+    const structure = JSON.parse(template.template_structure);
+
+    // Create a new project
+    const projectResult = dbHelpers.prepare(`
+      INSERT INTO projects (user_id, name, description, color, custom_instructions, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, datetime('now'), datetime('now'))
+    `).run(
+      userId,
+      structure.name || template.name,
+      structure.description || '',
+      structure.color || '#CC785C',
+      structure.custom_instructions || ''
+    );
+
+    const projectId = projectResult.lastInsertRowid;
+
+    // Increment template usage count
+    dbHelpers.prepare(`
+      UPDATE project_templates
+      SET usage_count = usage_count + 1
+      WHERE id = ?
+    `).run(templateId);
+
+    // Get the newly created project
+    const project = dbHelpers.prepare(
+      'SELECT * FROM projects WHERE id = ?'
+    ).get(projectId);
+
+    res.json(project);
+  } catch (error) {
+    console.error('Error using project template:', error);
+    res.status(500).json({ error: 'Failed to create project from template' });
+  }
+});
+
+// DELETE /api/project-templates/:id - Delete a project template
+app.delete('/api/project-templates/:id', (req, res) => {
+  try {
+    const templateId = parseInt(req.params.id);
+
+    dbHelpers.prepare('DELETE FROM project_templates WHERE id = ?').run(templateId);
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error deleting project template:', error);
+    res.status(500).json({ error: 'Failed to delete project template' });
   }
 });
 
