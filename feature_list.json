@@ -1324,7 +1324,7 @@
       "Step 4: Verify confirmation of what this means",
       "Step 5: Test that new conversations respect the setting"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",

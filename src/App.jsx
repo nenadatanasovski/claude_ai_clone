@@ -396,6 +396,10 @@ function App() {
     const saved = localStorage.getItem('highContrast')
     return saved === 'true'
   }) // High contrast mode for accessibility
+  const [saveConversationHistory, setSaveConversationHistory] = useState(() => {
+    const saved = localStorage.getItem('saveConversationHistory')
+    return saved !== 'false' // Default to true (save history)
+  }) // Privacy setting: whether to save conversation history
   const [user, setUser] = useState(null) // User profile data
   const [showProfileMenu, setShowProfileMenu] = useState(false) // Show profile dropdown menu
   const [showProfileModal, setShowProfileModal] = useState(false) // Show profile edit modal
@@ -675,6 +679,11 @@ function App() {
   useEffect(() => {
     localStorage.setItem('highContrast', highContrast.toString())
   }, [highContrast])
+
+  // Save conversation history setting to localStorage
+  useEffect(() => {
+    localStorage.setItem('saveConversationHistory', saveConversationHistory.toString())
+  }, [saveConversationHistory])
 
   // Save reduced motion setting to localStorage
   useEffect(() => {
@@ -6291,6 +6300,63 @@ function App() {
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
                   Exports all conversations, messages, projects, folders, artifacts, and settings in JSON format
                 </p>
+              </div>
+
+              {/* Privacy Section */}
+              <div className="mb-6">
+                <h3 className="text-lg font-medium mb-3">Privacy</h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                  Control how your conversation data is stored
+                </p>
+                <div className="space-y-4">
+                  <div className="flex items-start justify-between p-4 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700/50">
+                    <div className="flex-1">
+                      <div className="font-medium mb-1">Save Conversation History</div>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                        When enabled, your conversations are saved in your account. When disabled, conversations won't be stored after you close or refresh the page.
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => {
+                        const newValue = !saveConversationHistory;
+                        setSaveConversationHistory(newValue);
+                        if (!newValue) {
+                          // Show confirmation message
+                          if (confirm('Disabling conversation history means new conversations will not be saved to your account. Existing conversations will remain. Continue?')) {
+                            // Confirmed
+                          } else {
+                            // Cancelled, revert
+                            setSaveConversationHistory(true);
+                          }
+                        }
+                      }}
+                      className={`ml-4 relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-claude-orange focus:ring-offset-2 ${
+                        saveConversationHistory
+                          ? 'bg-claude-orange'
+                          : 'bg-gray-300 dark:bg-gray-600'
+                      }`}
+                      aria-label="Toggle conversation history"
+                    >
+                      <span
+                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                          saveConversationHistory ? 'translate-x-6' : 'translate-x-1'
+                        }`}
+                      />
+                    </button>
+                  </div>
+                  {!saveConversationHistory && (
+                    <div className="px-4 py-3 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800">
+                      <div className="flex gap-2">
+                        <svg className="w-5 h-5 text-amber-600 dark:text-amber-400 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                        </svg>
+                        <div className="text-sm text-amber-800 dark:text-amber-300">
+                          <strong>Note:</strong> New conversations will not be saved when this setting is disabled. Existing conversations in your history will remain unaffected.
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
 
               {/* Custom Instructions Section */}
