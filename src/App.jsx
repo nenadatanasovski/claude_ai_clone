@@ -392,6 +392,10 @@ function App() {
     const saved = localStorage.getItem('messageDensity')
     return saved || 'comfortable'
   }) // 'compact', 'comfortable', or 'spacious'
+  const [codeTheme, setCodeTheme] = useState(() => {
+    const saved = localStorage.getItem('codeTheme')
+    return saved || 'github-dark'
+  }) // Code syntax highlighting theme
   const [highContrast, setHighContrast] = useState(() => {
     const saved = localStorage.getItem('highContrast')
     return saved === 'true'
@@ -674,6 +678,28 @@ function App() {
   useEffect(() => {
     localStorage.setItem('messageDensity', messageDensity)
   }, [messageDensity])
+
+  // Save code theme setting to localStorage
+  useEffect(() => {
+    localStorage.setItem('codeTheme', codeTheme)
+  }, [codeTheme])
+
+  // Load code theme CSS dynamically
+  useEffect(() => {
+    // Remove any existing highlight.js stylesheets
+    const existingStylesheets = document.querySelectorAll('link[href*="highlight.js/styles"]')
+    existingStylesheets.forEach(link => link.remove())
+
+    // Add new stylesheet for selected theme
+    const link = document.createElement('link')
+    link.rel = 'stylesheet'
+    link.href = `https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/${codeTheme}.min.css`
+    document.head.appendChild(link)
+
+    return () => {
+      link.remove()
+    }
+  }, [codeTheme])
 
   // Save high contrast setting to localStorage
   useEffect(() => {
@@ -6061,6 +6087,100 @@ function App() {
                     <div className="text-sm font-medium">Spacious</div>
                     <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">Increased spacing</div>
                     {messageDensity === 'spacious' && (
+                      <div className="text-claude-orange text-xs mt-1">✓</div>
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              {/* Code Theme Section */}
+              <div className="mb-6">
+                <h3 className="text-lg font-medium mb-3">Code Theme</h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
+                  Choose syntax highlighting theme for code blocks
+                </p>
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    onClick={() => setCodeTheme('github-dark')}
+                    className={`px-4 py-3 rounded-lg border-2 transition-all ${
+                      codeTheme === 'github-dark'
+                        ? 'border-claude-orange bg-claude-orange/5'
+                        : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
+                    }`}
+                  >
+                    <div className="text-sm font-medium">GitHub Dark</div>
+                    <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">Popular dark theme</div>
+                    {codeTheme === 'github-dark' && (
+                      <div className="text-claude-orange text-xs mt-1">✓</div>
+                    )}
+                  </button>
+                  <button
+                    onClick={() => setCodeTheme('vs2015')}
+                    className={`px-4 py-3 rounded-lg border-2 transition-all ${
+                      codeTheme === 'vs2015'
+                        ? 'border-claude-orange bg-claude-orange/5'
+                        : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
+                    }`}
+                  >
+                    <div className="text-sm font-medium">VS Code Dark</div>
+                    <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">VS Code style</div>
+                    {codeTheme === 'vs2015' && (
+                      <div className="text-claude-orange text-xs mt-1">✓</div>
+                    )}
+                  </button>
+                  <button
+                    onClick={() => setCodeTheme('monokai')}
+                    className={`px-4 py-3 rounded-lg border-2 transition-all ${
+                      codeTheme === 'monokai'
+                        ? 'border-claude-orange bg-claude-orange/5'
+                        : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
+                    }`}
+                  >
+                    <div className="text-sm font-medium">Monokai</div>
+                    <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">Vibrant colors</div>
+                    {codeTheme === 'monokai' && (
+                      <div className="text-claude-orange text-xs mt-1">✓</div>
+                    )}
+                  </button>
+                  <button
+                    onClick={() => setCodeTheme('atom-one-dark')}
+                    className={`px-4 py-3 rounded-lg border-2 transition-all ${
+                      codeTheme === 'atom-one-dark'
+                        ? 'border-claude-orange bg-claude-orange/5'
+                        : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
+                    }`}
+                  >
+                    <div className="text-sm font-medium">Atom One Dark</div>
+                    <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">Atom editor</div>
+                    {codeTheme === 'atom-one-dark' && (
+                      <div className="text-claude-orange text-xs mt-1">✓</div>
+                    )}
+                  </button>
+                  <button
+                    onClick={() => setCodeTheme('github')}
+                    className={`px-4 py-3 rounded-lg border-2 transition-all ${
+                      codeTheme === 'github'
+                        ? 'border-claude-orange bg-claude-orange/5'
+                        : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
+                    }`}
+                  >
+                    <div className="text-sm font-medium">GitHub Light</div>
+                    <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">Light theme</div>
+                    {codeTheme === 'github' && (
+                      <div className="text-claude-orange text-xs mt-1">✓</div>
+                    )}
+                  </button>
+                  <button
+                    onClick={() => setCodeTheme('tomorrow-night-blue')}
+                    className={`px-4 py-3 rounded-lg border-2 transition-all ${
+                      codeTheme === 'tomorrow-night-blue'
+                        ? 'border-claude-orange bg-claude-orange/5'
+                        : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
+                    }`}
+                  >
+                    <div className="text-sm font-medium">Tomorrow Night</div>
+                    <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">Blue tones</div>
+                    {codeTheme === 'tomorrow-night-blue' && (
                       <div className="text-claude-orange text-xs mt-1">✓</div>
                     )}
                   </button>

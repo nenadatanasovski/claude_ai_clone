@@ -1337,7 +1337,7 @@
       "Step 5: View a code block",
       "Step 6: Verify the new theme is applied"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
