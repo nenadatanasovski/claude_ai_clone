@@ -1938,7 +1938,7 @@
       "Step 5: Verify correct icon appears on home screen",
       "Step 6: Verify splash screen uses theme colors"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
