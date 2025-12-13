@@ -1628,7 +1628,7 @@
       "Step 4: Verify dark gray borders (#404040 or similar)",
       "Step 5: Verify borders are subtle but visible"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "style",
