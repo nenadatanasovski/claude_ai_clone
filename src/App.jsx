@@ -567,7 +567,10 @@ function App() {
     return !completed // Show tour if not completed
   }) // Onboarding tour visibility
   const [tourStep, setTourStep] = useState(0) // Current step in onboarding tour
-  const [globalCustomInstructions, setGlobalCustomInstructions] = useState('')
+  const [globalCustomInstructions, setGlobalCustomInstructions] = useState(() => {
+    const saved = localStorage.getItem('globalCustomInstructions')
+    return saved || ''
+  })
   const [temperature, setTemperature] = useState(() => {
     const saved = localStorage.getItem('temperature')
     return saved ? Number(saved) : 1.0
@@ -909,6 +912,11 @@ function App() {
   useEffect(() => {
     localStorage.setItem('maxTokens', maxTokens.toString())
   }, [maxTokens])
+
+  // Save globalCustomInstructions setting to localStorage
+  useEffect(() => {
+    localStorage.setItem('globalCustomInstructions', globalCustomInstructions)
+  }, [globalCustomInstructions])
 
   // Generate related prompts when messages change
   useEffect(() => {
@@ -1447,6 +1455,23 @@ function App() {
 
   const loadCustomInstructions = async () => {
     try {
+      // Check if we already have a value in localStorage (from initial state)
+      const localValue = localStorage.getItem('globalCustomInstructions')
+      if (localValue) {
+        // Don't overwrite - we already loaded from localStorage in useState
+        // Update the backend to match localStorage
+        try {
+          await fetch(`${API_BASE}/settings/custom-instructions`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ custom_instructions: localValue })
+          })
+        } catch (err) {
+          console.error('Error syncing custom instructions to backend:', err)
+        }
+        return
+      }
+
       const response = await fetch(`${API_BASE}/settings/custom-instructions`)
       const data = await response.json()
       setGlobalCustomInstructions(data.custom_instructions || '')
