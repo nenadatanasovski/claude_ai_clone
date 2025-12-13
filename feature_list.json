@@ -2209,7 +2209,7 @@
       "Step 4: Verify no lag or stuttering",
       "Step 5: Verify virtualization or optimization is working"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
