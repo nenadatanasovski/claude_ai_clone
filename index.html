@@ -116,6 +116,18 @@
         outline-offset: 2px !important;
       }
 
+      /* Code block styling - rounded corners */
+      pre code {
+        display: block;
+        border-radius: 8px;
+        overflow-x: auto;
+      }
+
+      /* Ensure inline code doesn't get border radius */
+      code:not(pre code) {
+        border-radius: 4px;
+      }
+
       /* Reduced Motion Support */
       /* Disable or minimize animations when reduced motion is enabled */
       .reduce-motion *,

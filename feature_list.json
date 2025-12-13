@@ -1641,7 +1641,7 @@
       "Step 5: Verify monospace font is used",
       "Step 6: Verify copy button is styled consistently"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "style",
