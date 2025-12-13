@@ -1653,7 +1653,7 @@
       "Step 4: Verify slight padding around the text",
       "Step 5: Verify it stands out from regular text"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "style",
@@ -1665,7 +1665,7 @@
       "Step 4: Verify buttons are clearly visible and styled",
       "Step 5: Verify panel has subtle border separating from chat"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "style",
