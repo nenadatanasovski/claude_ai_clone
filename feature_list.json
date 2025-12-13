@@ -2110,7 +2110,7 @@
       "Step 3: Verify response includes status: 'ok' or similar",
       "Step 4: Verify timestamp or version info if present"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -2122,7 +2122,7 @@
       "Step 4: Verify indexes are created",
       "Step 5: Run a sample query to verify database is operational"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -2160,7 +2160,7 @@
       "Step 4: Try from different origin (if applicable)",
       "Step 5: Verify CORS headers are set appropriately"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -2173,7 +2173,7 @@
       "Step 5: Verify app remains stable and usable",
       "Step 6: Verify user can retry or take corrective action"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -2185,7 +2185,7 @@
       "Step 4: Verify keys are stored securely on backend",
       "Step 5: Verify no sensitive data in browser storage"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
