@@ -318,12 +318,27 @@ if (userCount && userCount.count === 0) {
 // Initialize Anthropic client
 let anthropic;
 try {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
+  let apiKey = process.env.ANTHROPIC_API_KEY;
+
+  // If API key looks like a file path, read it from the file
+  if (apiKey && apiKey.startsWith('/')) {
+    try {
+      apiKey = readFileSync(apiKey, 'utf-8').trim();
+      console.log('Loaded API key from file:', apiKey.substring(0, 10) + '...');
+    } catch (error) {
+      console.error('Failed to read API key from file:', apiKey, error.message);
+      apiKey = null;
+    }
+  }
+
   if (apiKey && apiKey !== 'your_api_key_here') {
     anthropic = new Anthropic({ apiKey });
+    console.log('Anthropic client initialized successfully');
+  } else {
+    console.warn('No valid API key found - using mock responses');
   }
 } catch (error) {
-  console.warn('Warning: Anthropic API key not configured properly');
+  console.warn('Warning: Anthropic API key not configured properly:', error.message);
 }
 
 // Helper function to generate a conversation title from the first user message
