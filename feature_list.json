@@ -1299,7 +1299,7 @@
       "Step 4: Verify key is removed",
       "Step 5: Verify app prompts for new key if none remain"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
