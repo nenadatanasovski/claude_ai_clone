@@ -1812,7 +1812,7 @@
       "Step 5: Verify hover states are visible",
       "Step 6: Verify destructive actions (delete) are highlighted differently"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "style",

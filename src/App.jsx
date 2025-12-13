@@ -5816,7 +5816,7 @@ function App() {
               zIndex: 1000
             }}
             className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700
-              rounded-lg shadow-lg py-1 min-w-[160px]"
+              rounded-lg shadow-lg py-1 min-w-[200px] animate-slideIn"
           >
             {contextMenuType === 'sidebar' ? (
               <button
@@ -5837,7 +5837,7 @@ function App() {
                   closeContextMenu()
                 }}
                 className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700
-                  text-red-600 dark:text-red-400 flex items-center gap-2"
+                  hover:bg-red-50 dark:hover:bg-red-900/20 text-red-600 dark:text-red-400 flex items-center gap-2"
               >
                 <span>🗑️</span>
                 <span>Delete</span>
@@ -5949,13 +5949,15 @@ function App() {
               <span>✏️</span>
               <span>Rename</span>
             </button>
+            {/* Separator before destructive action */}
+            <div className="border-t border-gray-200 dark:border-gray-700 my-1"></div>
             <button
               onClick={() => {
                 deleteConversation(contextMenu.conversationId, { stopPropagation: () => {} })
                 closeContextMenu()
               }}
               className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700
-                text-red-600 dark:text-red-400 flex items-center gap-2"
+                hover:bg-red-50 dark:hover:bg-red-900/20 text-red-600 dark:text-red-400 flex items-center gap-2"
             >
               <span>🗑️</span>
               <span>Delete</span>
