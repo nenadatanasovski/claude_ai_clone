@@ -1836,7 +1836,7 @@
       "Step 4: Verify hamburger menu appears to toggle sidebar",
       "Step 5: Verify chat area takes full width"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",

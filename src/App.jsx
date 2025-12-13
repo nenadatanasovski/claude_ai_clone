@@ -508,7 +508,13 @@ function App() {
   const [showSettingsModal, setShowSettingsModal] = useState(false)
   const [settingsActiveTab, setSettingsActiveTab] = useState('appearance') // Active tab in settings modal
   const [showKeyboardShortcutsModal, setShowKeyboardShortcutsModal] = useState(false)
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
+  // Initialize sidebar as collapsed on mobile (< 640px)
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return window.innerWidth < 640
+    }
+    return false
+  })
   const [sidebarWidth, setSidebarWidth] = useState(256) // Sidebar width in pixels (min: 200, max: 500)
   const [isResizing, setIsResizing] = useState(false)
   const [theme, setTheme] = useState(() => {
@@ -3924,7 +3930,26 @@ function App() {
             : 'border-gray-200 dark:border-gray-800'
         }`}>
           <div className="flex items-center justify-between">
-            <h1 className="text-xl font-semibold">Claude</h1>
+            {/* Hamburger menu button for mobile */}
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+                className="sm:hidden p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800
+                  transition-colors focus:outline-none focus:ring-2 focus:ring-claude-orange"
+                aria-label={isSidebarCollapsed ? 'Open sidebar' : 'Close sidebar'}
+                aria-expanded={!isSidebarCollapsed}
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  {isSidebarCollapsed ? (
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                  ) : (
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  )}
+                </svg>
+              </button>
+              <h1 className="text-xl font-semibold">Claude</h1>
+            </div>
 
             <div className="flex items-center gap-3">
               {/* Project Selector */}
@@ -4331,6 +4356,15 @@ function App() {
 
         {/* Main Content */}
         <div className="flex h-[calc(100vh-60px)] relative">
+          {/* Sidebar backdrop overlay for mobile */}
+          {!isSidebarCollapsed && (
+            <div
+              className="sm:hidden fixed inset-0 bg-black bg-opacity-50 z-40"
+              onClick={() => setIsSidebarCollapsed(true)}
+              aria-hidden="true"
+            />
+          )}
+
           {/* Sidebar */}
           <aside
             className={`border-r ${
@@ -4339,8 +4373,13 @@ function App() {
                 : 'border-gray-200 dark:border-gray-800'
             } transition-all duration-300 ease-in-out overflow-hidden relative ${
               isSidebarCollapsed ? 'p-0' : 'p-4'
-            }`}
-            style={{ width: isSidebarCollapsed ? '0px' : `${sidebarWidth}px` }}
+            } bg-white dark:bg-[#1A1A1A]
+            sm:relative fixed left-0 top-0 h-full z-50
+            ${isSidebarCollapsed ? '-translate-x-full sm:translate-x-0' : 'translate-x-0'}`}
+            style={{
+              width: isSidebarCollapsed ? '0px' : `${sidebarWidth}px`,
+              marginTop: 'var(--header-height, 60px)'
+            }}
             onContextMenu={handleSidebarContextMenu}
             role="navigation"
             aria-label="Conversation navigation"
@@ -4800,10 +4839,10 @@ function App() {
             )}
           </aside>
 
-          {/* Sidebar Collapse Button */}
+          {/* Sidebar Collapse Button - Hidden on mobile */}
           <button
             onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-            className="absolute left-0 top-20 z-10 bg-white dark:bg-gray-800 border border-gray-200
+            className="hidden sm:block absolute left-0 top-20 z-10 bg-white dark:bg-gray-800 border border-gray-200
               dark:border-gray-700 rounded-r-lg p-2 hover:bg-gray-50 dark:hover:bg-gray-700
               transition-all duration-300 ease-in-out shadow-sm
               focus:outline-none focus:ring-2 focus:ring-claude-orange focus:ring-offset-1
