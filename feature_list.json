@@ -1130,7 +1130,7 @@
       "Step 4: Verify text is easily readable",
       "Step 5: Verify borders and separators are visible"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",

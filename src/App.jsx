@@ -341,6 +341,10 @@ function App() {
     const saved = localStorage.getItem('messageDensity')
     return saved || 'comfortable'
   }) // 'compact', 'comfortable', or 'spacious'
+  const [highContrast, setHighContrast] = useState(() => {
+    const saved = localStorage.getItem('highContrast')
+    return saved === 'true'
+  }) // High contrast mode for accessibility
   const [globalCustomInstructions, setGlobalCustomInstructions] = useState('')
   const [temperature, setTemperature] = useState(() => {
     const saved = localStorage.getItem('temperature')
@@ -598,6 +602,11 @@ function App() {
   useEffect(() => {
     localStorage.setItem('messageDensity', messageDensity)
   }, [messageDensity])
+
+  // Save high contrast setting to localStorage
+  useEffect(() => {
+    localStorage.setItem('highContrast', highContrast.toString())
+  }, [highContrast])
 
   // Save temperature setting to localStorage
   useEffect(() => {
@@ -2903,10 +2912,18 @@ function App() {
   }
 
   return (
-    <div className={isDark ? 'dark' : ''}>
-      <div className="min-h-screen bg-white dark:bg-[#1A1A1A] text-gray-900 dark:text-gray-100">
+    <div className={`${isDark ? 'dark' : ''} ${highContrast ? 'high-contrast' : ''}`}>
+      <div className={`min-h-screen ${
+        highContrast
+          ? 'bg-white dark:bg-black text-black dark:text-white'
+          : 'bg-white dark:bg-[#1A1A1A] text-gray-900 dark:text-gray-100'
+      }`}>
         {/* Header */}
-        <header className="border-b border-gray-200 dark:border-gray-800 px-4 py-3">
+        <header className={`border-b px-4 py-3 ${
+          highContrast
+            ? 'border-black dark:border-white'
+            : 'border-gray-200 dark:border-gray-800'
+        }`}>
           <div className="flex items-center justify-between">
             <h1 className="text-xl font-semibold">Claude</h1>
 
@@ -3267,7 +3284,11 @@ function App() {
         <div className="flex h-[calc(100vh-60px)] relative">
           {/* Sidebar */}
           <aside
-            className={`border-r border-gray-200 dark:border-gray-800 transition-all duration-300 ease-in-out overflow-hidden relative ${
+            className={`border-r ${
+              highContrast
+                ? 'border-black dark:border-white'
+                : 'border-gray-200 dark:border-gray-800'
+            } transition-all duration-300 ease-in-out overflow-hidden relative ${
               isSidebarCollapsed ? 'p-0' : 'p-4'
             }`}
             style={{ width: isSidebarCollapsed ? '0px' : `${sidebarWidth}px` }}
@@ -5441,6 +5462,40 @@ function App() {
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
                   Lower values limit response length. Higher values allow longer, more detailed responses.
                 </p>
+              </div>
+
+              {/* Accessibility Section */}
+              <div className="mb-6">
+                <h3 className="text-lg font-medium mb-3">Accessibility</h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
+                  Options to improve accessibility
+                </p>
+
+                {/* High Contrast Mode Toggle */}
+                <div className="flex items-center justify-between p-4 rounded-lg border border-gray-200 dark:border-gray-700">
+                  <div className="flex-1">
+                    <div className="font-medium">High Contrast Mode</div>
+                    <div className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                      Increase color contrast for better readability
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setHighContrast(!highContrast)}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-claude-orange focus:ring-offset-2 ${
+                      highContrast ? 'bg-claude-orange' : 'bg-gray-300 dark:bg-gray-600'
+                    }`}
+                    role="switch"
+                    aria-checked={highContrast}
+                    aria-label="Toggle high contrast mode"
+                  >
+                    <span
+                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                        highContrast ? 'translate-x-6' : 'translate-x-1'
+                      }`}
+                    />
+                  </button>
+                </div>
               </div>
 
               {/* Custom Instructions Section */}

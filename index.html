@@ -28,6 +28,54 @@
     <!-- Highlight.js for code syntax highlighting -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/styles/github.min.css" class="light-theme">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/styles/github-dark.min.css" class="dark-theme">
+
+    <!-- High Contrast Mode Styles -->
+    <style>
+      /* High contrast mode increases visibility of borders and separators */
+      .high-contrast button {
+        border-width: 2px !important;
+      }
+
+      .high-contrast .border,
+      .high-contrast .border-b,
+      .high-contrast .border-t,
+      .high-contrast .border-l,
+      .high-contrast .border-r {
+        border-width: 2px !important;
+      }
+
+      .high-contrast input,
+      .high-contrast textarea,
+      .high-contrast select {
+        border-width: 2px !important;
+      }
+
+      /* Ensure text has maximum contrast */
+      .high-contrast:not(.dark) {
+        color: #000000 !important;
+      }
+
+      .high-contrast.dark {
+        color: #FFFFFF !important;
+      }
+
+      /* Make links more visible */
+      .high-contrast a {
+        text-decoration: underline;
+        font-weight: 600;
+      }
+
+      /* Increase button contrast */
+      .high-contrast button:not(.bg-claude-orange) {
+        font-weight: 600;
+      }
+
+      /* Make focus indicators more visible */
+      .high-contrast *:focus {
+        outline-width: 3px !important;
+        outline-offset: 2px !important;
+      }
+    </style>
   </head>
   <body>
     <div id="root"></div>
