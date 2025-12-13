@@ -2135,7 +2135,7 @@
       "Step 5: Verify response is formatted and sent to frontend",
       "Step 6: Verify message appears in UI"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -2148,7 +2148,7 @@
       "Step 5: Verify frontend displays text in real-time",
       "Step 6: Verify stream closes properly when done"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
