@@ -424,6 +424,11 @@ function App() {
     const saved = localStorage.getItem('language')
     return saved || 'en'
   }) // UI language preference
+  const [showOnboardingTour, setShowOnboardingTour] = useState(() => {
+    const completed = localStorage.getItem('onboardingCompleted')
+    return !completed // Show tour if not completed
+  }) // Onboarding tour visibility
+  const [tourStep, setTourStep] = useState(0) // Current step in onboarding tour
   const [globalCustomInstructions, setGlobalCustomInstructions] = useState('')
   const [temperature, setTemperature] = useState(() => {
     const saved = localStorage.getItem('temperature')
@@ -7734,6 +7739,313 @@ function App() {
                 >
                   Close
                 </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Onboarding Tour */}
+        {showOnboardingTour && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+            <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl max-w-2xl w-full mx-4 overflow-hidden">
+              {/* Tour Progress Bar */}
+              <div className="h-1 bg-gray-200 dark:bg-gray-800">
+                <div
+                  className="h-full bg-claude-orange transition-all duration-300"
+                  style={{ width: `${((tourStep + 1) / 6) * 100}%` }}
+                ></div>
+              </div>
+
+              {/* Tour Content */}
+              <div className="p-8">
+                {/* Step 0: Welcome */}
+                {tourStep === 0 && (
+                  <div className="text-center">
+                    <div className="mb-6">
+                      <div className="w-20 h-20 bg-claude-orange/10 rounded-full mx-auto flex items-center justify-center mb-4">
+                        <span className="text-4xl">👋</span>
+                      </div>
+                      <h2 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-3">
+                        Welcome to Claude
+                      </h2>
+                      <p className="text-lg text-gray-600 dark:text-gray-400">
+                        Let's take a quick tour to help you get started with Claude's powerful features.
+                      </p>
+                    </div>
+                    <div className="space-y-3 text-left bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
+                      <div className="flex items-start gap-3">
+                        <span className="text-2xl">💬</span>
+                        <div>
+                          <h3 className="font-semibold text-gray-900 dark:text-gray-100">Natural Conversations</h3>
+                          <p className="text-sm text-gray-600 dark:text-gray-400">Have multi-turn conversations with Claude</p>
+                        </div>
+                      </div>
+                      <div className="flex items-start gap-3">
+                        <span className="text-2xl">📁</span>
+                        <div>
+                          <h3 className="font-semibold text-gray-900 dark:text-gray-100">Organize Your Work</h3>
+                          <p className="text-sm text-gray-600 dark:text-gray-400">Manage conversations and projects easily</p>
+                        </div>
+                      </div>
+                      <div className="flex items-start gap-3">
+                        <span className="text-2xl">⚙️</span>
+                        <div>
+                          <h3 className="font-semibold text-gray-900 dark:text-gray-100">Customize Everything</h3>
+                          <p className="text-sm text-gray-600 dark:text-gray-400">Adjust settings to match your preferences</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Step 1: Chat Interface */}
+                {tourStep === 1 && (
+                  <div>
+                    <div className="mb-6 text-center">
+                      <div className="w-16 h-16 bg-claude-orange/10 rounded-full mx-auto flex items-center justify-center mb-4">
+                        <span className="text-3xl">💬</span>
+                      </div>
+                      <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-3">
+                        Chat Interface
+                      </h2>
+                    </div>
+                    <div className="space-y-4 text-gray-600 dark:text-gray-400">
+                      <p>
+                        The main chat area is where you'll interact with Claude. Simply type your message
+                        in the input field at the bottom and press Enter to send.
+                      </p>
+                      <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 space-y-2">
+                        <div className="flex items-center gap-2">
+                          <kbd className="px-2 py-1 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded text-sm">Enter</kbd>
+                          <span className="text-sm">Send message</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <kbd className="px-2 py-1 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded text-sm">Shift</kbd>
+                          <span className="text-sm">+</span>
+                          <kbd className="px-2 py-1 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded text-sm">Enter</kbd>
+                          <span className="text-sm">New line</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Step 2: Conversations */}
+                {tourStep === 2 && (
+                  <div>
+                    <div className="mb-6 text-center">
+                      <div className="w-16 h-16 bg-claude-orange/10 rounded-full mx-auto flex items-center justify-center mb-4">
+                        <span className="text-3xl">📝</span>
+                      </div>
+                      <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-3">
+                        Conversation Management
+                      </h2>
+                    </div>
+                    <div className="space-y-4 text-gray-600 dark:text-gray-400">
+                      <p>
+                        Your conversations are saved in the left sidebar, grouped by date. You can:
+                      </p>
+                      <ul className="space-y-2 list-none">
+                        <li className="flex items-start gap-2">
+                          <span className="text-claude-orange">✓</span>
+                          <span>Create new conversations with the "+ New Chat" button</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <span className="text-claude-orange">✓</span>
+                          <span>Rename conversations by clicking on their titles</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <span className="text-claude-orange">✓</span>
+                          <span>Search conversations using the search bar</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <span className="text-claude-orange">✓</span>
+                          <span>Archive or delete conversations from the context menu</span>
+                        </li>
+                      </ul>
+                    </div>
+                  </div>
+                )}
+
+                {/* Step 3: Model Selection */}
+                {tourStep === 3 && (
+                  <div>
+                    <div className="mb-6 text-center">
+                      <div className="w-16 h-16 bg-claude-orange/10 rounded-full mx-auto flex items-center justify-center mb-4">
+                        <span className="text-3xl">🤖</span>
+                      </div>
+                      <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-3">
+                        Choose Your Model
+                      </h2>
+                    </div>
+                    <div className="space-y-4 text-gray-600 dark:text-gray-400">
+                      <p>
+                        You can select different Claude models based on your needs. Find the model
+                        selector in the top navigation bar.
+                      </p>
+                      <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 space-y-3">
+                        <div>
+                          <h4 className="font-semibold text-gray-900 dark:text-gray-100 mb-1">Claude Sonnet 4.5</h4>
+                          <p className="text-sm">Best for most tasks - balanced performance</p>
+                        </div>
+                        <div>
+                          <h4 className="font-semibold text-gray-900 dark:text-gray-100 mb-1">Claude Haiku 4.5</h4>
+                          <p className="text-sm">Fastest responses for quick tasks</p>
+                        </div>
+                        <div>
+                          <h4 className="font-semibold text-gray-900 dark:text-gray-100 mb-1">Claude Opus 4.1</h4>
+                          <p className="text-sm">Most capable for complex reasoning</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Step 4: Features */}
+                {tourStep === 4 && (
+                  <div>
+                    <div className="mb-6 text-center">
+                      <div className="w-16 h-16 bg-claude-orange/10 rounded-full mx-auto flex items-center justify-center mb-4">
+                        <span className="text-3xl">✨</span>
+                      </div>
+                      <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-3">
+                        Powerful Features
+                      </h2>
+                    </div>
+                    <div className="space-y-4 text-gray-600 dark:text-gray-400">
+                      <p>
+                        Explore these powerful features to enhance your experience:
+                      </p>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-3">
+                          <div className="text-xl mb-1">📊</div>
+                          <h4 className="font-semibold text-gray-900 dark:text-gray-100 text-sm mb-1">Prompts</h4>
+                          <p className="text-xs">Browse pre-made prompt templates</p>
+                        </div>
+                        <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-3">
+                          <div className="text-xl mb-1">📋</div>
+                          <h4 className="font-semibold text-gray-900 dark:text-gray-100 text-sm mb-1">Templates</h4>
+                          <p className="text-xs">Use project templates</p>
+                        </div>
+                        <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-3">
+                          <div className="text-xl mb-1">💡</div>
+                          <h4 className="font-semibold text-gray-900 dark:text-gray-100 text-sm mb-1">Examples</h4>
+                          <p className="text-xs">See example conversations</p>
+                        </div>
+                        <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-3">
+                          <div className="text-xl mb-1">📈</div>
+                          <h4 className="font-semibold text-gray-900 dark:text-gray-100 text-sm mb-1">Usage</h4>
+                          <p className="text-xs">Track your API usage</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Step 5: Settings */}
+                {tourStep === 5 && (
+                  <div>
+                    <div className="mb-6 text-center">
+                      <div className="w-16 h-16 bg-claude-orange/10 rounded-full mx-auto flex items-center justify-center mb-4">
+                        <span className="text-3xl">⚙️</span>
+                      </div>
+                      <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-3">
+                        Customize Your Experience
+                      </h2>
+                    </div>
+                    <div className="space-y-4 text-gray-600 dark:text-gray-400">
+                      <p>
+                        Click the Settings button in the top right to customize:
+                      </p>
+                      <ul className="space-y-2 list-none">
+                        <li className="flex items-start gap-2">
+                          <span className="text-claude-orange">•</span>
+                          <span><strong className="text-gray-900 dark:text-gray-100">Theme:</strong> Light, dark, or auto mode</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <span className="text-claude-orange">•</span>
+                          <span><strong className="text-gray-900 dark:text-gray-100">Font Size:</strong> Adjust text size for readability</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <span className="text-claude-orange">•</span>
+                          <span><strong className="text-gray-900 dark:text-gray-100">Language:</strong> Choose your preferred language</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <span className="text-claude-orange">•</span>
+                          <span><strong className="text-gray-900 dark:text-gray-100">Privacy:</strong> Manage conversation history</span>
+                        </li>
+                      </ul>
+                      <div className="bg-claude-orange/10 border border-claude-orange/20 rounded-lg p-4 mt-6">
+                        <p className="text-sm text-gray-900 dark:text-gray-100 font-medium">
+                          🎉 You're all set! Start chatting with Claude and explore all the features.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Tour Navigation */}
+              <div className="px-8 pb-8 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  {[0, 1, 2, 3, 4, 5].map((step) => (
+                    <button
+                      key={step}
+                      onClick={() => setTourStep(step)}
+                      className={`w-2 h-2 rounded-full transition-all ${
+                        step === tourStep
+                          ? 'bg-claude-orange w-6'
+                          : 'bg-gray-300 dark:bg-gray-700 hover:bg-gray-400 dark:hover:bg-gray-600'
+                      }`}
+                      aria-label={`Go to step ${step + 1}`}
+                    ></button>
+                  ))}
+                </div>
+
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => {
+                      localStorage.setItem('onboardingCompleted', 'true')
+                      setShowOnboardingTour(false)
+                      setTourStep(0)
+                    }}
+                    className="px-4 py-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition-colors"
+                  >
+                    Skip Tour
+                  </button>
+
+                  {tourStep > 0 && (
+                    <button
+                      onClick={() => setTourStep(tourStep - 1)}
+                      className="px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg
+                        hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-gray-700 dark:text-gray-300"
+                    >
+                      Back
+                    </button>
+                  )}
+
+                  {tourStep < 5 ? (
+                    <button
+                      onClick={() => setTourStep(tourStep + 1)}
+                      className="px-6 py-2 bg-claude-orange hover:bg-claude-orange-dark text-white rounded-lg
+                        transition-colors font-medium"
+                    >
+                      Next
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => {
+                        localStorage.setItem('onboardingCompleted', 'true')
+                        setShowOnboardingTour(false)
+                        setTourStep(0)
+                      }}
+                      className="px-6 py-2 bg-claude-orange hover:bg-claude-orange-dark text-white rounded-lg
+                        transition-colors font-medium"
+                    >
+                      Get Started
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
           </div>
