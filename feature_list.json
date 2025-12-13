@@ -1774,7 +1774,7 @@
       "Step 4: Verify text is small but readable",
       "Step 5: Verify consistent styling across different badges"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "style",
