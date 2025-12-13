@@ -363,6 +363,8 @@ function App() {
   const modelDropdownRef = useRef(null)
   const contextMenuRef = useRef(null)
   const projectDropdownRef = useRef(null)
+  const settingsModalRef = useRef(null)
+  const previousFocusRef = useRef(null)
 
   // Model options with context window limits
   const models = [
@@ -752,6 +754,43 @@ function App() {
       setArtifactVersions([])
     }
   }, [currentArtifact])
+
+  // Focus management for settings modal
+  useEffect(() => {
+    if (showSettingsModal) {
+      // Store the currently focused element
+      previousFocusRef.current = document.activeElement
+
+      // Focus the modal after a short delay to ensure it's rendered
+      setTimeout(() => {
+        if (settingsModalRef.current) {
+          // Find the first focusable element in the modal
+          const focusable = settingsModalRef.current.querySelector(
+            'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+          )
+          if (focusable) {
+            focusable.focus()
+          }
+        }
+      }, 100)
+    } else if (previousFocusRef.current) {
+      // Return focus to the element that had focus before modal opened
+      previousFocusRef.current.focus()
+      previousFocusRef.current = null
+    }
+  }, [showSettingsModal])
+
+  // Focus management for keyboard shortcuts modal
+  useEffect(() => {
+    if (showKeyboardShortcutsModal) {
+      // Store the currently focused element
+      previousFocusRef.current = document.activeElement
+    } else if (previousFocusRef.current && !showSettingsModal) {
+      // Return focus only if no other modal is open
+      previousFocusRef.current.focus()
+      previousFocusRef.current = null
+    }
+  }, [showKeyboardShortcutsModal, showSettingsModal])
 
   const loadConversations = async (searchTerm = '') => {
     try {
@@ -1686,6 +1725,13 @@ function App() {
       setIsStreaming(false)
       streamReaderRef.current = null
       abortControllerRef.current = null
+
+      // Focus management: Return focus to textarea after message is sent
+      setTimeout(() => {
+        if (textareaRef.current) {
+          textareaRef.current.focus()
+        }
+      }, 100)
     }
   }
 
@@ -5157,7 +5203,7 @@ function App() {
         {/* Settings Modal */}
         {showSettingsModal && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-            <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <div ref={settingsModalRef} className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
               <h2 className="text-xl font-semibold mb-4">Settings</h2>
 
               {/* Appearance Section */}
