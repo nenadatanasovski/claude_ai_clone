@@ -1321,10 +1321,20 @@ function App() {
         url = `${API_BASE}/search/conversations?q=${encodeURIComponent(searchTerm)}`
       }
       const response = await fetch(url)
+
+      if (!response.ok) {
+        console.error('Failed to fetch conversations:', response.status, response.statusText)
+        setConversations([])
+        return
+      }
+
       const data = await response.json()
-      setConversations(data)
+      console.log('[loadConversations] Received data:', typeof data, Array.isArray(data), data)
+      // Ensure data is an array before setting conversations
+      setConversations(Array.isArray(data) ? data : [])
     } catch (error) {
       console.error('Error loading conversations:', error)
+      setConversations([]) // Reset to empty array on error
     } finally {
       setIsLoadingConversations(false)
     }
@@ -1357,21 +1367,24 @@ function App() {
       // Load messages
       const response = await fetch(`${API_BASE}/conversations/${conversationId}/messages`)
       const data = await response.json()
-      setMessages(data)
+      // Ensure data is an array before setting messages
+      const messagesArray = Array.isArray(data) ? data : []
+      setMessages(messagesArray)
 
       // Calculate total tokens from messages for context window indicator
-      const totalTokens = data.reduce((sum, msg) => sum + (msg.tokens || 0), 0)
-      console.log('[Context Window] Loading messages, total tokens:', totalTokens, 'from', data.length, 'messages')
+      const totalTokens = messagesArray.reduce((sum, msg) => sum + (msg.tokens || 0), 0)
+      console.log('[Context Window] Loading messages, total tokens:', totalTokens, 'from', messagesArray.length, 'messages')
       setContextWindowTokens(totalTokens)
 
       // Load artifacts for this conversation
       const artifactsResponse = await fetch(`${API_BASE}/conversations/${conversationId}/artifacts`)
       const artifactsData = await artifactsResponse.json()
-      setArtifacts(artifactsData)
+      // Ensure artifacts is an array
+      setArtifacts(Array.isArray(artifactsData) ? artifactsData : [])
 
       // Load artifacts for each message
       const msgArtifacts = {}
-      for (const message of data) {
+      for (const message of messagesArray) {
         if (message.id) {
           try {
             const msgArtResponse = await fetch(`${API_BASE}/messages/${message.id}/artifacts`)
@@ -1408,9 +1421,11 @@ function App() {
     try {
       const response = await fetch(`${API_BASE}/projects`)
       const data = await response.json()
-      setProjects(data)
+      // Ensure data is an array before setting projects
+      setProjects(Array.isArray(data) ? data : [])
     } catch (error) {
       console.error('Error loading projects:', error)
+      setProjects([]) // Reset to empty array on error
     }
   }
 
@@ -1422,9 +1437,11 @@ function App() {
       }
       const response = await fetch(url)
       const data = await response.json()
-      setFolders(data)
+      // Ensure data is an array before setting folders
+      setFolders(Array.isArray(data) ? data : [])
     } catch (error) {
       console.error('Error loading folders:', error)
+      setFolders([]) // Reset to empty array on error
     }
   }
 
