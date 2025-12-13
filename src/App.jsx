@@ -4459,6 +4459,8 @@ function App() {
                           extension = '.svg';
                         } else if (currentArtifact.type === 'mermaid') {
                           extension = '.mmd';
+                        } else if (currentArtifact.type === 'react') {
+                          extension = '.jsx';
                         } else if (currentArtifact.language === 'python') {
                           extension = '.py';
                         } else if (currentArtifact.language === 'javascript') {
@@ -4649,6 +4651,62 @@ function App() {
                     >
                       {currentArtifact.content}
                     </div>
+                  </div>
+                ) : currentArtifact.type === 'react' ? (
+                  // React Component Preview
+                  <div className="h-full bg-white">
+                    <iframe
+                      srcDoc={`
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    body {
+      margin: 0;
+      padding: 20px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+    }
+    * {
+      box-sizing: border-box;
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel">
+    ${currentArtifact.content}
+
+    // Auto-render the component if it's exported as default
+    const componentMatch = ${JSON.stringify(currentArtifact.content)}.match(/export\\s+default\\s+function\\s+(\\w+)/);
+    if (componentMatch) {
+      const ComponentName = componentMatch[1];
+      const element = React.createElement(eval(ComponentName));
+      ReactDOM.render(element, document.getElementById('root'));
+    } else {
+      // Try to find any function component
+      const funcMatch = ${JSON.stringify(currentArtifact.content)}.match(/function\\s+(\\w+)/);
+      if (funcMatch) {
+        const ComponentName = funcMatch[1];
+        try {
+          const element = React.createElement(eval(ComponentName));
+          ReactDOM.render(element, document.getElementById('root'));
+        } catch(e) {
+          document.getElementById('root').innerHTML = '<div style="color: red; padding: 20px;">Error rendering component: ' + e.message + '</div>';
+        }
+      }
+    }
+  </script>
+</body>
+</html>
+                      `}
+                      className="w-full h-full border-0"
+                      sandbox="allow-scripts"
+                      title="React Component Preview"
+                    />
                   </div>
                 ) : (
                   // Code View

@@ -377,6 +377,15 @@ function detectArtifacts(content) {
     } else if (language.toLowerCase() === 'mermaid') {
       type = 'mermaid';
       title = `Diagram ${index + 1}`;
+    } else if (language.toLowerCase() === 'jsx' || language.toLowerCase() === 'react') {
+      type = 'react';
+      title = `React Component ${index + 1}`;
+    } else if ((language.toLowerCase() === 'javascript' || language.toLowerCase() === 'js') &&
+               (code.includes('React.') || code.includes('useState') || code.includes('useEffect') ||
+                code.includes('export default function') || code.includes('return (') || code.includes('className='))) {
+      // Detect React components in JavaScript code blocks
+      type = 'react';
+      title = `React Component ${index + 1}`;
     }
 
     artifacts.push({
@@ -571,6 +580,10 @@ app.post('/api/conversations/:id/messages', async (req, res) => {
                               content.toLowerCase().includes('diagram') ||
                               content.toLowerCase().includes('flowchart');
 
+      const isReactRequest = content.toLowerCase().includes('react component') ||
+                            (content.toLowerCase().includes('react') && content.toLowerCase().includes('component')) ||
+                            (content.toLowerCase().includes('counter') && content.toLowerCase().includes('button'));
+
       // Check if custom instructions specify behavior
       let mockResponse;
       if (images && images.length > 0) {
@@ -601,6 +614,82 @@ graph TD
 \`\`\`
 
 This Mermaid diagram shows a basic workflow with a decision point. The diagram will be rendered visually in the artifact panel.`;
+      } else if (isReactRequest) {
+        // Mock response with React component
+        mockResponse = `Here's a React counter component with increment and decrement buttons:
+
+\`\`\`jsx
+function Counter() {
+  const [count, setCount] = React.useState(0);
+
+  return (
+    <div style={{
+      textAlign: 'center',
+      padding: '40px',
+      fontFamily: 'Arial, sans-serif'
+    }}>
+      <h1 style={{ color: '#333', marginBottom: '20px' }}>Counter App</h1>
+      <div style={{
+        fontSize: '48px',
+        fontWeight: 'bold',
+        color: '#2c3e50',
+        margin: '30px 0'
+      }}>
+        {count}
+      </div>
+      <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
+        <button
+          onClick={() => setCount(count - 1)}
+          style={{
+            padding: '12px 24px',
+            fontSize: '18px',
+            backgroundColor: '#e74c3c',
+            color: 'white',
+            border: 'none',
+            borderRadius: '8px',
+            cursor: 'pointer',
+            fontWeight: 'bold'
+          }}
+        >
+          Decrement
+        </button>
+        <button
+          onClick={() => setCount(0)}
+          style={{
+            padding: '12px 24px',
+            fontSize: '18px',
+            backgroundColor: '#95a5a6',
+            color: 'white',
+            border: 'none',
+            borderRadius: '8px',
+            cursor: 'pointer',
+            fontWeight: 'bold'
+          }}
+        >
+          Reset
+        </button>
+        <button
+          onClick={() => setCount(count + 1)}
+          style={{
+            padding: '12px 24px',
+            fontSize: '18px',
+            backgroundColor: '#27ae60',
+            color: 'white',
+            border: 'none',
+            borderRadius: '8px',
+            cursor: 'pointer',
+            fontWeight: 'bold'
+          }}
+        >
+          Increment
+        </button>
+      </div>
+    </div>
+  );
+}
+\`\`\`
+
+This component uses React hooks (useState) to manage the counter state. It includes three buttons: decrement, reset, and increment. The component will render with live interactivity in the artifact panel!`;
       } else if (isCodeRequest) {
         mockResponse = "Here's a simple Python hello world function:\n\n```python\ndef hello_world():\n    print('Hello, World!')\n    return 'Hello, World!'\n\n# Call the function\nhello_world()\n```\n\nThis function prints 'Hello, World!' to the console and returns the string.";
       } else if (isLongRequest) {

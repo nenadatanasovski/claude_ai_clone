@@ -1203,7 +1203,7 @@
       "Step 4: Verify a live preview renders the component",
       "Step 5: Verify interactivity works in preview"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
