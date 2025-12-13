@@ -1874,7 +1874,7 @@
       "Step 6: Verify it closes",
       "Step 7: Verify chat area is accessible again"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
