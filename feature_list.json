@@ -1412,7 +1412,7 @@
       "Step 4: Compare layouts, colors, spacing",
       "Step 5: Verify close visual similarity"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "style",
@@ -1423,7 +1423,7 @@
       "Step 3: Verify hover states use variations of the primary color",
       "Step 4: Verify the color is used consistently for CTAs"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "style",
