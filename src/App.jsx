@@ -379,6 +379,7 @@ function App() {
   const [showCommandPalette, setShowCommandPalette] = useState(false) // Show command palette modal
   const [commandPaletteQuery, setCommandPaletteQuery] = useState('') // Search query in command palette
   const [messageSuggestions, setMessageSuggestions] = useState({}) // Suggestions for each message { messageId: [suggestions] }
+  const [relatedPrompts, setRelatedPrompts] = useState([]) // Related prompts based on conversation topic
   const [editingMessageId, setEditingMessageId] = useState(null)
   const [editedMessageContent, setEditedMessageContent] = useState('')
   const [branches, setBranches] = useState([]) // Conversation branches
@@ -747,6 +748,16 @@ function App() {
   useEffect(() => {
     localStorage.setItem('maxTokens', maxTokens.toString())
   }, [maxTokens])
+
+  // Generate related prompts when messages change
+  useEffect(() => {
+    if (messages.length >= 2 && !isStreaming) {
+      const prompts = generateRelatedPrompts(messages)
+      setRelatedPrompts(prompts)
+    } else {
+      setRelatedPrompts([])
+    }
+  }, [messages, isStreaming])
 
   // Render Mermaid diagrams when artifact changes
   useEffect(() => {
@@ -2004,6 +2015,78 @@ function App() {
   const handleSuggestionClick = (suggestionText) => {
     setInputValue(suggestionText)
     // Focus the input field
+    const textarea = document.querySelector('textarea[placeholder*="Message"]')
+    if (textarea) {
+      textarea.focus()
+    }
+  }
+
+  // Generate related prompts based on conversation topic
+  const generateRelatedPrompts = (conversationMessages) => {
+    if (!conversationMessages || conversationMessages.length === 0) {
+      return []
+    }
+
+    // Analyze conversation content to determine topic
+    const allContent = conversationMessages.map(m => m.content).join(' ').toLowerCase()
+
+    const prompts = []
+
+    // Programming/code related
+    if (allContent.includes('code') || allContent.includes('function') || allContent.includes('program') ||
+        allContent.includes('javascript') || allContent.includes('python') || allContent.includes('react')) {
+      prompts.push('How can I test this code?')
+      prompts.push('What are common pitfalls to avoid?')
+      prompts.push('Can you show me a more advanced example?')
+    }
+    // Writing/content related
+    else if (allContent.includes('write') || allContent.includes('article') || allContent.includes('essay') ||
+             allContent.includes('blog') || allContent.includes('content')) {
+      prompts.push('How can I make this more engaging?')
+      prompts.push('What tone would work best for my audience?')
+      prompts.push('Can you help me create an outline?')
+    }
+    // Data/analysis related
+    else if (allContent.includes('data') || allContent.includes('analysis') || allContent.includes('chart') ||
+             allContent.includes('graph') || allContent.includes('statistics')) {
+      prompts.push('What other visualizations would help?')
+      prompts.push('How should I present this data?')
+      prompts.push('What insights can I derive from this?')
+    }
+    // Design/UI related
+    else if (allContent.includes('design') || allContent.includes('ui') || allContent.includes('ux') ||
+             allContent.includes('interface') || allContent.includes('layout')) {
+      prompts.push('What are current design trends for this?')
+      prompts.push('How can I improve accessibility?')
+      prompts.push('What color scheme would work well?')
+    }
+    // Business/strategy related
+    else if (allContent.includes('business') || allContent.includes('strategy') || allContent.includes('marketing') ||
+             allContent.includes('product') || allContent.includes('growth')) {
+      prompts.push('What are the key metrics to track?')
+      prompts.push('How do competitors approach this?')
+      prompts.push('What are potential risks to consider?')
+    }
+    // Learning/education related
+    else if (allContent.includes('learn') || allContent.includes('understand') || allContent.includes('explain') ||
+             allContent.includes('how') || allContent.includes('why')) {
+      prompts.push('Can you explain this in simpler terms?')
+      prompts.push('What resources can help me learn more?')
+      prompts.push('What are practical applications of this?')
+    }
+    // Generic fallback prompts
+    else {
+      prompts.push('What else should I know about this topic?')
+      prompts.push('Can you provide more examples?')
+      prompts.push('How does this compare to alternatives?')
+    }
+
+    // Limit to 3 prompts
+    return prompts.slice(0, 3)
+  }
+
+  const handleRelatedPromptClick = (promptText) => {
+    setInputValue(promptText)
     const textarea = document.querySelector('textarea[placeholder*="Message"]')
     if (textarea) {
       textarea.focus()
@@ -4930,6 +5013,40 @@ function App() {
                                 </button>
                               </div>
                             </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                    {/* Related Prompts Section */}
+                    {relatedPrompts.length > 0 && messages.length >= 2 && !isStreaming && (
+                      <div className="mt-8 mb-6 max-w-3xl mx-auto">
+                        <div className="border-t border-gray-200 dark:border-gray-700 pt-6">
+                          <div className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+                            Related prompts you might find helpful:
+                          </div>
+                          <div className="space-y-2">
+                            {relatedPrompts.map((prompt, idx) => (
+                              <button
+                                key={idx}
+                                onClick={() => handleRelatedPromptClick(prompt)}
+                                disabled={isLoading}
+                                className="w-full text-left px-4 py-3 rounded-lg
+                                  border border-gray-200 dark:border-gray-700
+                                  bg-white dark:bg-gray-800
+                                  text-gray-700 dark:text-gray-300
+                                  hover:border-[#CC785C] hover:bg-orange-50 dark:hover:bg-orange-900/10
+                                  disabled:opacity-50 disabled:cursor-not-allowed
+                                  transition-all duration-200
+                                  text-sm"
+                              >
+                                <div className="flex items-center gap-2">
+                                  <svg className="w-4 h-4 text-[#CC785C] flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                  </svg>
+                                  <span>{prompt}</span>
+                                </div>
+                              </button>
+                            ))}
                           </div>
                         </div>
                       </div>

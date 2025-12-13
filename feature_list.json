@@ -1400,7 +1400,7 @@
       "Step 4: Click a related prompt",
       "Step 5: Verify it starts a new or continued conversation"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "style",
