@@ -1,6 +1,322 @@
 CLAUDE.AI CLONE - DEVELOPMENT PROGRESS
 ======================================
 
+SESSION 84 - FEATURE #92: PROJECT ANALYTICS - USAGE STATS
+==========================================================
+Date: December 13, 2025
+Agent: Feature Implementation Agent
+
+SUMMARY
+=======
+
+Session 84 successfully implemented Feature #92:
+- ✅ Feature #92: Project analytics - usage stats
+- ✅ Created API endpoint GET /api/projects/:id/analytics
+- ✅ Endpoint aggregates conversation count, total messages, and total tokens
+- ✅ Added analytics display to Project Settings modal
+- ✅ Beautiful 3-card layout showing statistics
+- ✅ Verified with browser automation
+- ✅ Updated feature_list.json: Marked #92 as passing
+- ✅ All changes committed successfully
+
+**Progress: 92/175 features passing (52.57%)**
+
+WHAT WAS ACCOMPLISHED
+=====================
+
+**Feature #92 - Project analytics - usage stats:**
+✅ Fully implemented and tested
+
+**Implementation Details:**
+
+Project analytics provides insights into project usage, helping users understand
+how much work has been done in a project by tracking conversations, messages,
+and token usage.
+
+**1. Backend API Endpoint (server/server.js lines 1088-1120):**
+
+Created GET /api/projects/:id/analytics endpoint:
+
+```javascript
+app.get('/api/projects/:id/analytics', (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Get conversation count for this project
+    const conversationCountResult = dbHelpers.prepare(`
+      SELECT COUNT(*) as count FROM conversations
+      WHERE project_id = ? AND is_deleted = 0
+    `).get(id);
+    const conversationCount = conversationCountResult?.count || 0;
+
+    // Get total messages and tokens across all conversations
+    const statsResult = dbHelpers.prepare(`
+      SELECT
+        SUM(c.message_count) as total_messages,
+        SUM(c.token_count) as total_tokens
+      FROM conversations c
+      WHERE c.project_id = ? AND c.is_deleted = 0
+    `).get(id);
+
+    const analytics = {
+      conversation_count: conversationCount,
+      total_messages: statsResult?.total_messages || 0,
+      total_tokens: statsResult?.total_tokens || 0
+    };
+
+    res.json(analytics);
+  } catch (error) {
+    console.error('Error fetching project analytics:', error);
+    res.status(500).json({ error: 'Failed to fetch project analytics' });
+  }
+});
+```
+
+**Key Features:**
+- Counts non-deleted conversations in project
+- Sums message_count from all conversations
+- Sums token_count from all conversations
+- Handles null/undefined gracefully with fallback to 0
+- Proper error handling
+
+**2. Frontend State Management (src/App.jsx):**
+
+Added projectAnalytics state (line 283):
+
+```javascript
+const [projectAnalytics, setProjectAnalytics] = useState(null)
+```
+
+**3. Analytics Fetching (src/App.jsx lines 2815-2823):**
+
+Enhanced openProjectSettings to fetch analytics:
+
+```javascript
+// Fetch project analytics
+try {
+  const analyticsResponse = await fetch(`${API_BASE}/projects/${projectId}/analytics`)
+  const analytics = await analyticsResponse.json()
+  setProjectAnalytics(analytics)
+} catch (analyticsError) {
+  console.error('Error loading project analytics:', analyticsError)
+  setProjectAnalytics(null)
+}
+```
+
+**4. Analytics Display UI (src/App.jsx lines 4844-4875):**
+
+Added Usage Statistics section to Project Settings modal:
+
+```jsx
+{/* Analytics Section */}
+{projectAnalytics && (
+  <div>
+    <h3 className="text-lg font-medium mb-3">Usage Statistics</h3>
+    <div className="grid grid-cols-3 gap-4">
+      <div className="bg-gray-50 dark:bg-gray-900 p-4 rounded-lg border border-gray-200 dark:border-gray-700">
+        <div className="text-2xl font-bold text-claude-orange">
+          {projectAnalytics.conversation_count}
+        </div>
+        <div className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+          Conversations
+        </div>
+      </div>
+      <div className="bg-gray-50 dark:bg-gray-900 p-4 rounded-lg border border-gray-200 dark:border-gray-700">
+        <div className="text-2xl font-bold text-claude-orange">
+          {projectAnalytics.total_messages}
+        </div>
+        <div className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+          Total Messages
+        </div>
+      </div>
+      <div className="bg-gray-50 dark:bg-gray-900 p-4 rounded-lg border border-gray-200 dark:border-gray-700">
+        <div className="text-2xl font-bold text-claude-orange">
+          {projectAnalytics.total_tokens?.toLocaleString()}
+        </div>
+        <div className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+          Total Tokens
+        </div>
+      </div>
+    </div>
+  </div>
+)}
+```
+
+**UI Features:**
+- Clean 3-column grid layout
+- Each stat displayed in a card with subtle background
+- Large orange numbers for emphasis
+- Descriptive labels below each stat
+- Token count formatted with thousands separator
+- Responsive design with gap-4 spacing
+- Dark mode support
+
+**Test Verification:**
+
+All test steps verified with browser automation and visual inspection:
+
+✅ **Step 1: Create a project with several conversations**
+- Test Project 2 already exists with 2 conversations
+- Screenshot: 09_app_loaded_for_analytics_test.png
+
+✅ **Step 2: Use the conversations to generate messages**
+- 6 messages exist across the project's conversations
+- Messages created in previous sessions
+
+✅ **Step 3: Open project analytics**
+- Clicked "All Conversations" dropdown
+- Hovered over "Test Project 2"
+- Clicked settings button (gear icon)
+- Project Settings modal opened successfully
+- Screenshot: 17_project_settings_modal_opened.png
+
+✅ **Step 4: Verify total messages count**
+- Displayed as "6" in orange
+- Middle card labeled "Total Messages"
+- Correct count from database
+- Screenshot: 17_project_settings_modal_opened.png
+
+✅ **Step 5: Verify total tokens used**
+- Displayed as "50" in orange
+- Right card labeled "Total Tokens"
+- Formatted number display
+- Screenshot: 17_project_settings_modal_opened.png
+
+✅ **Step 6: Verify conversation count in project**
+- Displayed as "2" in orange
+- Left card labeled "Conversations"
+- Matches project's conversation count
+- Screenshot: 17_project_settings_modal_opened.png
+
+**Why This Feature Matters:**
+
+1. **Project Insights:**
+   - Helps users understand project scale and activity
+   - Shows how much work has been done
+   - Tracks resource usage (tokens)
+
+2. **Resource Management:**
+   - Token tracking helps monitor API usage costs
+   - Can identify high-usage projects
+   - Useful for budgeting and planning
+
+3. **User Value:**
+   - Provides transparency into project metrics
+   - Helps users understand their usage patterns
+   - Can inform decisions about project organization
+
+4. **UI/UX Benefits:**
+   - Non-intrusive display in existing settings modal
+   - Clear, scannable layout with 3 cards
+   - Orange accent matches app branding
+   - Works seamlessly with dark mode
+
+TECHNICAL DETAILS
+==================
+
+**Files Modified:**
+
+1. **server/server.js** (+33 lines):
+   - Lines 1088-1120: Added GET /api/projects/:id/analytics endpoint
+
+2. **src/App.jsx** (+46 lines):
+   - Line 283: Added projectAnalytics state
+   - Lines 2815-2823: Added analytics fetching in openProjectSettings
+   - Line 2836: Clear analytics in closeProjectSettings
+   - Lines 4844-4875: Added Usage Statistics section to modal (32 lines)
+
+3. **feature_list.json** (-1 line, +1 line):
+   - Line 1158: Changed `"passes": false` to `"passes": true`
+
+**Database Queries:**
+
+1. **Conversation Count Query:**
+   ```sql
+   SELECT COUNT(*) as count FROM conversations
+   WHERE project_id = ? AND is_deleted = 0
+   ```
+
+2. **Aggregated Stats Query:**
+   ```sql
+   SELECT
+     SUM(c.message_count) as total_messages,
+     SUM(c.token_count) as total_tokens
+   FROM conversations c
+   WHERE c.project_id = ? AND c.is_deleted = 0
+   ```
+
+**Key Implementation Patterns:**
+
+1. **Graceful Degradation:**
+   - Analytics section only shows if data available
+   - Null checks with optional chaining
+   - Fallback to 0 for missing values
+
+2. **Number Formatting:**
+   - Token count uses toLocaleString() for readability
+   - e.g., 1000 becomes "1,000"
+
+3. **Error Handling:**
+   - Try-catch around analytics fetch
+   - Doesn't block modal from opening if analytics fail
+   - Logs errors to console
+
+4. **State Management:**
+   - Analytics fetched when modal opens
+   - Cleared when modal closes
+   - Prevents stale data
+
+**Visual Design:**
+
+- **Card Layout:** bg-gray-50 dark:bg-gray-900 with border
+- **Typography:** 2xl bold for numbers, sm for labels
+- **Color Scheme:** Orange for numbers (brand color), gray for labels
+- **Spacing:** p-4 padding, gap-4 grid gap
+- **Responsive:** 3-column grid scales with screen size
+
+GIT COMMITS THIS SESSION
+=========================
+- 1b0adeb: Implement Feature #92: Project analytics - usage stats - verified end-to-end
+
+NEXT PRIORITIES
+===============
+1. Feature #93: Conversation templates
+2. Feature #94: Project templates
+3. Feature #95: Prompt library with categories
+4. Feature #96: Example conversations
+5. Feature #97: Command palette (Cmd+K)
+
+NOTES FOR NEXT SESSION
+=======================
+- 92/175 features complete - 52.57% done! ✅
+- Project analytics provides valuable usage insights
+- Clean 3-card layout is intuitive and scannable
+- API efficiently aggregates data from conversations table
+- Next: Implement conversation templates (#93)
+- Then: Continue with project templates (#94)
+- Analytics could be extended with graphs/charts in future
+
+LESSONS LEARNED
+===============
+- SUM() aggregation in SQL handles NULL gracefully
+- Using conversation table's cached counts (message_count, token_count) is efficient
+- Optional chaining (?.) prevents errors with missing data
+- toLocaleString() improves number readability
+- Modal can be extended with overflow-y-auto for scrollable content
+- max-h-[90vh] prevents modal from exceeding viewport height
+- Conditional rendering with {condition && <Component />} keeps UI clean
+- grid-cols-3 creates balanced 3-column layout
+- Orange accent color draws attention to key metrics
+- Settings button with opacity-0 group-hover:opacity-100 creates clean hover effect
+- Browser automation requires manually setting opacity to click hidden elements
+- Always verify with actual data in browser (Test Project 2 had real analytics)
+- Analytics should load asynchronously to not block UI
+- Error handling in analytics fetch is important for robustness
+
+========================================================================
+PREVIOUS SESSION NOTES (SESSION 83)
+========================================================================
+
 SESSION 83 - FEATURE #91: REDUCED MOTION SUPPORT
 =================================================
 Date: December 13, 2025
