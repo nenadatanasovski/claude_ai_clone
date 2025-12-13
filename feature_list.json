@@ -1225,7 +1225,7 @@
       "Step 3: Verify inline equations render correctly",
       "Step 4: Verify block equations are properly displayed"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
