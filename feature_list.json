@@ -1507,7 +1507,7 @@
       "Step 5: Hover over button",
       "Step 6: Verify hover effect (color change or shadow)"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "style",
