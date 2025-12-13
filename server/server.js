@@ -386,6 +386,10 @@ function detectArtifacts(content) {
       // Detect React components in JavaScript code blocks
       type = 'react';
       title = `React Component ${index + 1}`;
+    } else if (language.toLowerCase() === 'markdown' || language.toLowerCase() === 'md' || language.toLowerCase() === 'text' || language.toLowerCase() === 'txt') {
+      // Detect text documents (markdown or plain text)
+      type = 'text';
+      title = `Document ${index + 1}`;
     }
 
     artifacts.push({
@@ -584,6 +588,12 @@ app.post('/api/conversations/:id/messages', async (req, res) => {
                             (content.toLowerCase().includes('react') && content.toLowerCase().includes('component')) ||
                             (content.toLowerCase().includes('counter') && content.toLowerCase().includes('button'));
 
+      const isTextDocumentRequest = content.toLowerCase().includes('formal document') ||
+                                   content.toLowerCase().includes('write a document') ||
+                                   content.toLowerCase().includes('business letter') ||
+                                   content.toLowerCase().includes('policy document') ||
+                                   (content.toLowerCase().includes('document') && (content.toLowerCase().includes('write') || content.toLowerCase().includes('create')));
+
       // Check if custom instructions specify behavior
       let mockResponse;
       if (images && images.length > 0) {
@@ -690,6 +700,94 @@ function Counter() {
 \`\`\`
 
 This component uses React hooks (useState) to manage the counter state. It includes three buttons: decrement, reset, and increment. The component will render with live interactivity in the artifact panel!`;
+      } else if (isTextDocumentRequest) {
+        // Mock response with formal document
+        mockResponse = `Here's a formal business document template:
+
+\`\`\`markdown
+# Company Policy Document: Remote Work Guidelines
+
+**Effective Date:** January 1, 2024
+**Document Version:** 1.0
+**Department:** Human Resources
+
+## Executive Summary
+
+This document establishes the formal guidelines and policies for remote work arrangements within our organization. It outlines eligibility criteria, expectations, and best practices to ensure productivity and work-life balance for all employees.
+
+## 1. Purpose and Scope
+
+The purpose of this policy is to provide a framework for employees who wish to work remotely, either on a full-time or hybrid basis. This policy applies to all employees who have been approved for remote work arrangements by their direct supervisor and the HR department.
+
+## 2. Eligibility Criteria
+
+To be eligible for remote work, employees must meet the following requirements:
+
+- Have completed their probationary period (minimum 90 days)
+- Demonstrate consistent performance and self-motivation
+- Possess a suitable home workspace with reliable internet connectivity
+- Have job responsibilities that can be performed remotely
+
+## 3. Work Expectations
+
+Remote employees are expected to:
+
+- Maintain regular working hours as agreed upon with their supervisor
+- Be available and responsive during core business hours (9 AM - 5 PM)
+- Attend all required meetings via video conferencing
+- Complete all assigned tasks and meet deadlines
+- Use company-approved communication and collaboration tools
+
+## 4. Equipment and Technology
+
+The company will provide:
+
+- A laptop computer and necessary peripherals
+- Access to required software and cloud-based tools
+- Technical support for company-owned equipment
+
+Employees are responsible for:
+
+- Maintaining a secure and private workspace
+- Ensuring reliable internet connectivity (minimum 25 Mbps)
+- Protecting company data and equipment
+
+## 5. Communication Protocols
+
+All remote employees must:
+
+- Check email and messaging platforms at least three times daily
+- Respond to urgent communications within 2 hours during business hours
+- Schedule regular check-ins with their team and supervisor
+- Update their status in the company's communication platform
+
+## 6. Performance Evaluation
+
+Remote work performance will be evaluated based on:
+
+- Quality and timeliness of work deliverables
+- Availability and responsiveness
+- Participation in team activities
+- Overall contribution to organizational goals
+
+## 7. Review and Termination
+
+Remote work arrangements will be reviewed quarterly. The company reserves the right to terminate remote work privileges if:
+
+- Performance standards are not met
+- Business needs change
+- Policy violations occur
+
+## Conclusion
+
+This policy aims to support flexible work arrangements while maintaining operational excellence. All questions regarding this policy should be directed to the Human Resources department.
+
+**Approved by:**
+Jane Smith, Chief Human Resources Officer
+John Doe, Chief Executive Officer
+\`\`\`
+
+This formal document demonstrates proper formatting, structure, and professional tone suitable for business use.`;
       } else if (isCodeRequest) {
         mockResponse = "Here's a simple Python hello world function:\n\n```python\ndef hello_world():\n    print('Hello, World!')\n    return 'Hello, World!'\n\n# Call the function\nhello_world()\n```\n\nThis function prints 'Hello, World!' to the console and returns the string.";
       } else if (isLongRequest) {

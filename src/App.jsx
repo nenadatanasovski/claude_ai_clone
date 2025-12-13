@@ -4461,6 +4461,8 @@ function App() {
                           extension = '.mmd';
                         } else if (currentArtifact.type === 'react') {
                           extension = '.jsx';
+                        } else if (currentArtifact.type === 'text') {
+                          extension = currentArtifact.language === 'markdown' || currentArtifact.language === 'md' ? '.md' : '.txt';
                         } else if (currentArtifact.language === 'python') {
                           extension = '.py';
                         } else if (currentArtifact.language === 'javascript') {
@@ -4707,6 +4709,15 @@ function App() {
                       sandbox="allow-scripts"
                       title="React Component Preview"
                     />
+                  </div>
+                ) : currentArtifact.type === 'text' ? (
+                  // Text Document Preview
+                  <div className="h-full bg-white dark:bg-gray-50 overflow-auto">
+                    <div className="max-w-4xl mx-auto p-8">
+                      <div className="prose prose-lg max-w-none">
+                        <ReactMarkdown>{currentArtifact.content}</ReactMarkdown>
+                      </div>
+                    </div>
                   </div>
                 ) : (
                   // Code View

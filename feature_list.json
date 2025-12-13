@@ -1214,7 +1214,7 @@
       "Step 3: Verify proper formatting",
       "Step 4: Verify download as .txt or .md works"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
