@@ -420,6 +420,10 @@ function App() {
     // Default to system preference
     return window.matchMedia('(prefers-reduced-motion: reduce)').matches
   }) // Reduced motion for accessibility
+  const [language, setLanguage] = useState(() => {
+    const saved = localStorage.getItem('language')
+    return saved || 'en'
+  }) // UI language preference
   const [globalCustomInstructions, setGlobalCustomInstructions] = useState('')
   const [temperature, setTemperature] = useState(() => {
     const saved = localStorage.getItem('temperature')
@@ -715,6 +719,11 @@ function App() {
   useEffect(() => {
     localStorage.setItem('reducedMotion', reducedMotion.toString())
   }, [reducedMotion])
+
+  // Save language setting to localStorage
+  useEffect(() => {
+    localStorage.setItem('language', language)
+  }, [language])
 
   // Save temperature setting to localStorage
   useEffect(() => {
@@ -6322,6 +6331,51 @@ function App() {
                     />
                   </button>
                 </div>
+              </div>
+
+              {/* Language Preferences Section */}
+              <div className="mb-6">
+                <h3 className="text-lg font-medium mb-3">Language Preferences</h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
+                  Choose your preferred language for the interface
+                </p>
+                <div className="grid grid-cols-2 gap-3">
+                  {[
+                    { code: 'en', name: 'English', flag: '🇺🇸' },
+                    { code: 'es', name: 'Español', flag: '🇪🇸' },
+                    { code: 'fr', name: 'Français', flag: '🇫🇷' },
+                    { code: 'de', name: 'Deutsch', flag: '🇩🇪' },
+                    { code: 'it', name: 'Italiano', flag: '🇮🇹' },
+                    { code: 'pt', name: 'Português', flag: '🇵🇹' },
+                    { code: 'ja', name: '日本語', flag: '🇯🇵' },
+                    { code: 'zh', name: '中文', flag: '🇨🇳' },
+                    { code: 'ko', name: '한국어', flag: '🇰🇷' },
+                    { code: 'ru', name: 'Русский', flag: '🇷🇺' }
+                  ].map((lang) => (
+                    <button
+                      key={lang.code}
+                      onClick={() => setLanguage(lang.code)}
+                      className={`px-4 py-3 rounded-lg border-2 transition-all text-left ${
+                        language === lang.code
+                          ? 'border-claude-orange bg-claude-orange/5'
+                          : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <span className="text-2xl">{lang.flag}</span>
+                          <span className="font-medium">{lang.name}</span>
+                        </div>
+                        {language === lang.code && (
+                          <span className="text-claude-orange">✓</span>
+                        )}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-3">
+                  Note: Currently only English is fully supported. Other languages are planned for future releases.
+                </p>
               </div>
 
               {/* API Keys Section */}
