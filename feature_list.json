@@ -1482,7 +1482,7 @@
       "Step 4: Verify rounded corners",
       "Step 5: Verify proper padding"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "style",
