@@ -5106,6 +5106,7 @@ function App() {
                     className="w-full pl-12 pr-12 py-3 rounded-lg border border-gray-300
                       dark:border-gray-700 bg-white dark:bg-gray-900
                       focus:outline-none focus:ring-2 focus:ring-claude-orange
+                      placeholder:text-gray-400 dark:placeholder:text-gray-500
                       resize-none overflow-hidden"
                     style={{ minHeight: '52px' }}
                     disabled={isLoading}

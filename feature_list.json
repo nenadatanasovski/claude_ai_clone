@@ -1543,7 +1543,7 @@
       "Step 4: Verify placeholder text is gray and readable",
       "Step 5: Verify comfortable padding inside field"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "style",
