@@ -434,6 +434,69 @@ app.get('/api/health', (req, res) => {
   });
 });
 
+// Get current user profile
+app.get('/api/auth/me', (req, res) => {
+  try {
+    // For simplicity, we'll get the first user (in a real app, this would use authentication)
+    const user = dbHelpers.prepare('SELECT id, email, name, avatar_url, preferences, custom_instructions FROM users LIMIT 1').get();
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    // Parse preferences if it's a JSON string
+    if (user.preferences && typeof user.preferences === 'string') {
+      try {
+        user.preferences = JSON.parse(user.preferences);
+      } catch (e) {
+        user.preferences = {};
+      }
+    }
+
+    res.json(user);
+  } catch (error) {
+    console.error('Error fetching user:', error);
+    res.status(500).json({ error: 'Failed to fetch user profile' });
+  }
+});
+
+// Update user profile
+app.put('/api/auth/profile', (req, res) => {
+  try {
+    const { name, email, avatar_url } = req.body;
+
+    // Get the first user (in a real app, this would use authentication)
+    const user = dbHelpers.prepare('SELECT id FROM users LIMIT 1').get();
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    // Update user profile
+    dbHelpers.prepare(`
+      UPDATE users
+      SET name = ?, email = ?, avatar_url = ?
+      WHERE id = ?
+    `).run(name, email, avatar_url || null, user.id);
+
+    // Return updated user
+    const updatedUser = dbHelpers.prepare('SELECT id, email, name, avatar_url, preferences, custom_instructions FROM users WHERE id = ?').get(user.id);
+
+    if (updatedUser.preferences && typeof updatedUser.preferences === 'string') {
+      try {
+        updatedUser.preferences = JSON.parse(updatedUser.preferences);
+      } catch (e) {
+        updatedUser.preferences = {};
+      }
+    }
+
+    res.json(updatedUser);
+  } catch (error) {
+    console.error('Error updating user profile:', error);
+    res.status(500).json({ error: 'Failed to update user profile' });
+  }
+});
+
 // Get all conversations
 app.get('/api/conversations', (req, res) => {
   try {

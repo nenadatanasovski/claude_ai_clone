@@ -1261,7 +1261,7 @@
       "Step 4: Click on profile",
       "Step 5: Verify profile menu or settings open"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
