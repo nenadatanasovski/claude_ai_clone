@@ -275,6 +275,20 @@ dbHelpers.exec(`
     is_active BOOLEAN DEFAULT 1,
     FOREIGN KEY (user_id) REFERENCES users(id)
   );
+
+  CREATE TABLE IF NOT EXISTS conversation_templates (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER,
+    name TEXT NOT NULL,
+    description TEXT,
+    template_structure TEXT NOT NULL,
+    category TEXT,
+    is_public BOOLEAN DEFAULT 0,
+    usage_count INTEGER DEFAULT 0,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id)
+  );
 `);
 
 // Create a default user if none exists
@@ -2428,6 +2442,178 @@ app.get('/api/prompts/categories', (req, res) => {
   } catch (error) {
     console.error('Error fetching categories:', error);
     res.status(500).json({ error: 'Failed to fetch categories' });
+  }
+});
+
+// ============================================================================
+// CONVERSATION TEMPLATES API
+// ============================================================================
+
+// GET /api/templates - Get all conversation templates
+app.get('/api/templates', (req, res) => {
+  try {
+    const userId = 1; // Using default user
+
+    const templates = dbHelpers.prepare(`
+      SELECT * FROM conversation_templates
+      WHERE user_id = ? OR is_public = 1
+      ORDER BY created_at DESC
+    `).all(userId);
+
+    res.json(templates.map(t => ({
+      ...t,
+      template_structure: JSON.parse(t.template_structure),
+      is_public: Boolean(t.is_public)
+    })));
+  } catch (error) {
+    console.error('Error fetching templates:', error);
+    res.status(500).json({ error: 'Failed to fetch templates' });
+  }
+});
+
+// POST /api/templates - Create a template from a conversation
+app.post('/api/templates', (req, res) => {
+  try {
+    const { conversationId, name, description, category } = req.body;
+    const userId = 1; // Using default user
+
+    if (!conversationId || !name) {
+      return res.status(400).json({ error: 'conversationId and name are required' });
+    }
+
+    // Get the conversation
+    const conversation = dbHelpers.prepare(
+      'SELECT * FROM conversations WHERE id = ?'
+    ).get(conversationId);
+
+    if (!conversation) {
+      return res.status(404).json({ error: 'Conversation not found' });
+    }
+
+    // Get all messages from the conversation
+    const messages = dbHelpers.prepare(`
+      SELECT id, role, content, created_at
+      FROM messages
+      WHERE conversation_id = ?
+      ORDER BY created_at ASC
+    `).all(conversationId);
+
+    // Create the template structure
+    const templateStructure = {
+      title: conversation.title,
+      model: conversation.model,
+      settings: conversation.settings ? JSON.parse(conversation.settings) : {},
+      messages: messages.map(m => ({
+        role: m.role,
+        content: m.content
+      }))
+    };
+
+    // Insert the template
+    const result = dbHelpers.prepare(`
+      INSERT INTO conversation_templates (user_id, name, description, template_structure, category)
+      VALUES (?, ?, ?, ?, ?)
+    `).run(
+      userId,
+      name,
+      description || '',
+      JSON.stringify(templateStructure),
+      category || 'General'
+    );
+
+    const template = dbHelpers.prepare(
+      'SELECT * FROM conversation_templates WHERE id = ?'
+    ).get(result.lastInsertRowid);
+
+    res.json({
+      ...template,
+      template_structure: JSON.parse(template.template_structure),
+      is_public: Boolean(template.is_public)
+    });
+  } catch (error) {
+    console.error('Error creating template:', error);
+    res.status(500).json({ error: 'Failed to create template' });
+  }
+});
+
+// POST /api/templates/:id/use - Create a new conversation from a template
+app.post('/api/templates/:id/use', (req, res) => {
+  try {
+    const templateId = parseInt(req.params.id);
+    const userId = 1; // Using default user
+
+    // Get the template
+    const template = dbHelpers.prepare(
+      'SELECT * FROM conversation_templates WHERE id = ?'
+    ).get(templateId);
+
+    if (!template) {
+      return res.status(404).json({ error: 'Template not found' });
+    }
+
+    const structure = JSON.parse(template.template_structure);
+
+    // Create a new conversation
+    const conversationResult = dbHelpers.prepare(`
+      INSERT INTO conversations (user_id, title, model, settings, created_at, updated_at)
+      VALUES (?, ?, ?, ?, datetime('now'), datetime('now'))
+    `).run(
+      userId,
+      structure.title || template.name,
+      structure.model || 'claude-sonnet-4-20250514',
+      JSON.stringify(structure.settings || {})
+    );
+
+    const conversationId = conversationResult.lastInsertRowid;
+
+    // Add the template messages to the conversation
+    if (structure.messages && structure.messages.length > 0) {
+      for (const message of structure.messages) {
+        dbHelpers.prepare(`
+          INSERT INTO messages (conversation_id, role, content, created_at)
+          VALUES (?, ?, ?, datetime('now'))
+        `).run(conversationId, message.role, message.content);
+      }
+
+      // Update conversation message count
+      dbHelpers.prepare(`
+        UPDATE conversations
+        SET message_count = ?,
+            last_message_at = datetime('now')
+        WHERE id = ?
+      `).run(structure.messages.length, conversationId);
+    }
+
+    // Increment template usage count
+    dbHelpers.prepare(`
+      UPDATE conversation_templates
+      SET usage_count = usage_count + 1
+      WHERE id = ?
+    `).run(templateId);
+
+    // Get the newly created conversation
+    const conversation = dbHelpers.prepare(
+      'SELECT * FROM conversations WHERE id = ?'
+    ).get(conversationId);
+
+    res.json(conversation);
+  } catch (error) {
+    console.error('Error using template:', error);
+    res.status(500).json({ error: 'Failed to create conversation from template' });
+  }
+});
+
+// DELETE /api/templates/:id - Delete a template
+app.delete('/api/templates/:id', (req, res) => {
+  try {
+    const templateId = parseInt(req.params.id);
+
+    dbHelpers.prepare('DELETE FROM conversation_templates WHERE id = ?').run(templateId);
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error deleting template:', error);
+    res.status(500).json({ error: 'Failed to delete template' });
   }
 });
 

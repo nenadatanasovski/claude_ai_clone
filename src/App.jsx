@@ -317,6 +317,13 @@ function App() {
   const [newPromptTemplate, setNewPromptTemplate] = useState('')
   const [newPromptCategory, setNewPromptCategory] = useState('General')
   const [newPromptTags, setNewPromptTags] = useState('')
+  const [showSaveAsTemplateModal, setShowSaveAsTemplateModal] = useState(false) // Show save as template modal
+  const [saveAsTemplateConversationId, setSaveAsTemplateConversationId] = useState(null) // Conversation to save as template
+  const [templateName, setTemplateName] = useState('')
+  const [templateDescription, setTemplateDescription] = useState('')
+  const [templateCategory, setTemplateCategory] = useState('General')
+  const [templates, setTemplates] = useState([]) // All conversation templates
+  const [showTemplatesModal, setShowTemplatesModal] = useState(false) // Show templates modal
   const [showExampleConversations, setShowExampleConversations] = useState(false) // Show example conversations modal
   const [exampleConversations, setExampleConversations] = useState([]) // List of example conversations
   const [showCommandPalette, setShowCommandPalette] = useState(false) // Show command palette modal
@@ -2595,6 +2602,106 @@ function App() {
     }
   }
 
+  // Template functions
+  const loadTemplates = async () => {
+    try {
+      const response = await fetch(`${API_BASE}/templates`)
+      if (response.ok) {
+        const data = await response.json()
+        setTemplates(data)
+      }
+    } catch (error) {
+      console.error('Error loading templates:', error)
+    }
+  }
+
+  const openSaveAsTemplateModal = (conversationId) => {
+    setSaveAsTemplateConversationId(conversationId)
+    setShowSaveAsTemplateModal(true)
+    setTemplateName('')
+    setTemplateDescription('')
+    setTemplateCategory('General')
+    closeContextMenu()
+  }
+
+  const closeSaveAsTemplateModal = () => {
+    setShowSaveAsTemplateModal(false)
+    setSaveAsTemplateConversationId(null)
+    setTemplateName('')
+    setTemplateDescription('')
+    setTemplateCategory('General')
+  }
+
+  const saveConversationAsTemplate = async () => {
+    if (!templateName.trim()) {
+      alert('Please enter a template name')
+      return
+    }
+
+    try {
+      const response = await fetch(`${API_BASE}/templates`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          conversationId: saveAsTemplateConversationId,
+          name: templateName,
+          description: templateDescription,
+          category: templateCategory
+        })
+      })
+
+      if (response.ok) {
+        closeSaveAsTemplateModal()
+        // Reload templates
+        await loadTemplates()
+        alert('Template saved successfully!')
+      }
+    } catch (error) {
+      console.error('Error saving template:', error)
+      alert('Failed to save template')
+    }
+  }
+
+  const openTemplatesModal = async () => {
+    await loadTemplates()
+    setShowTemplatesModal(true)
+  }
+
+  const closeTemplatesModal = () => {
+    setShowTemplatesModal(false)
+  }
+
+  const createConversationFromTemplate = async (templateId) => {
+    try {
+      const response = await fetch(`${API_BASE}/templates/${templateId}/use`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      })
+
+      if (response.ok) {
+        const newConversation = await response.json()
+
+        // Add the new conversation to the list
+        setConversations([newConversation, ...conversations])
+
+        // Switch to the new conversation
+        setCurrentConversationId(newConversation.id)
+
+        // Load messages for the new conversation
+        const messagesResponse = await fetch(`${API_BASE}/conversations/${newConversation.id}/messages`)
+        if (messagesResponse.ok) {
+          const messagesData = await messagesResponse.json()
+          setMessages(messagesData)
+        }
+
+        closeTemplatesModal()
+      }
+    } catch (error) {
+      console.error('Error creating conversation from template:', error)
+      alert('Failed to create conversation from template')
+    }
+  }
+
   const openExportModal = (conversationId) => {
     setExportConversationId(conversationId)
     setShowExportModal(true)
@@ -3245,6 +3352,23 @@ function App() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2" />
                 </svg>
                 <span className="text-sm">Prompts</span>
+              </button>
+
+              {/* Templates Button */}
+              <button
+                type="button"
+                onClick={openTemplatesModal}
+                className="px-3 py-1.5 rounded-lg border border-gray-300 dark:border-gray-700
+                  hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors flex items-center gap-2
+                  focus:outline-none focus:ring-2 focus:ring-claude-orange focus:ring-offset-2
+                  dark:focus:ring-offset-gray-900"
+                title="Browse conversation templates"
+                aria-label="Browse conversation templates"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z" />
+                </svg>
+                <span className="text-sm">Templates</span>
               </button>
 
               {/* Examples Button */}
@@ -4563,6 +4687,16 @@ function App() {
             >
               <span>📋</span>
               <span>Duplicate</span>
+            </button>
+            <button
+              onClick={() => {
+                openSaveAsTemplateModal(contextMenu.conversationId)
+              }}
+              className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700
+                flex items-center gap-2"
+            >
+              <span>💾</span>
+              <span>Save as Template</span>
             </button>
             <button
               onClick={() => {
@@ -6304,6 +6438,157 @@ function App() {
               <div className="p-6 border-t border-gray-200 dark:border-gray-800 flex justify-end">
                 <button
                   onClick={() => setShowPromptLibrary(false)}
+                  className="px-6 py-2 border border-gray-300 dark:border-gray-700 rounded-lg
+                    hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-gray-700 dark:text-gray-300"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Save as Template Modal */}
+        {showSaveAsTemplateModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white dark:bg-gray-900 rounded-lg shadow-2xl w-full max-w-md">
+              <div className="p-6">
+                <h2 className="text-2xl font-semibold mb-4 text-gray-900 dark:text-white">
+                  Save as Template
+                </h2>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Template Name *
+                    </label>
+                    <input
+                      type="text"
+                      value={templateName}
+                      onChange={(e) => setTemplateName(e.target.value)}
+                      placeholder="e.g., Code Review Template"
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg
+                        bg-white dark:bg-gray-900 text-gray-900 dark:text-white
+                        focus:ring-2 focus:ring-claude-orange focus:border-transparent"
+                      autoFocus
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Description
+                    </label>
+                    <textarea
+                      value={templateDescription}
+                      onChange={(e) => setTemplateDescription(e.target.value)}
+                      placeholder="Brief description of this template..."
+                      rows={3}
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg
+                        bg-white dark:bg-gray-900 text-gray-900 dark:text-white
+                        focus:ring-2 focus:ring-claude-orange focus:border-transparent resize-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Category
+                    </label>
+                    <select
+                      value={templateCategory}
+                      onChange={(e) => setTemplateCategory(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg
+                        bg-white dark:bg-gray-900 text-gray-900 dark:text-white
+                        focus:ring-2 focus:ring-claude-orange focus:border-transparent"
+                    >
+                      <option value="General">General</option>
+                      <option value="Coding">Coding</option>
+                      <option value="Writing">Writing</option>
+                      <option value="Analysis">Analysis</option>
+                      <option value="Research">Research</option>
+                    </select>
+                  </div>
+                </div>
+                <div className="mt-6 flex gap-3">
+                  <button
+                    onClick={closeSaveAsTemplateModal}
+                    className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg
+                      hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-gray-700 dark:text-gray-300"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={saveConversationAsTemplate}
+                    className="flex-1 bg-claude-orange hover:bg-claude-orange-hover text-white
+                      font-medium py-2 rounded-lg transition-colors"
+                  >
+                    Save Template
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Templates Modal */}
+        {showTemplatesModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white dark:bg-gray-900 rounded-lg shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
+              <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-800">
+                <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">
+                  Conversation Templates
+                </h2>
+                <button
+                  onClick={closeTemplatesModal}
+                  className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              <div className="flex-1 overflow-y-auto p-6">
+                {templates.length === 0 ? (
+                  <div className="text-center py-12 text-gray-500 dark:text-gray-400">
+                    <svg className="w-16 h-16 mx-auto mb-4 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2" />
+                    </svg>
+                    <p className="text-lg">No templates yet</p>
+                    <p className="text-sm mt-2">Right-click on a conversation and select "Save as Template" to create one</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {templates.map(template => (
+                      <div
+                        key={template.id}
+                        className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg
+                          hover:border-claude-orange dark:hover:border-claude-orange transition-colors cursor-pointer
+                          bg-gray-50 dark:bg-gray-800"
+                        onClick={() => createConversationFromTemplate(template.id)}
+                      >
+                        <div className="flex items-start justify-between mb-2">
+                          <h3 className="font-semibold text-gray-900 dark:text-white flex-1">
+                            {template.name}
+                          </h3>
+                          <span className="text-xs px-2 py-1 rounded bg-claude-orange bg-opacity-10 text-claude-orange">
+                            {template.category}
+                          </span>
+                        </div>
+                        {template.description && (
+                          <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
+                            {template.description}
+                          </p>
+                        )}
+                        <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
+                          <span>{template.template_structure?.messages?.length || 0} messages</span>
+                          <span>Used {template.usage_count} times</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="p-6 border-t border-gray-200 dark:border-gray-800 flex justify-end">
+                <button
+                  onClick={closeTemplatesModal}
                   className="px-6 py-2 border border-gray-300 dark:border-gray-700 rounded-lg
                     hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-gray-700 dark:text-gray-300"
                 >

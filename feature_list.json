@@ -1167,7 +1167,7 @@
       "Step 4: Verify the structure is pre-populated",
       "Step 5: Verify you can customize from there"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
