@@ -1,5 +1,5 @@
-const Database = require('./server/node_modules/better-sqlite3');
-const db = new Database('server/chat.db');
+const Database = require('better-sqlite3');
+const db = new Database('./server/data/claude.db');
 
 const convs = db.prepare(`
   SELECT id, title, created_at, last_message_at

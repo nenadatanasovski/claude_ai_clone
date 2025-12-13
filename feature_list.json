@@ -1249,7 +1249,7 @@
       "Step 4: Send a new message",
       "Step 5: Verify timestamp updates"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",

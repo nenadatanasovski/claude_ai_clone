@@ -454,11 +454,12 @@ app.get('/api/conversations', (req, res) => {
 app.post('/api/conversations', (req, res) => {
   try {
     const { title, model, project_id } = req.body;
+    const now = new Date().toISOString();
 
     const result = dbHelpers.prepare(`
       INSERT INTO conversations (user_id, title, model, project_id, last_message_at)
-      VALUES (1, ?, ?, ?, CURRENT_TIMESTAMP)
-    `).run(title || 'New Conversation', model || 'claude-sonnet-4-20250514', project_id || null);
+      VALUES (1, ?, ?, ?, ?)
+    `).run(title || 'New Conversation', model || 'claude-sonnet-4-20250514', project_id || null, now);
 
     if (!result.lastInsertRowid) {
       return res.status(500).json({ error: 'Failed to create conversation' });
@@ -901,14 +902,15 @@ $$\\sum_{i=1}^{n} i = \\frac{n(n+1)}{2}$$`;
       }
 
       // Update conversation
+      const now = new Date().toISOString();
       dbHelpers.prepare(`
         UPDATE conversations
-        SET last_message_at = CURRENT_TIMESTAMP,
+        SET last_message_at = ?,
             message_count = message_count + 2,
-            updated_at = CURRENT_TIMESTAMP,
+            updated_at = ?,
             has_unread = 1
         WHERE id = ?
-      `).run(conversationId);
+      `).run(now, now, conversationId);
 
       // Auto-generate title from first exchange
       const messageCount = dbHelpers.prepare('SELECT COUNT(*) as count FROM messages WHERE conversation_id = ?').get(conversationId);
@@ -1010,13 +1012,14 @@ $$\\sum_{i=1}^{n} i = \\frac{n(n+1)}{2}$$`;
     `).run(1, conversationId, assistantMessageId, conversation.model, inputTokens, outputTokens, 0.0);
 
     // Update conversation
+    const now = new Date().toISOString();
     dbHelpers.prepare(`
       UPDATE conversations
-      SET last_message_at = CURRENT_TIMESTAMP,
+      SET last_message_at = ?,
           message_count = message_count + 2,
-          updated_at = CURRENT_TIMESTAMP
+          updated_at = ?
       WHERE id = ?
-    `).run(conversationId);
+    `).run(now, now, conversationId);
 
     // Auto-generate title from first exchange
     const messageCount = dbHelpers.prepare('SELECT COUNT(*) as count FROM messages WHERE conversation_id = ?').get(conversationId);
@@ -1100,7 +1103,8 @@ app.put('/api/conversations/:id', (req, res) => {
     }
 
     if (updates.length > 0) {
-      updates.push('updated_at = CURRENT_TIMESTAMP');
+      const now = new Date().toISOString();
+      updates.push(`updated_at = '${now}'`);
       values.push(req.params.id);
 
       dbHelpers.prepare(`
@@ -1645,13 +1649,15 @@ app.put('/api/messages/:id', (req, res) => {
       if (hasMessagesAfter) {
         // This is a branch point - create a new message instead of updating
         // The new message will have the same parent as the original
+        const now = new Date().toISOString();
         const newMessage = dbHelpers.prepare(`
           INSERT INTO messages (conversation_id, role, content, created_at, parent_message_id)
-          VALUES (?, ?, ?, CURRENT_TIMESTAMP, ?)
+          VALUES (?, ?, ?, ?, ?)
         `).run(
           message.conversation_id,
           message.role,
           content,
+          now,
           message.parent_message_id
         );
 
@@ -1666,11 +1672,12 @@ app.put('/api/messages/:id', (req, res) => {
     }
 
     // If not branching or it's the last message, just update normally
+    const editedAt = new Date().toISOString();
     dbHelpers.prepare(`
       UPDATE messages
-      SET content = ?, edited_at = CURRENT_TIMESTAMP
+      SET content = ?, edited_at = ?
       WHERE id = ?
-    `).run(content, messageId);
+    `).run(content, editedAt, messageId);
 
     // Get the updated message
     const updatedMessage = dbHelpers.prepare('SELECT * FROM messages WHERE id = ?').get(messageId);
