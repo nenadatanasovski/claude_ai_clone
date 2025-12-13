@@ -33,7 +33,7 @@ function CodeBlock({ node, inline, className, children, ...props }) {
       <button
         onClick={handleCopy}
         className="absolute right-2 top-2 px-2 py-1 text-xs bg-gray-700 hover:bg-gray-600
-          text-white rounded opacity-0 group-hover:opacity-100 transition-opacity"
+          text-white rounded opacity-0 group-hover:opacity-100 transition-all duration-200"
         title="Copy code"
       >
         {copied ? 'Copied!' : 'Copy'}
@@ -4296,7 +4296,7 @@ function App() {
                           aria-label={`Open conversation: ${conv.title}`}
                           aria-current={conv.id === currentConversationId ? 'true' : 'false'}
                           className={`group relative px-2 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800
-                            cursor-pointer text-sm
+                            cursor-pointer text-sm transition-colors duration-200
                             focus:outline-none focus:ring-2 focus:ring-claude-orange focus:ring-offset-1
                             dark:focus:ring-offset-gray-900 ${
                               conv.id === currentConversationId ? 'bg-gray-100 dark:bg-gray-800' : ''
@@ -4388,7 +4388,7 @@ function App() {
                         aria-current={conv.id === currentConversationId ? 'true' : 'false'}
                         className={`group relative px-2 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800
                           border border-gray-200 dark:border-gray-700 hover:shadow-sm
-                          cursor-pointer text-sm
+                          cursor-pointer text-sm transition-all duration-200
                           focus:outline-none focus:ring-2 focus:ring-claude-orange focus:ring-offset-1
                           dark:focus:ring-offset-gray-900 ${
                             conv.id === currentConversationId ? 'bg-gray-100 dark:bg-gray-800' : ''
@@ -4526,7 +4526,7 @@ function App() {
                         onDragOver={handleDragOver}
                         onDrop={(e) => handleDropOnFolder(e, folder.id)}
                         className="px-2 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800
-                          cursor-pointer text-sm flex items-center gap-2"
+                          cursor-pointer text-sm flex items-center gap-2 transition-colors duration-200"
                       >
                         <span>{expandedFolders.has(folder.id) ? '📂' : '📁'}</span>
                         <span className="truncate">{folder.name}</span>
@@ -4544,7 +4544,7 @@ function App() {
                                 onClick={() => setCurrentConversationId(conv.id)}
                                 className={`px-2 py-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800
                                   border border-gray-200 dark:border-gray-700 hover:shadow-sm
-                                  cursor-pointer text-sm ${
+                                  cursor-pointer text-sm transition-all duration-200 ${
                                     conv.id === currentConversationId ? 'bg-gray-100 dark:bg-gray-800' : ''
                                   }`}
                               >
@@ -5771,8 +5771,8 @@ function App() {
 
         {/* Export Modal */}
         {showExportModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md w-full mx-4">
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 animate-fadeIn">
+            <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md w-full mx-4 animate-slideIn">
               <h2 className="text-xl font-semibold mb-4">Export Conversation</h2>
               <p className="text-gray-600 dark:text-gray-400 mb-6">
                 Choose a format to export your conversation:
@@ -5814,8 +5814,8 @@ function App() {
 
         {/* Share Modal */}
         {showShareModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md w-full mx-4 max-h-[90vh] overflow-y-auto">
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 animate-fadeIn">
+            <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md w-full mx-4 max-h-[90vh] overflow-y-auto animate-slideIn">
               <h2 className="text-xl font-semibold mb-4">Share Conversation</h2>
               <p className="text-gray-600 dark:text-gray-400 mb-6">
                 Anyone with this link can view this conversation (read-only).
@@ -6186,8 +6186,8 @@ function App() {
 
         {/* Project Modal */}
         {showProjectModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md w-full mx-4">
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 animate-fadeIn">
+            <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md w-full mx-4 animate-slideIn">
               <h2 className="text-xl font-semibold mb-4">Create New Project</h2>
               <div className="space-y-4">
                 <div>
@@ -6571,8 +6571,8 @@ function App() {
 
         {/* Settings Modal */}
         {showSettingsModal && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-            <div ref={settingsModalRef} className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 animate-fadeIn">
+            <div ref={settingsModalRef} className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto animate-slideIn">
               <h2 className="text-xl font-semibold mb-4">Settings</h2>
 
               {/* Appearance Section */}
@@ -7202,8 +7202,8 @@ function App() {
 
         {/* Keyboard Shortcuts Modal */}
         {showKeyboardShortcutsModal && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-            <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-3xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 animate-fadeIn">
+            <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-3xl w-full mx-4 max-h-[90vh] overflow-y-auto animate-slideIn">
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-2xl font-semibold">Keyboard Shortcuts</h2>
                 <button
@@ -8374,8 +8374,8 @@ function App() {
 
         {/* Onboarding Tour */}
         {showOnboardingTour && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-            <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl max-w-2xl w-full mx-4 overflow-hidden">
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm animate-fadeIn">
+            <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl max-w-2xl w-full mx-4 overflow-hidden animate-slideIn">
               {/* Tour Progress Bar */}
               <div className="h-1 bg-gray-200 dark:bg-gray-800">
                 <div

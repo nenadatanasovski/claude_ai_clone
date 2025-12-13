@@ -1568,7 +1568,7 @@
       "Step 5: Open/close modals",
       "Step 6: Verify smooth fade or slide animations"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "style",

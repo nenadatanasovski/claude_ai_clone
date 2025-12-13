@@ -42,6 +42,35 @@
 
     <!-- High Contrast Mode Styles -->
     <style>
+      /* Modal and overlay animations */
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+        }
+        to {
+          opacity: 1;
+        }
+      }
+
+      @keyframes slideIn {
+        from {
+          opacity: 0;
+          transform: translateY(-20px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      .animate-fadeIn {
+        animation: fadeIn 0.2s ease-out;
+      }
+
+      .animate-slideIn {
+        animation: slideIn 0.3s ease-out;
+      }
+
       /* High contrast mode increases visibility of borders and separators */
       .high-contrast button {
         border-width: 2px !important;
