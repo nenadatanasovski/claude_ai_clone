@@ -1,9 +1,10 @@
 // Service Worker for Claude AI Clone PWA
-const CACHE_NAME = 'claude-clone-v1';
+const CACHE_NAME = 'claude-clone-v2';
 const urlsToCache = [
   '/',
   '/index.html',
-  '/manifest.json'
+  '/manifest.json',
+  '/icon.svg'
 ];
 
 // Install event - cache essential resources
@@ -36,36 +37,78 @@ self.addEventListener('activate', (event) => {
 
 // Fetch event - serve from cache when offline, network when online
 self.addEventListener('fetch', (event) => {
-  event.respondWith(
-    fetch(event.request)
-      .then((response) => {
-        // Clone the response
-        const responseToCache = response.clone();
+  const { request } = event;
+  const url = new URL(request.url);
 
-        // Cache the fetched response for future use
-        caches.open(CACHE_NAME)
-          .then((cache) => {
-            cache.put(event.request, responseToCache);
-          });
+  // Different strategies for different types of requests
+  if (request.method !== 'GET') {
+    // Don't cache non-GET requests
+    return event.respondWith(fetch(request));
+  }
 
-        return response;
-      })
-      .catch(() => {
-        // If network fails, try to serve from cache
-        return caches.match(event.request)
-          .then((response) => {
-            if (response) {
-              return response;
+  // For API requests, try network first, then cache
+  if (url.pathname.startsWith('/api/')) {
+    event.respondWith(
+      fetch(request)
+        .then((response) => {
+          // Cache GET API responses (conversations, messages, etc.)
+          if (response.ok && (
+            url.pathname.includes('/conversations') ||
+            url.pathname.includes('/messages') ||
+            url.pathname.includes('/projects')
+          )) {
+            const responseToCache = response.clone();
+            caches.open(CACHE_NAME).then((cache) => {
+              cache.put(request, responseToCache);
+            });
+          }
+          return response;
+        })
+        .catch(() => {
+          // When offline, serve from cache
+          return caches.match(request).then((cachedResponse) => {
+            if (cachedResponse) {
+              return cachedResponse;
             }
-            // If not in cache, return a custom offline page
+            // Return offline indicator for failed API requests
+            return new Response(JSON.stringify({ offline: true, error: 'No network connection' }), {
+              status: 503,
+              headers: { 'Content-Type': 'application/json' }
+            });
+          });
+        })
+    );
+  } else {
+    // For static assets, use cache-first strategy
+    event.respondWith(
+      caches.match(request).then((cachedResponse) => {
+        if (cachedResponse) {
+          return cachedResponse;
+        }
+
+        // Not in cache, fetch from network
+        return fetch(request)
+          .then((response) => {
+            // Cache successful responses
+            if (response.ok) {
+              const responseToCache = response.clone();
+              caches.open(CACHE_NAME).then((cache) => {
+                cache.put(request, responseToCache);
+              });
+            }
+            return response;
+          })
+          .catch(() => {
+            // For HTML pages, return cached index
+            if (request.headers.get('accept').includes('text/html')) {
+              return caches.match('/index.html');
+            }
             return new Response('Offline - content not available', {
               status: 503,
-              statusText: 'Service Unavailable',
-              headers: new Headers({
-                'Content-Type': 'text/plain'
-              })
+              statusText: 'Service Unavailable'
             });
           });
       })
-  );
+    );
+  }
 });
