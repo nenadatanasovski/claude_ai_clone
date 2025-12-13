@@ -3784,9 +3784,16 @@ function App() {
                           <>
                             <div
                               onClick={(e) => startEditingConversation(conv, e)}
-                              className="truncate pr-6"
+                              className="flex items-center gap-2 truncate pr-6"
                             >
-                              {conv.title}
+                              {conv.has_unread ? (
+                                <span
+                                  className="flex-shrink-0 w-2 h-2 bg-claude-orange rounded-full"
+                                  aria-label="Unread messages"
+                                  title="Unread messages"
+                                />
+                              ) : null}
+                              <span className="truncate">{conv.title}</span>
                             </div>
                             <button
                               onClick={(e) => deleteConversation(conv.id, e)}

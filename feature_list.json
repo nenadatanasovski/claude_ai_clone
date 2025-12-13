@@ -1237,7 +1237,7 @@
       "Step 4: Open that conversation",
       "Step 5: Verify the indicator clears"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",

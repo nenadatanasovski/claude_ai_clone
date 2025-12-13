@@ -165,6 +165,7 @@ dbHelpers.exec(`
     is_archived BOOLEAN DEFAULT 0,
     is_pinned BOOLEAN DEFAULT 0,
     is_deleted BOOLEAN DEFAULT 0,
+    has_unread BOOLEAN DEFAULT 0,
     settings TEXT,
     token_count INTEGER DEFAULT 0,
     message_count INTEGER DEFAULT 0,
@@ -500,6 +501,13 @@ app.get('/api/conversations/:id/messages', (req, res) => {
       WHERE conversation_id = ?
       ORDER BY created_at ASC
     `).all(req.params.id);
+
+    // Mark conversation as read when messages are fetched
+    dbHelpers.prepare(`
+      UPDATE conversations
+      SET has_unread = 0
+      WHERE id = ?
+    `).run(req.params.id);
 
     // Parse images JSON field
     const parsedMessages = messages.map(msg => ({
@@ -897,7 +905,8 @@ $$\\sum_{i=1}^{n} i = \\frac{n(n+1)}{2}$$`;
         UPDATE conversations
         SET last_message_at = CURRENT_TIMESTAMP,
             message_count = message_count + 2,
-            updated_at = CURRENT_TIMESTAMP
+            updated_at = CURRENT_TIMESTAMP,
+            has_unread = 1
         WHERE id = ?
       `).run(conversationId);
 
