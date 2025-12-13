@@ -378,6 +378,7 @@ function App() {
   }) // Array of tip IDs that have been marked as read
   const [showCommandPalette, setShowCommandPalette] = useState(false) // Show command palette modal
   const [commandPaletteQuery, setCommandPaletteQuery] = useState('') // Search query in command palette
+  const [messageSuggestions, setMessageSuggestions] = useState({}) // Suggestions for each message { messageId: [suggestions] }
   const [editingMessageId, setEditingMessageId] = useState(null)
   const [editedMessageContent, setEditedMessageContent] = useState('')
   const [branches, setBranches] = useState([]) // Conversation branches
@@ -1963,6 +1964,52 @@ function App() {
     }
   }
 
+  // Generate contextual follow-up suggestions based on message content
+  const generateSuggestions = (messageContent, messageRole) => {
+    if (messageRole !== 'assistant') return []
+
+    const content = messageContent.toLowerCase()
+    const suggestions = []
+
+    // Code-related suggestions
+    if (content.includes('function') || content.includes('code') || content.includes('def ') || content.includes('class ')) {
+      suggestions.push('Can you explain this code in more detail?')
+      suggestions.push('How can I optimize this code?')
+      suggestions.push('Can you add error handling to this?')
+    }
+    // Writing/text suggestions
+    else if (content.includes('here is') || content.includes('here\'s') || content.length > 200) {
+      suggestions.push('Can you make this more concise?')
+      suggestions.push('Can you expand on this with more details?')
+      suggestions.push('Can you provide an example?')
+    }
+    // Question/explanation suggestions
+    else if (content.includes('?') || content.includes('explain') || content.includes('understand')) {
+      suggestions.push('Can you provide a specific example?')
+      suggestions.push('What are the pros and cons?')
+      suggestions.push('How does this compare to alternatives?')
+    }
+    // Generic fallback suggestions
+    else {
+      suggestions.push('Tell me more about this')
+      suggestions.push('Can you give me an example?')
+      suggestions.push('What are the next steps?')
+    }
+
+    // Return 2-3 suggestions
+    return suggestions.slice(0, Math.min(3, suggestions.length))
+  }
+
+  // Handle clicking a suggestion - populate input field
+  const handleSuggestionClick = (suggestionText) => {
+    setInputValue(suggestionText)
+    // Focus the input field
+    const textarea = document.querySelector('textarea[placeholder*="Message"]')
+    if (textarea) {
+      textarea.focus()
+    }
+  }
+
   const sendMessage = async () => {
     if (!inputValue.trim() || isLoading) {
       return
@@ -2070,7 +2117,30 @@ function App() {
                       return newMessages
                     })
                   } else if (data.type === 'done') {
+                    const oldId = assistantMessage.id
                     assistantMessage.id = data.messageId
+
+                    // Update the messages state with the new ID
+                    setMessages(prev => {
+                      const newMessages = [...prev]
+                      newMessages[newMessages.length - 1] = { ...assistantMessage }
+                      return newMessages
+                    })
+
+                    // Update suggestions mapping if ID changed
+                    if (oldId !== data.messageId) {
+                      setMessageSuggestions(prev => {
+                        const suggestions = prev[oldId]
+                        if (suggestions) {
+                          const newState = { ...prev }
+                          delete newState[oldId]
+                          newState[data.messageId] = suggestions
+                          return newState
+                        }
+                        return prev
+                      })
+                    }
+
                     // Update context window tokens if message has token data
                     if (data.tokens && !isNaN(data.tokens)) {
                       assistantMessage.tokens = data.tokens
@@ -2129,6 +2199,18 @@ function App() {
             }
           } catch (error) {
             console.error('Error loading artifacts:', error)
+          }
+
+          // Generate suggestions for the assistant message
+          if (assistantMessage.id && assistantMessage.content) {
+            const suggestions = generateSuggestions(assistantMessage.content, assistantMessage.role)
+            const messageId = assistantMessage.id
+            if (suggestions.length > 0) {
+              setMessageSuggestions(prev => ({
+                ...prev,
+                [messageId]: suggestions
+              }))
+            }
           }
         }
       } else {
@@ -2280,7 +2362,30 @@ function App() {
                       return newMessages
                     })
                   } else if (data.type === 'done') {
+                    const oldId = assistantMessage.id
                     assistantMessage.id = data.messageId
+
+                    // Update the messages state with the new ID
+                    setMessages(prev => {
+                      const newMessages = [...prev]
+                      newMessages[newMessages.length - 1] = { ...assistantMessage }
+                      return newMessages
+                    })
+
+                    // Update suggestions mapping if ID changed
+                    if (oldId !== data.messageId) {
+                      setMessageSuggestions(prev => {
+                        const suggestions = prev[oldId]
+                        if (suggestions) {
+                          const newState = { ...prev }
+                          delete newState[oldId]
+                          newState[data.messageId] = suggestions
+                          return newState
+                        }
+                        return prev
+                      })
+                    }
+
                     // Update context window tokens if message has token data
                     if (data.tokens && !isNaN(data.tokens)) {
                       assistantMessage.tokens = data.tokens
@@ -2436,7 +2541,30 @@ function App() {
                       return newMessages
                     })
                   } else if (data.type === 'done') {
+                    const oldId = assistantMessage.id
                     assistantMessage.id = data.messageId
+
+                    // Update the messages state with the new ID
+                    setMessages(prev => {
+                      const newMessages = [...prev]
+                      newMessages[newMessages.length - 1] = { ...assistantMessage }
+                      return newMessages
+                    })
+
+                    // Update suggestions mapping if ID changed
+                    if (oldId !== data.messageId) {
+                      setMessageSuggestions(prev => {
+                        const suggestions = prev[oldId]
+                        if (suggestions) {
+                          const newState = { ...prev }
+                          delete newState[oldId]
+                          newState[data.messageId] = suggestions
+                          return newState
+                        }
+                        return prev
+                      })
+                    }
+
                     // Update context window tokens if message has token data
                     if (data.tokens && !isNaN(data.tokens)) {
                       assistantMessage.tokens = data.tokens
@@ -4652,6 +4780,40 @@ function App() {
                                 </svg>
                                 Regenerate
                               </button>
+                            </div>
+                          )}
+                          {/* Response suggestions for assistant messages */}
+                          {message.role === 'assistant' && !isStreaming && messageSuggestions[message.id] && messageSuggestions[message.id].length > 0 && (
+                            <div className="mt-3 space-y-2">
+                              {messageSuggestions[message.id] && messageSuggestions[message.id].length > 0 && (
+                                <>
+                                  <div className="text-xs text-gray-500 dark:text-gray-400 font-medium">
+                                    Suggested follow-ups:
+                                  </div>
+                                  <div className="flex flex-wrap gap-2">
+                                    {messageSuggestions[message.id].map((suggestion, idx) => (
+                                      <button
+                                        key={idx}
+                                        onClick={() => handleSuggestionClick(suggestion)}
+                                        disabled={isLoading}
+                                        className="px-3 py-2 text-sm text-left
+                                          border border-gray-300 dark:border-gray-600
+                                          bg-white dark:bg-gray-800
+                                          text-gray-700 dark:text-gray-300
+                                          rounded-lg
+                                          hover:bg-gray-50 dark:hover:bg-gray-700
+                                          hover:border-[#CC785C] dark:hover:border-[#CC785C]
+                                          disabled:opacity-50 disabled:cursor-not-allowed
+                                          transition-all duration-150
+                                          max-w-md"
+                                        title="Click to use this suggestion"
+                                      >
+                                        {suggestion}
+                                      </button>
+                                    ))}
+                                  </div>
+                                </>
+                              )}
                             </div>
                           )}
                           {/* Edit button for user messages */}

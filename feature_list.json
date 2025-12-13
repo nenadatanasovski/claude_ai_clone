@@ -1388,7 +1388,7 @@
       "Step 5: Send the message",
       "Step 6: Verify contextually relevant response"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
