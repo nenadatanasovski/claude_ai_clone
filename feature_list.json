@@ -1155,7 +1155,7 @@
       "Step 5: Verify total tokens used",
       "Step 6: Verify conversation count in project"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",

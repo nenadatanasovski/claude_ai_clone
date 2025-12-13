@@ -280,6 +280,7 @@ function App() {
   const [showProjectSettingsModal, setShowProjectSettingsModal] = useState(false)
   const [settingsProjectId, setSettingsProjectId] = useState(null)
   const [projectCustomInstructions, setProjectCustomInstructions] = useState('')
+  const [projectAnalytics, setProjectAnalytics] = useState(null) // Project analytics data
   const [folders, setFolders] = useState([])
   const [expandedFolders, setExpandedFolders] = useState(new Set())
   const [showFolderModal, setShowFolderModal] = useState(false)
@@ -2810,6 +2811,17 @@ function App() {
       const project = await response.json()
       setSettingsProjectId(projectId)
       setProjectCustomInstructions(project.custom_instructions || '')
+
+      // Fetch project analytics
+      try {
+        const analyticsResponse = await fetch(`${API_BASE}/projects/${projectId}/analytics`)
+        const analytics = await analyticsResponse.json()
+        setProjectAnalytics(analytics)
+      } catch (analyticsError) {
+        console.error('Error loading project analytics:', analyticsError)
+        setProjectAnalytics(null)
+      }
+
       setShowProjectSettingsModal(true)
       setIsProjectDropdownOpen(false)
     } catch (error) {
@@ -2821,6 +2833,7 @@ function App() {
     setShowProjectSettingsModal(false)
     setSettingsProjectId(null)
     setProjectCustomInstructions('')
+    setProjectAnalytics(null)
   }
 
   const saveProjectSettings = async () => {
@@ -4825,9 +4838,43 @@ function App() {
         {/* Project Settings Modal */}
         {showProjectSettingsModal && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-2xl w-full mx-4">
+            <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
               <h2 className="text-xl font-semibold mb-4">Project Settings</h2>
-              <div className="space-y-4">
+              <div className="space-y-6">
+                {/* Analytics Section */}
+                {projectAnalytics && (
+                  <div>
+                    <h3 className="text-lg font-medium mb-3">Usage Statistics</h3>
+                    <div className="grid grid-cols-3 gap-4">
+                      <div className="bg-gray-50 dark:bg-gray-900 p-4 rounded-lg border border-gray-200 dark:border-gray-700">
+                        <div className="text-2xl font-bold text-claude-orange">
+                          {projectAnalytics.conversation_count}
+                        </div>
+                        <div className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                          Conversations
+                        </div>
+                      </div>
+                      <div className="bg-gray-50 dark:bg-gray-900 p-4 rounded-lg border border-gray-200 dark:border-gray-700">
+                        <div className="text-2xl font-bold text-claude-orange">
+                          {projectAnalytics.total_messages}
+                        </div>
+                        <div className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                          Total Messages
+                        </div>
+                      </div>
+                      <div className="bg-gray-50 dark:bg-gray-900 p-4 rounded-lg border border-gray-200 dark:border-gray-700">
+                        <div className="text-2xl font-bold text-claude-orange">
+                          {projectAnalytics.total_tokens?.toLocaleString()}
+                        </div>
+                        <div className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                          Total Tokens
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Custom Instructions Section */}
                 <div>
                   <label className="block text-sm font-medium mb-2">
                     Custom Instructions

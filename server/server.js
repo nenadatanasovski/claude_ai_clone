@@ -1085,6 +1085,40 @@ app.get('/api/projects/:id/conversations', (req, res) => {
   }
 });
 
+// Get project analytics - usage stats
+app.get('/api/projects/:id/analytics', (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Get conversation count for this project
+    const conversationCountResult = dbHelpers.prepare(`
+      SELECT COUNT(*) as count FROM conversations
+      WHERE project_id = ? AND is_deleted = 0
+    `).get(id);
+    const conversationCount = conversationCountResult?.count || 0;
+
+    // Get total messages and tokens across all conversations in this project
+    const statsResult = dbHelpers.prepare(`
+      SELECT
+        SUM(c.message_count) as total_messages,
+        SUM(c.token_count) as total_tokens
+      FROM conversations c
+      WHERE c.project_id = ? AND c.is_deleted = 0
+    `).get(id);
+
+    const analytics = {
+      conversation_count: conversationCount,
+      total_messages: statsResult?.total_messages || 0,
+      total_tokens: statsResult?.total_tokens || 0
+    };
+
+    res.json(analytics);
+  } catch (error) {
+    console.error('Error fetching project analytics:', error);
+    res.status(500).json({ error: 'Failed to fetch project analytics' });
+  }
+});
+
 // ==========================================
 // FOLDER ENDPOINTS
 // ==========================================
