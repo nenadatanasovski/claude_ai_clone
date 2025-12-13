@@ -1435,7 +1435,7 @@
       "Step 4: Verify text is near black for contrast",
       "Step 5: Take screenshot to verify professional appearance"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "style",
