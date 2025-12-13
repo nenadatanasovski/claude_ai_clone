@@ -90,6 +90,32 @@ function MessageSkeleton({ isUser = false }) {
   )
 }
 
+// Empty state component for conversation list
+function EmptyConversationList() {
+  return (
+    <div className="flex flex-col items-center justify-center py-12 px-4 text-center" role="status" aria-label="No conversations">
+      {/* Illustration/Icon */}
+      <div className="mb-4 text-6xl opacity-50" aria-hidden="true">
+        💬
+      </div>
+
+      {/* Friendly message */}
+      <h3 className="text-lg font-medium text-gray-700 dark:text-gray-300 mb-2">
+        No conversations yet
+      </h3>
+      <p className="text-sm text-gray-500 dark:text-gray-400 mb-6 max-w-xs">
+        Start a new conversation to begin chatting with Claude
+      </p>
+
+      {/* Call-to-action hint */}
+      <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+        <span className="text-lg" aria-hidden="true">👆</span>
+        <span>Click "New Chat" to get started</span>
+      </div>
+    </div>
+  )
+}
+
 // Helper function to group conversations by date
 function groupConversationsByDate(conversations) {
   const today = new Date()
@@ -4330,7 +4356,7 @@ function App() {
                     <ConversationSkeleton />
                   </div>
                 </>
-              ) : conversations.filter(c => (showArchived ? c.is_archived : !c.is_archived) && (currentProjectId === null || c.project_id === currentProjectId)).length > 0 && (
+              ) : conversations.filter(c => (showArchived ? c.is_archived : !c.is_archived) && (currentProjectId === null || c.project_id === currentProjectId)).length > 0 ? (
                 <>
                   {/* Pinned Conversations */}
                   {conversations.filter(c => (showArchived ? c.is_archived : !c.is_archived) && c.is_pinned && (currentProjectId === null || c.project_id === currentProjectId)).length > 0 && (
@@ -4569,6 +4595,8 @@ function App() {
                     )
                   })()}
                 </>
+              ) : (
+                <EmptyConversationList />
               )}
 
               {/* Folders Section */}
