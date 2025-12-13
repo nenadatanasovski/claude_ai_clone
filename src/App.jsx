@@ -902,6 +902,27 @@ function App() {
     }
   }
 
+  const saveProfile = async () => {
+    try {
+      const response = await fetch(`${API_BASE}/auth/profile`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: editedUserName,
+          email: editedUserEmail,
+          avatar_url: editedUserAvatar
+        })
+      })
+      const data = await response.json()
+      setUser(data)
+      setShowProfileModal(false)
+      // Reload user to ensure UI is updated
+      await loadUser()
+    } catch (error) {
+      console.error('Error saving profile:', error)
+    }
+  }
+
   const loadConversations = async (searchTerm = '') => {
     try {
       let url = `${API_BASE}/conversations`
@@ -6241,6 +6262,111 @@ function App() {
                     text-white rounded-lg transition-colors"
                 >
                   Got it
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Profile Edit Modal */}
+        {showProfileModal && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+            <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md w-full mx-4">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-2xl font-semibold">Edit Profile</h2>
+                <button
+                  onClick={() => setShowProfileModal(false)}
+                  className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                  title="Close"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                {/* Name Input */}
+                <div>
+                  <label className="block text-sm font-medium mb-2">Name</label>
+                  <input
+                    type="text"
+                    value={editedUserName}
+                    onChange={(e) => setEditedUserName(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg
+                      bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100
+                      focus:ring-2 focus:ring-claude-orange focus:border-transparent"
+                    placeholder="Enter your name"
+                  />
+                </div>
+
+                {/* Email Input */}
+                <div>
+                  <label className="block text-sm font-medium mb-2">Email</label>
+                  <input
+                    type="email"
+                    value={editedUserEmail}
+                    onChange={(e) => setEditedUserEmail(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg
+                      bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100
+                      focus:ring-2 focus:ring-claude-orange focus:border-transparent"
+                    placeholder="Enter your email"
+                  />
+                </div>
+
+                {/* Avatar URL Input */}
+                <div>
+                  <label className="block text-sm font-medium mb-2">Avatar URL</label>
+                  <input
+                    type="text"
+                    value={editedUserAvatar}
+                    onChange={(e) => setEditedUserAvatar(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg
+                      bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100
+                      focus:ring-2 focus:ring-claude-orange focus:border-transparent"
+                    placeholder="https://example.com/avatar.jpg"
+                  />
+                  <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                    Enter a URL to an image, or leave blank to use initials
+                  </p>
+                </div>
+
+                {/* Avatar Preview */}
+                {editedUserAvatar && (
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Avatar Preview</label>
+                    <div className="flex items-center gap-3">
+                      <img
+                        src={editedUserAvatar}
+                        alt="Avatar preview"
+                        className="w-16 h-16 rounded-full object-cover"
+                        onError={(e) => {
+                          e.target.style.display = 'none'
+                        }}
+                      />
+                      <span className="text-sm text-gray-500 dark:text-gray-400">
+                        If the image doesn't load, check the URL
+                      </span>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
+                <button
+                  onClick={() => setShowProfileModal(false)}
+                  className="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700
+                    rounded-lg transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={saveProfile}
+                  className="px-4 py-2 bg-claude-orange hover:bg-claude-orange-hover
+                    text-white rounded-lg transition-colors"
+                >
+                  Save Changes
                 </button>
               </div>
             </div>

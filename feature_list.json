@@ -1274,7 +1274,7 @@
       "Step 5: Verify name updates throughout UI",
       "Step 6: Verify avatar updates"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
