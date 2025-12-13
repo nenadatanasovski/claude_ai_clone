@@ -1912,7 +1912,7 @@
       "Step 5: Launch from installed icon",
       "Step 6: Verify it opens in standalone mode"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
