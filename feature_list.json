@@ -1592,7 +1592,7 @@
       "Step 4: Verify it slides open smoothly",
       "Step 5: Verify no janky or instant jumps"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "style",
