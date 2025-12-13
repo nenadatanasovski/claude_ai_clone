@@ -479,6 +479,7 @@ function App() {
   }) // Max tokens (100-4096)
   const [errorMessage, setErrorMessage] = useState(null) // Error message to display
   const [lastFailedMessage, setLastFailedMessage] = useState(null) // Last failed message for retry
+  const [successMessage, setSuccessMessage] = useState(null) // Success message to display
   const messagesEndRef = useRef(null)
   const chatContainerRef = useRef(null)
   const textareaRef = useRef(null)
@@ -711,6 +712,16 @@ function App() {
       return () => mediaQuery.removeEventListener('change', handleChange)
     }
   }, [theme])
+
+  // Auto-dismiss success message after 3 seconds with fade-out animation
+  useEffect(() => {
+    if (successMessage) {
+      const timer = setTimeout(() => {
+        setSuccessMessage(null)
+      }, 3000) // 3 seconds
+      return () => clearTimeout(timer)
+    }
+  }, [successMessage])
 
   // Save theme setting to localStorage
   useEffect(() => {
@@ -1025,6 +1036,8 @@ function App() {
       const data = await response.json()
       setUser(data)
       setShowProfileModal(false)
+      // Show success message
+      setSuccessMessage('Profile updated successfully!')
       // Reload user to ensure UI is updated
       await loadUser()
     } catch (error) {
@@ -1266,6 +1279,8 @@ function App() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ custom_instructions: globalCustomInstructions })
       })
+      // Show success message
+      setSuccessMessage('Custom instructions saved!')
     } catch (error) {
       console.error('Error saving custom instructions:', error)
     }
@@ -4720,6 +4735,26 @@ function App() {
             {/* Messages */}
             <div ref={chatContainerRef} className="flex-1 overflow-y-auto px-4 py-8">
               <div className="max-w-3xl mx-auto">
+                {/* Success Message Display */}
+                {successMessage && (
+                  <div className="flex justify-center mb-4 animate-fadeIn">
+                    <div className="max-w-[80%] rounded-lg px-4 py-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800">
+                      <div className="flex items-start gap-3">
+                        <svg className="w-5 h-5 text-green-500 dark:text-green-400 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <div className="flex-1">
+                          <div className="text-sm font-medium text-green-800 dark:text-green-200">
+                            Success
+                          </div>
+                          <div className="text-sm text-green-700 dark:text-green-300">
+                            {successMessage}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
                 {messages.length === 0 ? (
                   <>
                     <div className="text-center mb-8">
