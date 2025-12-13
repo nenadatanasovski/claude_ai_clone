@@ -2197,7 +2197,7 @@
       "Step 4: Verify app is usable in under 3 seconds",
       "Step 5: Verify perceived performance is good with loaders"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
