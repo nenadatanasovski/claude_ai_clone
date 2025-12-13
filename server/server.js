@@ -374,6 +374,9 @@ function detectArtifacts(content) {
     } else if (language.toLowerCase() === 'svg') {
       type = 'svg';
       title = `SVG ${index + 1}`;
+    } else if (language.toLowerCase() === 'mermaid') {
+      type = 'mermaid';
+      title = `Diagram ${index + 1}`;
     }
 
     artifacts.push({
@@ -564,6 +567,10 @@ app.post('/api/conversations/:id/messages', async (req, res) => {
                           content.toLowerCase().includes('circle icon') ||
                           content.toLowerCase().includes('icon');
 
+      const isMermaidRequest = content.toLowerCase().includes('mermaid') ||
+                              content.toLowerCase().includes('diagram') ||
+                              content.toLowerCase().includes('flowchart');
+
       // Check if custom instructions specify behavior
       let mockResponse;
       if (images && images.length > 0) {
@@ -579,6 +586,21 @@ app.post('/api/conversations/:id/messages', async (req, res) => {
         mockResponse = "Here's an HTML page with a red button:\n\n```html\n<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n  <meta charset=\"UTF-8\">\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n  <title>Red Button Example</title>\n  <style>\n    body {\n      display: flex;\n      justify-content: center;\n      align-items: center;\n      height: 100vh;\n      margin: 0;\n      font-family: Arial, sans-serif;\n      background-color: #f0f0f0;\n    }\n    .red-button {\n      background-color: #e74c3c;\n      color: white;\n      padding: 15px 30px;\n      font-size: 18px;\n      border: none;\n      border-radius: 8px;\n      cursor: pointer;\n      box-shadow: 0 4px 6px rgba(0,0,0,0.1);\n      transition: all 0.3s ease;\n    }\n    .red-button:hover {\n      background-color: #c0392b;\n      transform: translateY(-2px);\n      box-shadow: 0 6px 8px rgba(0,0,0,0.15);\n    }\n    .red-button:active {\n      transform: translateY(0);\n      box-shadow: 0 2px 4px rgba(0,0,0,0.1);\n    }\n  </style>\n</head>\n<body>\n  <button class=\"red-button\" onclick=\"alert('Button clicked!')\">Click Me!</button>\n</body>\n</html>\n```\n\nThis creates a centered red button with hover effects and a click handler.";
       } else if (isSvgRequest) {
         mockResponse = "Here's an SVG circle icon:\n\n```svg\n<svg width=\"100\" height=\"100\" viewBox=\"0 0 100 100\" xmlns=\"http://www.w3.org/2000/svg\">\n  <circle cx=\"50\" cy=\"50\" r=\"40\" fill=\"#3498db\" stroke=\"#2c3e50\" stroke-width=\"3\"/>\n  <circle cx=\"35\" cy=\"40\" r=\"5\" fill=\"white\"/>\n  <circle cx=\"65\" cy=\"40\" r=\"5\" fill=\"white\"/>\n  <path d=\"M 30 60 Q 50 75 70 60\" stroke=\"#2c3e50\" stroke-width=\"3\" fill=\"none\" stroke-linecap=\"round\"/>\n</svg>\n```\n\nThis creates a simple smiley face circle icon.";
+      } else if (isMermaidRequest) {
+        // Mock response with Mermaid diagram
+        mockResponse = `Here's a simple flowchart diagram for you:
+
+\`\`\`mermaid
+graph TD
+    A[Start] --> B[Process Data]
+    B --> C{Decision}
+    C -->|Yes| D[Execute Task]
+    C -->|No| E[Skip Task]
+    D --> F[End]
+    E --> F[End]
+\`\`\`
+
+This Mermaid diagram shows a basic workflow with a decision point. The diagram will be rendered visually in the artifact panel.`;
       } else if (isCodeRequest) {
         mockResponse = "Here's a simple Python hello world function:\n\n```python\ndef hello_world():\n    print('Hello, World!')\n    return 'Hello, World!'\n\n# Call the function\nhello_world()\n```\n\nThis function prints 'Hello, World!' to the console and returns the string.";
       } else if (isLongRequest) {

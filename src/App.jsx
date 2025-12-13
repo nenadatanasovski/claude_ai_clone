@@ -644,6 +644,25 @@ function App() {
     localStorage.setItem('maxTokens', maxTokens.toString())
   }, [maxTokens])
 
+  // Render Mermaid diagrams when artifact changes
+  useEffect(() => {
+    if (currentArtifact && currentArtifact.type === 'mermaid' && window.mermaid) {
+      const elementId = `mermaid-diagram-${currentArtifact.id}`;
+      const element = document.getElementById(elementId);
+      if (element) {
+        // Clear previous content
+        element.innerHTML = currentArtifact.content;
+        // Render the diagram
+        window.mermaid.run({
+          nodes: [element]
+        }).catch(err => {
+          console.error('Mermaid rendering error:', err);
+          element.innerHTML = `<div class="text-red-500 p-4">Error rendering diagram: ${err.message}</div>`;
+        });
+      }
+    }
+  }, [currentArtifact])
+
   // Command palette keyboard shortcut (Cmd/Ctrl+K) and conversation navigation
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -4438,6 +4457,8 @@ function App() {
                           extension = '.html';
                         } else if (currentArtifact.type === 'svg') {
                           extension = '.svg';
+                        } else if (currentArtifact.type === 'mermaid') {
+                          extension = '.mmd';
                         } else if (currentArtifact.language === 'python') {
                           extension = '.py';
                         } else if (currentArtifact.language === 'javascript') {
@@ -4617,6 +4638,17 @@ function App() {
                   // SVG Preview
                   <div className="h-full bg-white flex items-center justify-center p-4">
                     <div dangerouslySetInnerHTML={{ __html: currentArtifact.content }} />
+                  </div>
+                ) : currentArtifact.type === 'mermaid' ? (
+                  // Mermaid Diagram Preview
+                  <div className="h-full bg-white dark:bg-gray-50 flex items-center justify-center p-4 overflow-auto">
+                    <div
+                      id={`mermaid-diagram-${currentArtifact.id}`}
+                      className="mermaid-diagram"
+                      key={currentArtifact.id}
+                    >
+                      {currentArtifact.content}
+                    </div>
                   </div>
                 ) : (
                   // Code View

@@ -1191,7 +1191,7 @@
       "Step 4: Verify nodes and connections are visible",
       "Step 5: Verify it's interactive if applicable"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
