@@ -1899,7 +1899,7 @@
       "Step 5: Verify sidebar closes",
       "Step 6: Verify smooth animation during swipe"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",

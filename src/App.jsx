@@ -917,6 +917,92 @@ function App() {
     }
   }, [currentArtifact])
 
+  // Swipe gesture handling for mobile sidebar navigation
+  useEffect(() => {
+    // Only enable swipe gestures on mobile/tablet devices
+    if (typeof window === 'undefined' || window.innerWidth >= 640) {
+      return
+    }
+
+    let touchStartX = 0
+    let touchStartY = 0
+    let touchCurrentX = 0
+    let touchCurrentY = 0
+    let isSwiping = false
+
+    const handleTouchStart = (e) => {
+      touchStartX = e.touches[0].clientX
+      touchStartY = e.touches[0].clientY
+      touchCurrentX = touchStartX
+      touchCurrentY = touchStartY
+      isSwiping = false
+    }
+
+    const handleTouchMove = (e) => {
+      if (!e.touches[0]) return
+
+      touchCurrentX = e.touches[0].clientX
+      touchCurrentY = e.touches[0].clientY
+
+      const deltaX = touchCurrentX - touchStartX
+      const deltaY = touchCurrentY - touchStartY
+
+      // Determine if this is a horizontal swipe (not vertical scroll)
+      // Only consider it a swipe if horizontal movement is greater than vertical
+      if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 10) {
+        isSwiping = true
+      }
+
+      // Only prevent default if we're swiping horizontally
+      // This allows vertical scrolling to still work
+      if (isSwiping && Math.abs(deltaX) > 30) {
+        // Don't prevent default to allow smooth animation
+        // e.preventDefault()
+      }
+    }
+
+    const handleTouchEnd = (e) => {
+      if (!isSwiping) return
+
+      const deltaX = touchCurrentX - touchStartX
+      const deltaY = touchCurrentY - touchStartY
+
+      // Check if horizontal swipe is dominant
+      if (Math.abs(deltaX) > Math.abs(deltaY)) {
+        const swipeThreshold = 50 // Minimum swipe distance in pixels
+
+        // Swipe right (open sidebar)
+        if (deltaX > swipeThreshold && isSidebarCollapsed) {
+          // Only allow swipe from left edge of screen
+          if (touchStartX < 50) {
+            setIsSidebarCollapsed(false)
+          }
+        }
+
+        // Swipe left (close sidebar)
+        else if (deltaX < -swipeThreshold && !isSidebarCollapsed) {
+          setIsSidebarCollapsed(true)
+        }
+      }
+
+      // Reset
+      isSwiping = false
+    }
+
+    // Attach listeners to the main chat area
+    const chatArea = document.querySelector('main') || document.body
+    chatArea.addEventListener('touchstart', handleTouchStart, { passive: true })
+    chatArea.addEventListener('touchmove', handleTouchMove, { passive: true })
+    chatArea.addEventListener('touchend', handleTouchEnd, { passive: true })
+
+    // Cleanup
+    return () => {
+      chatArea.removeEventListener('touchstart', handleTouchStart)
+      chatArea.removeEventListener('touchmove', handleTouchMove)
+      chatArea.removeEventListener('touchend', handleTouchEnd)
+    }
+  }, [isSidebarCollapsed])
+
   // Command palette keyboard shortcut (Cmd/Ctrl+K) and conversation navigation
   useEffect(() => {
     const handleKeyDown = (e) => {
