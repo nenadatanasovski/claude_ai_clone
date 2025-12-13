@@ -1531,7 +1531,7 @@
       "Step 4: Verify subtle background appears on hover",
       "Step 5: Verify icon color is consistent"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "style",
