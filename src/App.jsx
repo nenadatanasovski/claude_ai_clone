@@ -5346,8 +5346,8 @@ function App() {
                           )}
                         </div>
                       </div>
-                    )))
-                    }
+                    ))
+                    )}
                     {isLoading && !isStreaming && (
                       <TypingIndicator />
                     )}
@@ -5427,8 +5427,6 @@ function App() {
                           </div>
                         </div>
                       </div>
-                    )}
-                    ))
                     )}
                     <div ref={messagesEndRef} />
                   </div>
