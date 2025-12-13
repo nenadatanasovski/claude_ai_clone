@@ -1519,7 +1519,7 @@
       "Step 4: Verify consistent sizing",
       "Step 5: Verify clear visual distinction from primary buttons"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "style",
