@@ -1555,7 +1555,7 @@
       "Step 4: Hover over a conversation",
       "Step 5: Verify hover effect (shadow increase or background change)"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "style",

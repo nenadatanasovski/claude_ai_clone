@@ -4387,6 +4387,7 @@ function App() {
                         aria-label={`Open conversation: ${conv.title}`}
                         aria-current={conv.id === currentConversationId ? 'true' : 'false'}
                         className={`group relative px-2 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800
+                          border border-gray-200 dark:border-gray-700 hover:shadow-sm
                           cursor-pointer text-sm
                           focus:outline-none focus:ring-2 focus:ring-claude-orange focus:ring-offset-1
                           dark:focus:ring-offset-gray-900 ${
@@ -4542,6 +4543,7 @@ function App() {
                                 key={conv.id}
                                 onClick={() => setCurrentConversationId(conv.id)}
                                 className={`px-2 py-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800
+                                  border border-gray-200 dark:border-gray-700 hover:shadow-sm
                                   cursor-pointer text-sm ${
                                     conv.id === currentConversationId ? 'bg-gray-100 dark:bg-gray-800' : ''
                                   }`}
