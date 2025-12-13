@@ -4365,6 +4365,15 @@ function App() {
             />
           )}
 
+          {/* Artifact panel backdrop overlay for tablet/mobile */}
+          {showArtifactPanel && currentArtifact && !isArtifactFullscreen && (
+            <div
+              className="lg:hidden fixed inset-0 bg-black bg-opacity-50 z-20"
+              onClick={() => setShowArtifactPanel(false)}
+              aria-hidden="true"
+            />
+          )}
+
           {/* Sidebar */}
           <aside
             className={`border-r ${
@@ -5421,7 +5430,9 @@ function App() {
           {/* Artifact Panel */}
           {showArtifactPanel && currentArtifact && (
             <aside className={`border-l border-gray-200 dark:border-gray-800 flex flex-col bg-white dark:bg-[#1A1A1A] ${
-              isArtifactFullscreen ? 'fixed inset-0 z-50 w-full' : 'w-96'
+              isArtifactFullscreen
+                ? 'fixed inset-0 z-50 w-full'
+                : 'w-96 fixed right-0 top-[60px] h-[calc(100vh-60px)] z-30 lg:relative lg:top-0 lg:h-auto'
             }`}>
               {/* Artifact Header */}
               <div className="border-b border-gray-200 dark:border-gray-800 p-4 flex items-center justify-between">
