@@ -75,6 +75,46 @@
         outline-width: 3px !important;
         outline-offset: 2px !important;
       }
+
+      /* Reduced Motion Support */
+      /* Disable or minimize animations when reduced motion is enabled */
+      .reduce-motion *,
+      .reduce-motion *::before,
+      .reduce-motion *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+      }
+
+      /* Completely remove specific animations */
+      .reduce-motion .animate-bounce,
+      .reduce-motion .animate-spin {
+        animation: none !important;
+      }
+
+      /* Keep instant transitions for some elements */
+      .reduce-motion button,
+      .reduce-motion a {
+        transition: none !important;
+      }
+
+      /* Also respect system preference */
+      @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+          animation-duration: 0.01ms !important;
+          animation-iteration-count: 1 !important;
+          transition-duration: 0.01ms !important;
+          scroll-behavior: auto !important;
+        }
+
+        .animate-bounce,
+        .animate-spin {
+          animation: none !important;
+        }
+      }
     </style>
   </head>
   <body>

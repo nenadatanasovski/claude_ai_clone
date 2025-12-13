@@ -345,6 +345,12 @@ function App() {
     const saved = localStorage.getItem('highContrast')
     return saved === 'true'
   }) // High contrast mode for accessibility
+  const [reducedMotion, setReducedMotion] = useState(() => {
+    const saved = localStorage.getItem('reducedMotion')
+    if (saved !== null) return saved === 'true'
+    // Default to system preference
+    return window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  }) // Reduced motion for accessibility
   const [globalCustomInstructions, setGlobalCustomInstructions] = useState('')
   const [temperature, setTemperature] = useState(() => {
     const saved = localStorage.getItem('temperature')
@@ -607,6 +613,11 @@ function App() {
   useEffect(() => {
     localStorage.setItem('highContrast', highContrast.toString())
   }, [highContrast])
+
+  // Save reduced motion setting to localStorage
+  useEffect(() => {
+    localStorage.setItem('reducedMotion', reducedMotion.toString())
+  }, [reducedMotion])
 
   // Save temperature setting to localStorage
   useEffect(() => {
@@ -2912,7 +2923,7 @@ function App() {
   }
 
   return (
-    <div className={`${isDark ? 'dark' : ''} ${highContrast ? 'high-contrast' : ''}`}>
+    <div className={`${isDark ? 'dark' : ''} ${highContrast ? 'high-contrast' : ''} ${reducedMotion ? 'reduce-motion' : ''}`}>
       <div className={`min-h-screen ${
         highContrast
           ? 'bg-white dark:bg-black text-black dark:text-white'
@@ -5472,7 +5483,7 @@ function App() {
                 </p>
 
                 {/* High Contrast Mode Toggle */}
-                <div className="flex items-center justify-between p-4 rounded-lg border border-gray-200 dark:border-gray-700">
+                <div className="flex items-center justify-between p-4 rounded-lg border border-gray-200 dark:border-gray-700 mb-3">
                   <div className="flex-1">
                     <div className="font-medium">High Contrast Mode</div>
                     <div className="text-sm text-gray-600 dark:text-gray-400 mt-1">
@@ -5492,6 +5503,32 @@ function App() {
                     <span
                       className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
                         highContrast ? 'translate-x-6' : 'translate-x-1'
+                      }`}
+                    />
+                  </button>
+                </div>
+
+                {/* Reduced Motion Toggle */}
+                <div className="flex items-center justify-between p-4 rounded-lg border border-gray-200 dark:border-gray-700">
+                  <div className="flex-1">
+                    <div className="font-medium">Reduced Motion</div>
+                    <div className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                      Minimize animations for those sensitive to motion
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setReducedMotion(!reducedMotion)}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-claude-orange focus:ring-offset-2 ${
+                      reducedMotion ? 'bg-claude-orange' : 'bg-gray-300 dark:bg-gray-600'
+                    }`}
+                    role="switch"
+                    aria-checked={reducedMotion}
+                    aria-label="Toggle reduced motion"
+                  >
+                    <span
+                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                        reducedMotion ? 'translate-x-6' : 'translate-x-1'
                       }`}
                     />
                   </button>

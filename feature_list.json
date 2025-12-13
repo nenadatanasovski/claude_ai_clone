@@ -1142,7 +1142,7 @@
       "Step 4: Verify animations are reduced or removed",
       "Step 5: Verify functionality still works without animations"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
