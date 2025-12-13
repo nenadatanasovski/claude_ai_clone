@@ -110,12 +110,6 @@
         font-weight: 600;
       }
 
-      /* Make focus indicators more visible */
-      .high-contrast *:focus {
-        outline-width: 3px !important;
-        outline-offset: 2px !important;
-      }
-
       /* Code block styling - rounded corners */
       pre code {
         display: block;
@@ -137,6 +131,72 @@
       .dark code:not(pre code) {
         background-color: #374151; /* bg-gray-700 */
         color: #E5E7EB; /* gray-200 */
+      }
+
+      /* Global Focus Indicators for Accessibility */
+      /* Ensure all interactive elements have visible focus indicators */
+      /* These are default fallbacks - specific components may override */
+
+      /* Remove default browser outline and replace with custom ring */
+      button:focus-visible,
+      a:focus-visible,
+      input:focus-visible,
+      textarea:focus-visible,
+      select:focus-visible,
+      [role="button"]:focus-visible,
+      [role="tab"]:focus-visible,
+      [role="menuitem"]:focus-visible,
+      [tabindex]:not([tabindex="-1"]):focus-visible {
+        outline: none;
+        box-shadow: 0 0 0 2px #CC785C; /* claude-orange */
+        border-radius: 4px;
+      }
+
+      /* Specific focus styles for different element types */
+      /* Buttons - slightly larger ring with offset */
+      button:focus-visible {
+        box-shadow: 0 0 0 2px #ffffff, 0 0 0 4px #CC785C;
+      }
+
+      .dark button:focus-visible {
+        box-shadow: 0 0 0 2px #1a1a1a, 0 0 0 4px #CC785C;
+      }
+
+      /* Input elements - ring without offset for cleaner look */
+      input:focus-visible,
+      textarea:focus-visible,
+      select:focus-visible {
+        box-shadow: 0 0 0 2px #CC785C;
+      }
+
+      /* Links - underline and subtle ring */
+      a:focus-visible {
+        box-shadow: 0 0 0 2px #CC785C;
+        text-decoration: underline;
+      }
+
+      /* Interactive divs and custom elements */
+      [role="button"]:focus-visible,
+      [role="tab"]:focus-visible,
+      [role="menuitem"]:focus-visible {
+        box-shadow: 0 0 0 2px #CC785C;
+      }
+
+      /* Ensure focus indicators are NEVER removed unless properly replaced */
+      /* This prevents the common mistake of outline: none without replacement */
+      *:focus {
+        outline: 2px solid transparent; /* Fallback if focus-visible not supported */
+      }
+
+      /* High contrast mode: make focus even more visible */
+      .high-contrast button:focus-visible,
+      .high-contrast a:focus-visible,
+      .high-contrast input:focus-visible,
+      .high-contrast textarea:focus-visible,
+      .high-contrast select:focus-visible {
+        box-shadow: 0 0 0 3px #CC785C !important;
+        outline: 3px solid #CC785C !important;
+        outline-offset: 2px !important;
       }
 
       /* Reduced Motion Support */

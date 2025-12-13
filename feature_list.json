@@ -1750,7 +1750,7 @@
       "Step 4: Verify focus ring has sufficient contrast",
       "Step 5: Verify focus indicators are never removed without replacement"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "style",
