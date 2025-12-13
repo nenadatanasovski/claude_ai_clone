@@ -1088,6 +1088,12 @@ $$\\sum_{i=1}^{n} i = \\frac{n(n+1)}{2}$$`;
       VALUES (?, ?, ?, ?, ?, ?, ?)
     `).run(1, conversationId, assistantMessageId, conversation.model, inputTokens, outputTokens, 0.0);
 
+    // Detect and save artifacts from the response
+    const artifacts = detectArtifacts(fullResponse);
+    if (artifacts.length > 0) {
+      saveArtifacts(artifacts, assistantMessageId, conversationId);
+    }
+
     // Update conversation
     const now = new Date().toISOString();
     dbHelpers.prepare(`
