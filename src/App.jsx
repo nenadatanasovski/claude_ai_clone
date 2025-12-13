@@ -3955,7 +3955,8 @@ function App() {
                 {/* Project Dropdown Menu */}
                 {isProjectDropdownOpen && (
                   <div className="absolute top-full left-0 mt-2 w-64 bg-white dark:bg-gray-800
-                    border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-50">
+                    border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-50
+                    animate-slideIn">
                     <button
                       type="button"
                       onClick={() => {
@@ -4089,7 +4090,8 @@ function App() {
                 {/* Dropdown Menu */}
                 {isModelDropdownOpen && (
                   <div className="absolute top-full right-0 mt-2 w-80 bg-white dark:bg-gray-800
-                    border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-50 overflow-hidden">
+                    border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-50 overflow-hidden
+                    animate-slideIn">
                     {models.map((model) => (
                       <button
                         key={model.id}
@@ -4764,7 +4766,7 @@ function App() {
 
                 {/* Profile Dropdown Menu */}
                 {showProfileMenu && (
-                  <div className="mt-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg overflow-hidden">
+                  <div className="mt-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg overflow-hidden animate-slideIn">
                     <button
                       onClick={() => {
                         setShowProfileModal(true)

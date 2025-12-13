@@ -1799,7 +1799,7 @@
       "Step 5: Verify hover highlight is clear",
       "Step 6: Verify selected item is indicated"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "style",
