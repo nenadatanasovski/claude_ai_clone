@@ -48,10 +48,10 @@ function CodeBlock({ node, inline, className, children, ...props }) {
 // Typing indicator component with animated dots
 function TypingIndicator() {
   return (
-    <div className="flex justify-start mb-4">
+    <div className="flex justify-start mb-4" role="status" aria-live="polite" aria-label="Claude is thinking">
       <div className="flex items-center gap-2 px-4 py-3 bg-gray-50 dark:bg-gray-800 rounded-2xl">
         <span className="text-sm text-gray-600 dark:text-gray-400">Claude is thinking</span>
-        <div className="flex gap-1">
+        <div className="flex gap-1" aria-hidden="true">
           <div className="w-2 h-2 bg-gray-400 dark:bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '0ms', animationDuration: '1s' }}></div>
           <div className="w-2 h-2 bg-gray-400 dark:bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '150ms', animationDuration: '1s' }}></div>
           <div className="w-2 h-2 bg-gray-400 dark:bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '300ms', animationDuration: '1s' }}></div>
@@ -3226,6 +3226,8 @@ function App() {
             }`}
             style={{ width: isSidebarCollapsed ? '0px' : `${sidebarWidth}px` }}
             onContextMenu={handleSidebarContextMenu}
+            role="navigation"
+            aria-label="Conversation navigation"
           >
             {/* Resize Handle */}
             {!isSidebarCollapsed && (
@@ -3258,6 +3260,7 @@ function App() {
                   bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100
                   focus:outline-none focus:ring-2 focus:ring-claude-orange text-sm
                   placeholder:text-gray-400 dark:placeholder:text-gray-500"
+                aria-label="Search conversations"
               />
             </div>
 
@@ -3341,6 +3344,7 @@ function App() {
                               onClick={(e) => e.stopPropagation()}
                               className="w-full px-1 py-0.5 bg-white dark:bg-gray-900 border border-claude-orange
                                 rounded focus:outline-none text-sm"
+                              aria-label="Edit conversation title"
                             />
                           ) : (
                             <>
@@ -3424,6 +3428,7 @@ function App() {
                             onClick={(e) => e.stopPropagation()}
                             className="w-full px-1 py-0.5 bg-white dark:bg-gray-900 border border-claude-orange
                               rounded focus:outline-none text-sm"
+                            aria-label="Edit conversation title"
                           />
                         ) : (
                           <>
@@ -3625,7 +3630,12 @@ function App() {
                     </div>
                   </>
                 ) : (
-                  <div className={`${messageDensity === 'compact' ? 'space-y-3' : messageDensity === 'spacious' ? 'space-y-8' : 'space-y-6'}`}>
+                  <div
+                    className={`${messageDensity === 'compact' ? 'space-y-3' : messageDensity === 'spacious' ? 'space-y-8' : 'space-y-6'}`}
+                    role="log"
+                    aria-live="polite"
+                    aria-label="Chat messages"
+                  >
                     {messages.map((message, idx) => (
                       <div
                         key={message.id || idx}
@@ -3963,6 +3973,8 @@ function App() {
                       resize-none overflow-hidden"
                     style={{ minHeight: '52px' }}
                     disabled={isLoading}
+                    aria-label="Message input"
+                    aria-describedby="message-help-text"
                   />
                   {/* Image attachment button */}
                   <button
@@ -3973,6 +3985,7 @@ function App() {
                       dark:hover:bg-gray-800 transition-colors
                       disabled:opacity-50 disabled:cursor-not-allowed"
                     title="Attach image"
+                    aria-label="Attach image"
                   >
                     <svg className="w-5 h-5 text-gray-600 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
@@ -3990,6 +4003,7 @@ function App() {
                       }}
                       className="absolute right-2 bottom-2 px-3 py-2 rounded-lg bg-red-500
                         hover:bg-red-600 text-white transition-colors font-medium text-sm"
+                      aria-label="Stop generating response"
                     >
                       Stop
                     </button>
@@ -4005,6 +4019,7 @@ function App() {
                       className="absolute right-2 bottom-2 p-2 rounded-lg bg-claude-orange
                         hover:bg-claude-orange-hover text-white transition-colors
                         disabled:opacity-50 disabled:cursor-not-allowed"
+                      aria-label="Send message"
                     >
                       {isLoading ? (
                         <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -4024,8 +4039,8 @@ function App() {
                   )}
                 </div>
                 <div className="mt-2 flex justify-between items-center text-xs text-gray-500 dark:text-gray-400">
-                  <span>Press Enter to send, Shift+Enter for new line</span>
-                  <span className="font-medium">{inputValue.length} characters</span>
+                  <span id="message-help-text">Press Enter to send, Shift+Enter for new line</span>
+                  <span className="font-medium" aria-live="polite" aria-atomic="true">{inputValue.length} characters</span>
                 </div>
               </div>
             </div>

@@ -1105,7 +1105,7 @@
       "Step 5: Verify messages are announced",
       "Step 6: Verify interactive elements have proper labels"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
