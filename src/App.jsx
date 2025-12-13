@@ -4709,7 +4709,7 @@ function App() {
                     {messages.map((message, idx) => (
                       <div
                         key={message.id || idx}
-                        className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                        className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'} animate-fadeIn`}
                       >
                         <div
                           className={`max-w-[80%] rounded-lg px-4 py-3 ${

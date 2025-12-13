@@ -1580,7 +1580,7 @@
       "Step 4: Observe assistant response",
       "Step 5: Verify it also fades in"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "style",
