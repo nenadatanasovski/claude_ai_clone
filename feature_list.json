@@ -1714,7 +1714,7 @@
       "Step 4: Verify message auto-dismisses after a few seconds",
       "Step 5: Verify smooth fade-out animation"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "style",
