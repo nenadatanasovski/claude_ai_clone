@@ -1886,7 +1886,7 @@
       "Step 4: Verify easy to tap without mis-clicks",
       "Step 5: Verify adequate spacing between interactive elements"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",

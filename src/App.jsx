@@ -3935,7 +3935,7 @@ function App() {
               <button
                 type="button"
                 onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-                className="sm:hidden p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800
+                className="sm:hidden p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800
                   transition-colors focus:outline-none focus:ring-2 focus:ring-claude-orange"
                 aria-label={isSidebarCollapsed ? 'Open sidebar' : 'Close sidebar'}
                 aria-expanded={!isSidebarCollapsed}
@@ -4433,7 +4433,7 @@ function App() {
               <button
                 type="button"
                 onClick={() => setShowArchived(false)}
-                className={`flex-1 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors
+                className={`flex-1 px-3 py-3 rounded-lg text-sm font-medium transition-colors
                   focus:outline-none focus:ring-2 focus:ring-claude-orange focus:ring-offset-1
                   dark:focus:ring-offset-gray-900 ${
                   !showArchived
@@ -4447,7 +4447,7 @@ function App() {
               <button
                 type="button"
                 onClick={() => setShowArchived(true)}
-                className={`flex-1 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors
+                className={`flex-1 px-3 py-3 rounded-lg text-sm font-medium transition-colors
                   focus:outline-none focus:ring-2 focus:ring-claude-orange focus:ring-offset-1
                   dark:focus:ring-offset-gray-900 ${
                   showArchived
@@ -5089,12 +5089,12 @@ function App() {
                               <button
                                 onClick={() => regenerateMessage(message.id)}
                                 disabled={isLoading}
-                                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium
+                                className="inline-flex items-center gap-1.5 px-3 py-3 text-xs font-medium
                                   rounded-md border border-gray-300 dark:border-gray-600
                                   text-gray-700 dark:text-gray-300
                                   hover:bg-gray-100 dark:hover:bg-gray-800
                                   disabled:opacity-50 disabled:cursor-not-allowed
-                                  transition-colors"
+                                  transition-colors min-h-[44px]"
                                 title="Regenerate response"
                               >
                                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -5119,7 +5119,7 @@ function App() {
                                         key={idx}
                                         onClick={() => handleSuggestionClick(suggestion)}
                                         disabled={isLoading}
-                                        className="px-3 py-2 text-sm text-left
+                                        className="px-3 py-3 text-sm text-left
                                           border border-gray-300 dark:border-gray-600
                                           bg-white dark:bg-gray-800
                                           text-gray-700 dark:text-gray-300
@@ -5145,12 +5145,12 @@ function App() {
                               <button
                                 onClick={() => startEditingMessage(message)}
                                 disabled={isLoading}
-                                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium
+                                className="inline-flex items-center gap-1.5 px-3 py-3 text-xs font-medium
                                   rounded-md border border-gray-300 dark:border-gray-600
                                   text-gray-700 dark:text-gray-300
                                   hover:bg-gray-100 dark:hover:bg-gray-800
                                   disabled:opacity-50 disabled:cursor-not-allowed
-                                  transition-colors"
+                                  transition-colors min-h-[44px]"
                                 title="Edit message"
                               >
                                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
