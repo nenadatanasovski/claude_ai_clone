@@ -1494,7 +1494,7 @@
       "Step 4: Verify avatar or indicator is present",
       "Step 5: Verify proper spacing from user messages"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "style",
