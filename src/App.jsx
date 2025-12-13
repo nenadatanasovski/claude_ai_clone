@@ -414,6 +414,7 @@ function App() {
   const [branches, setBranches] = useState([]) // Conversation branches
   const [currentBranch, setCurrentBranch] = useState(null) // Currently selected branch path
   const [showSettingsModal, setShowSettingsModal] = useState(false)
+  const [settingsActiveTab, setSettingsActiveTab] = useState('appearance') // Active tab in settings modal
   const [showKeyboardShortcutsModal, setShowKeyboardShortcutsModal] = useState(false)
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
   const [sidebarWidth, setSidebarWidth] = useState(256) // Sidebar width in pixels (min: 200, max: 500)
@@ -6632,15 +6633,47 @@ function App() {
         {/* Settings Modal */}
         {showSettingsModal && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 animate-fadeIn">
-            <div ref={settingsModalRef} className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto animate-slideIn">
-              <h2 className="text-xl font-semibold mb-4">Settings</h2>
+            <div ref={settingsModalRef} className="bg-white dark:bg-gray-800 rounded-lg max-w-3xl w-full mx-4 max-h-[90vh] flex flex-col animate-slideIn">
+              {/* Settings Header */}
+              <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+                <h2 className="text-xl font-semibold">Settings</h2>
+              </div>
 
-              {/* Appearance Section */}
-              <div className="mb-6">
-                <h3 className="text-lg font-medium mb-3">Appearance</h3>
-                <div className="space-y-2">
-                  <label className="block text-sm font-medium mb-2">Theme</label>
-                  <div className="space-y-2">
+              {/* Tabs Navigation */}
+              <div className="px-6 border-b border-gray-200 dark:border-gray-700">
+                <div className="flex gap-1 -mb-px overflow-x-auto">
+                  {[
+                    { id: 'appearance', label: 'Appearance', icon: '🎨' },
+                    { id: 'model', label: 'Model', icon: '🤖' },
+                    { id: 'accessibility', label: 'Accessibility', icon: '♿' },
+                    { id: 'advanced', label: 'Advanced', icon: '⚙️' },
+                    { id: 'account', label: 'Account', icon: '👤' }
+                  ].map((tab) => (
+                    <button
+                      key={tab.id}
+                      onClick={() => setSettingsActiveTab(tab.id)}
+                      className={`px-4 py-3 text-sm font-medium whitespace-nowrap transition-colors border-b-2 ${
+                        settingsActiveTab === tab.id
+                          ? 'border-claude-orange text-claude-orange'
+                          : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:border-gray-300 dark:hover:border-gray-600'
+                      }`}
+                    >
+                      <span className="mr-2">{tab.icon}</span>
+                      {tab.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Tab Content */}
+              <div className="flex-1 overflow-y-auto p-6">
+                {/* Appearance Tab */}
+                {settingsActiveTab === 'appearance' && (
+                  <div className="space-y-6">
+                    {/* Theme Section */}
+                    <div>
+                      <h3 className="text-lg font-medium mb-3">Theme</h3>
+                      <div className="space-y-2">
                     <button
                       type="button"
                       onClick={() => setTheme('light')}
@@ -6716,12 +6749,11 @@ function App() {
                       </div>
                     </button>
                   </div>
-                </div>
-              </div>
+                    </div>
 
-              {/* Font Size Section */}
-              <div className="mb-6">
-                <h3 className="text-lg font-medium mb-3">Font Size</h3>
+                    {/* Font Size Section */}
+                    <div>
+                      <h3 className="text-lg font-medium mb-3">Font Size</h3>
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
                     <label className="block text-sm font-medium">Message text size</label>
@@ -6740,12 +6772,12 @@ function App() {
                     <span>Medium (16px)</span>
                     <span>Large (24px)</span>
                   </div>
-                </div>
-              </div>
+                    </div>
+                    </div>
 
-              {/* Message Density Section */}
-              <div className="mb-6">
-                <h3 className="text-lg font-medium mb-3">Message Density</h3>
+                    {/* Message Density Section */}
+                    <div>
+                      <h3 className="text-lg font-medium mb-3">Message Density</h3>
                 <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
                   Adjust spacing between messages
                 </p>
@@ -6791,13 +6823,13 @@ function App() {
                     {messageDensity === 'spacious' && (
                       <div className="text-claude-orange text-xs mt-1">✓</div>
                     )}
-                  </button>
-                </div>
-              </div>
+                    </button>
+                  </div>
+                    </div>
 
-              {/* Code Theme Section */}
-              <div className="mb-6">
-                <h3 className="text-lg font-medium mb-3">Code Theme</h3>
+                    {/* Code Theme Section */}
+                    <div>
+                      <h3 className="text-lg font-medium mb-3">Code Theme</h3>
                 <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
                   Choose syntax highlighting theme for code blocks
                 </p>
@@ -6887,11 +6919,16 @@ function App() {
                     )}
                   </button>
                 </div>
-              </div>
+                    </div>
+                  </div>
+                )}
 
-              {/* Temperature Control Section */}
-              <div className="mb-6">
-                <h3 className="text-lg font-medium mb-3">Temperature</h3>
+                {/* Model Tab */}
+                {settingsActiveTab === 'model' && (
+                  <div className="space-y-6">
+                    {/* Temperature Control Section */}
+                    <div>
+                      <h3 className="text-lg font-medium mb-3">Temperature</h3>
                 <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
                   Control the randomness of Claude's responses
                 </p>
@@ -6961,14 +6998,19 @@ function App() {
                     <span>4096 (Comprehensive)</span>
                   </div>
                 </div>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-                  Lower values limit response length. Higher values allow longer, more detailed responses.
-                </p>
-              </div>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                        Lower values limit response length. Higher values allow longer, more detailed responses.
+                      </p>
+                    </div>
+                  </div>
+                )}
 
-              {/* Accessibility Section */}
-              <div className="mb-6">
-                <h3 className="text-lg font-medium mb-3">Accessibility</h3>
+                {/* Accessibility Tab */}
+                {settingsActiveTab === 'accessibility' && (
+                  <div className="space-y-6">
+                    {/* Accessibility Options */}
+                    <div>
+                      <h3 className="text-lg font-medium mb-3">Accessibility</h3>
                 <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
                   Options to improve accessibility
                 </p>
@@ -7066,14 +7108,45 @@ function App() {
                     </button>
                   ))}
                 </div>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-3">
-                  Note: Currently only English is fully supported. Other languages are planned for future releases.
-                </p>
-              </div>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-3">
+                        Note: Currently only English is fully supported. Other languages are planned for future releases.
+                      </p>
+                    </div>
+                  </div>
+                )}
 
-              {/* API Keys Section */}
-              <div className="mb-6">
-                <h3 className="text-lg font-medium mb-3">API Keys</h3>
+                {/* Advanced Tab */}
+                {settingsActiveTab === 'advanced' && (
+                  <div className="space-y-6">
+                    {/* Custom Instructions */}
+                    <div>
+                      <h3 className="text-lg font-medium mb-3">Custom Instructions</h3>
+                      <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
+                        Add instructions that will be applied to all conversations
+                      </p>
+                      <textarea
+                        value={globalCustomInstructions}
+                        onChange={(e) => setGlobalCustomInstructions(e.target.value)}
+                        onBlur={saveCustomInstructions}
+                        placeholder="e.g., Always be concise, Explain like I'm a beginner, etc."
+                        className="w-full h-32 px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600
+                          bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100
+                          placeholder-gray-400 dark:placeholder-gray-500
+                          focus:outline-none focus:ring-2 focus:ring-claude-orange resize-none"
+                      />
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                        These instructions will be sent with every message to guide Claude's responses
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Account Tab */}
+                {settingsActiveTab === 'account' && (
+                  <div className="space-y-6">
+                    {/* API Keys Section */}
+                    <div>
+                      <h3 className="text-lg font-medium mb-3">API Keys</h3>
                 <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
                   Manage your Anthropic API keys
                 </p>
@@ -7222,32 +7295,16 @@ function App() {
                         </div>
                       </div>
                     </div>
-                  )}
-                </div>
+                    )}
+                  </div>
+                    </div>
+                  </div>
+                )}
               </div>
 
-              {/* Custom Instructions Section */}
-              <div className="mb-6">
-                <h3 className="text-lg font-medium mb-3">Custom Instructions</h3>
-                <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
-                  Add instructions that will be applied to all conversations
-                </p>
-                <textarea
-                  value={globalCustomInstructions}
-                  onChange={(e) => setGlobalCustomInstructions(e.target.value)}
-                  onBlur={saveCustomInstructions}
-                  placeholder="e.g., Always be concise, Explain like I'm a beginner, etc."
-                  className="w-full h-32 px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600
-                    bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100
-                    placeholder-gray-400 dark:placeholder-gray-500
-                    focus:outline-none focus:ring-2 focus:ring-claude-orange resize-none"
-                />
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-                  These instructions will be sent with every message to guide Claude's responses
-                </p>
-              </div>
-
-              <div className="flex justify-end gap-3 mt-6">
+              {/* Footer with Done button */}
+              <div className="p-6 border-t border-gray-200 dark:border-gray-700">
+                <div className="flex justify-end gap-3">
                 <button
                   onClick={() => setShowSettingsModal(false)}
                   className="px-4 py-2 bg-claude-orange hover:bg-claude-orange-hover
@@ -7255,6 +7312,7 @@ function App() {
                 >
                   Done
                 </button>
+                </div>
               </div>
             </div>
           </div>
