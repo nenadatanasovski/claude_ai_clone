@@ -500,6 +500,8 @@ function App() {
   }) // Array of tip IDs that have been marked as read
   const [showCommandPalette, setShowCommandPalette] = useState(false) // Show command palette modal
   const [commandPaletteQuery, setCommandPaletteQuery] = useState('') // Search query in command palette
+  const [selectedCommandIndex, setSelectedCommandIndex] = useState(0) // Currently selected command in palette
+  const [selectedConversationIndex, setSelectedConversationIndex] = useState(-1) // Currently selected conversation in sidebar (-1 means none)
   const [messageSuggestions, setMessageSuggestions] = useState({}) // Suggestions for each message { messageId: [suggestions] }
   const [relatedPrompts, setRelatedPrompts] = useState([]) // Related prompts based on conversation topic
   const [editingMessageId, setEditingMessageId] = useState(null)
@@ -1041,11 +1043,13 @@ function App() {
         e.preventDefault() // Prevent browser default behavior
         setShowCommandPalette(prev => !prev) // Toggle command palette
         setCommandPaletteQuery('') // Reset search query
+        setSelectedCommandIndex(0) // Reset selected command
       }
       // Also handle Escape to close command palette
       if (e.key === 'Escape' && showCommandPalette) {
         setShowCommandPalette(false)
         setCommandPaletteQuery('')
+        setSelectedCommandIndex(0) // Reset selected command
       }
       // Handle Escape to close keyboard shortcuts modal
       if (e.key === 'Escape' && showKeyboardShortcutsModal) {
@@ -1062,6 +1066,45 @@ function App() {
         if (activeElement.tagName !== 'INPUT' && activeElement.tagName !== 'TEXTAREA') {
           e.preventDefault()
           setShowKeyboardShortcutsModal(true)
+        }
+      }
+
+      // Arrow key navigation for sidebar conversations (without modifier keys)
+      // Only works when not typing in an input/textarea and command palette is not open
+      const activeElement = document.activeElement
+      const isTyping = activeElement.tagName === 'INPUT' || activeElement.tagName === 'TEXTAREA'
+
+      if (!isTyping && !showCommandPalette && (e.key === 'ArrowUp' || e.key === 'ArrowDown' || e.key === 'Enter')) {
+        // Get the filtered and sorted conversations list
+        const filteredConvos = conversations.filter(conv => {
+          if (showArchived && !conv.is_archived) return false
+          if (!showArchived && conv.is_archived) return false
+          if (searchQuery && !conv.title.toLowerCase().includes(searchQuery.toLowerCase())) return false
+          return true
+        })
+
+        if (filteredConvos.length === 0) return
+
+        if (e.key === 'ArrowUp') {
+          e.preventDefault()
+          setSelectedConversationIndex(prev => {
+            if (prev <= 0) return 0
+            return prev - 1
+          })
+        } else if (e.key === 'ArrowDown') {
+          e.preventDefault()
+          setSelectedConversationIndex(prev => {
+            if (prev === -1) return 0
+            if (prev >= filteredConvos.length - 1) return filteredConvos.length - 1
+            return prev + 1
+          })
+        } else if (e.key === 'Enter' && selectedConversationIndex >= 0) {
+          e.preventDefault()
+          // Open the selected conversation
+          if (filteredConvos[selectedConversationIndex]) {
+            setCurrentConversationId(filteredConvos[selectedConversationIndex].id)
+            setSelectedConversationIndex(-1) // Reset selection after opening
+          }
         }
       }
 
@@ -4741,7 +4784,14 @@ function App() {
 
                     const dateGroups = groupConversationsByDate(filteredConversations)
 
-                    const renderConversation = (conv) => (
+                    // Create flat array for index tracking
+                    const flatConversations = [...dateGroups.today, ...dateGroups.yesterday, ...dateGroups.previous7Days, ...dateGroups.previous30Days, ...dateGroups.older]
+
+                    const renderConversation = (conv) => {
+                      const flatIndex = flatConversations.findIndex(c => c.id === conv.id)
+                      const isKeyboardSelected = flatIndex === selectedConversationIndex && selectedConversationIndex >= 0
+
+                      return (
                       <div
                         key={conv.id}
                         draggable
@@ -4758,12 +4808,15 @@ function App() {
                         role="button"
                         aria-label={`Open conversation: ${conv.title}`}
                         aria-current={conv.id === currentConversationId ? 'true' : 'false'}
-                        className={`group relative px-2 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800
-                          border border-gray-200 dark:border-gray-700 hover:shadow-sm
-                          cursor-pointer text-sm transition-all duration-200
+                        className={`group relative px-2 py-2 rounded-lg transition-all duration-200
+                          cursor-pointer text-sm
                           focus:outline-none focus:ring-2 focus:ring-claude-orange focus:ring-offset-1
-                          dark:focus:ring-offset-gray-900 ${
-                            conv.id === currentConversationId ? 'bg-gray-100 dark:bg-gray-800' : ''
+                          dark:focus:ring-offset-gray-900
+                          ${isKeyboardSelected
+                            ? 'bg-orange-50 dark:bg-orange-900/20 border-2 border-orange-500 shadow-md'
+                            : 'border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800 hover:shadow-sm'
+                          }
+                          ${conv.id === currentConversationId && !isKeyboardSelected ? 'bg-gray-100 dark:bg-gray-800' : ''
                           }`}
                       >
                         {editingConversationId === conv.id ? (
@@ -4825,7 +4878,7 @@ function App() {
                           </>
                         )}
                       </div>
-                    )
+                    )}
 
                     return (
                       <>
@@ -6906,17 +6959,30 @@ function App() {
                   <input
                     type="text"
                     value={commandPaletteQuery}
-                    onChange={(e) => setCommandPaletteQuery(e.target.value)}
+                    onChange={(e) => {
+                      setCommandPaletteQuery(e.target.value)
+                      setSelectedCommandIndex(0) // Reset selection when query changes
+                    }}
                     onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        // Execute the first filtered command
-                        const filteredCommands = commands.filter(cmd => {
-                          const query = commandPaletteQuery.toLowerCase()
-                          return cmd.name.toLowerCase().includes(query) ||
-                                 cmd.description.toLowerCase().includes(query)
-                        })
-                        if (filteredCommands.length > 0) {
-                          filteredCommands[0].action()
+                      const filteredCommands = commands.filter(cmd => {
+                        const query = commandPaletteQuery.toLowerCase()
+                        return cmd.name.toLowerCase().includes(query) ||
+                               cmd.description.toLowerCase().includes(query)
+                      })
+
+                      if (e.key === 'ArrowDown') {
+                        e.preventDefault()
+                        setSelectedCommandIndex(prev =>
+                          prev < filteredCommands.length - 1 ? prev + 1 : prev
+                        )
+                      } else if (e.key === 'ArrowUp') {
+                        e.preventDefault()
+                        setSelectedCommandIndex(prev => prev > 0 ? prev - 1 : 0)
+                      } else if (e.key === 'Enter') {
+                        e.preventDefault()
+                        // Execute the selected command
+                        if (filteredCommands.length > 0 && filteredCommands[selectedCommandIndex]) {
+                          filteredCommands[selectedCommandIndex].action()
                         }
                       }
                     }}
@@ -6937,16 +7003,19 @@ function App() {
                     return cmd.name.toLowerCase().includes(query) ||
                            cmd.description.toLowerCase().includes(query)
                   })
-                  .map((cmd) => (
+                  .map((cmd, index) => (
                     <button
                       key={cmd.id}
                       onClick={cmd.action}
-                      className="w-full px-4 py-3 flex items-center gap-3 hover:bg-gray-100 dark:hover:bg-gray-800
-                        transition-colors text-left border-b border-gray-100 dark:border-gray-800 last:border-b-0"
+                      className={`w-full px-4 py-3 flex items-center gap-3 transition-colors text-left border-b border-gray-100 dark:border-gray-800 last:border-b-0
+                        ${index === selectedCommandIndex
+                          ? 'bg-orange-50 dark:bg-orange-900/20 border-l-4 border-l-orange-500'
+                          : 'hover:bg-gray-100 dark:hover:bg-gray-800'
+                        }`}
                     >
                       <span className="text-2xl">{cmd.icon}</span>
                       <div className="flex-1">
-                        <div className="font-medium text-gray-900 dark:text-white">
+                        <div className={`font-medium ${index === selectedCommandIndex ? 'text-orange-600 dark:text-orange-400' : 'text-gray-900 dark:text-white'}`}>
                           {cmd.name}
                         </div>
                         <div className="text-sm text-gray-500 dark:text-gray-400">

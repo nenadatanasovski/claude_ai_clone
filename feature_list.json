@@ -2059,7 +2059,7 @@
       "Step 11: Press Enter to open selected conversation",
       "Step 12: Verify all major functions accessible via keyboard"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "style",
