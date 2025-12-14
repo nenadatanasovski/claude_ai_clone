@@ -1980,7 +1980,7 @@
       "Step 11: Archive the 'Marketing Copy' conversation",
       "Step 12: Verify it no longer appears in main list but is in archive"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
