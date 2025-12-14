@@ -93,8 +93,8 @@ Feature tracking:
 ║                     GIT STATUS                                ║
 ╚═══════════════════════════════════════════════════════════════╝
 
-✅ Working tree clean (to be committed)
-✅ All changes ready to commit
+✅ Working tree clean
+✅ All changes committed
 ✅ Latest commit: Session 267 verification
 
 Last commit message:
