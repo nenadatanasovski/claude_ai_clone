@@ -457,6 +457,9 @@ function App() {
   const [repromptInstruction, setRepromptInstruction] = useState('')
   const [artifactVersions, setArtifactVersions] = useState([])
   const [showVersionSelector, setShowVersionSelector] = useState(false)
+  const [showVersionComparison, setShowVersionComparison] = useState(false)
+  const [comparisonVersion1, setComparisonVersion1] = useState(null)
+  const [comparisonVersion2, setComparisonVersion2] = useState(null)
   const [messageArtifacts, setMessageArtifacts] = useState({}) // Map of message ID to artifacts array
   const [messageUsage, setMessageUsage] = useState({}) // Map of message ID to usage data
   const [expandedUsage, setExpandedUsage] = useState(new Set()) // Set of message IDs with expanded usage
@@ -2135,6 +2138,24 @@ function App() {
   const switchToVersion = (versionArtifact) => {
     setCurrentArtifact(versionArtifact)
     setShowVersionSelector(false)
+  }
+
+  // Open version comparison modal
+  const openVersionComparison = () => {
+    if (artifactVersions.length >= 2) {
+      // Default to comparing the two most recent versions
+      setComparisonVersion1(artifactVersions[artifactVersions.length - 2])
+      setComparisonVersion2(artifactVersions[artifactVersions.length - 1])
+      setShowVersionComparison(true)
+      setShowVersionSelector(false)
+    }
+  }
+
+  // Close version comparison modal
+  const closeVersionComparison = () => {
+    setShowVersionComparison(false)
+    setComparisonVersion1(null)
+    setComparisonVersion2(null)
   }
 
   const toggleFolder = (folderId) => {
@@ -5888,6 +5909,22 @@ function App() {
                                 )}
                               </button>
                             ))}
+                            {artifactVersions.length >= 2 && (
+                              <>
+                                <div className="border-t border-gray-200 dark:border-gray-700 my-1"></div>
+                                <button
+                                  onClick={openVersionComparison}
+                                  className="w-full px-3 py-2 text-left text-sm text-[#CC785C] hover:bg-gray-100
+                                    dark:hover:bg-gray-700 transition-colors flex items-center gap-2"
+                                >
+                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                                      d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+                                  </svg>
+                                  <span>Compare Versions</span>
+                                </button>
+                              </>
+                            )}
                           </div>
                         </div>
                       )}
@@ -6724,6 +6761,114 @@ function App() {
                     text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Send
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Version Comparison Modal */}
+        {showVersionComparison && comparisonVersion1 && comparisonVersion2 && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white dark:bg-gray-800 rounded-lg w-full max-w-6xl max-h-[90vh] flex flex-col">
+              {/* Modal Header */}
+              <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+                <h2 className="text-xl font-semibold">Compare Versions</h2>
+                <button
+                  onClick={closeVersionComparison}
+                  className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors"
+                  title="Close"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              {/* Version Selectors */}
+              <div className="px-6 py-3 border-b border-gray-200 dark:border-gray-700 flex gap-4">
+                <div className="flex-1">
+                  <label className="block text-sm font-medium mb-2">Version 1</label>
+                  <select
+                    value={comparisonVersion1.id}
+                    onChange={(e) => {
+                      const version = artifactVersions.find(v => v.id === parseInt(e.target.value))
+                      if (version) setComparisonVersion1(version)
+                    }}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg
+                      bg-white dark:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-claude-orange"
+                  >
+                    {artifactVersions.map((version) => (
+                      <option key={version.id} value={version.id}>
+                        Version {version.version} {version.id === currentArtifact.id ? '(Current)' : ''}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="flex-1">
+                  <label className="block text-sm font-medium mb-2">Version 2</label>
+                  <select
+                    value={comparisonVersion2.id}
+                    onChange={(e) => {
+                      const version = artifactVersions.find(v => v.id === parseInt(e.target.value))
+                      if (version) setComparisonVersion2(version)
+                    }}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg
+                      bg-white dark:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-claude-orange"
+                  >
+                    {artifactVersions.map((version) => (
+                      <option key={version.id} value={version.id}>
+                        Version {version.version} {version.id === currentArtifact.id ? '(Current)' : ''}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* Side-by-side comparison */}
+              <div className="flex-1 flex gap-4 p-6 overflow-hidden">
+                {/* Version 1 */}
+                <div className="flex-1 flex flex-col border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+                  <div className="px-4 py-2 bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700">
+                    <div className="text-sm font-semibold">Version {comparisonVersion1.version}</div>
+                    <div className="text-xs text-gray-500 dark:text-gray-400">
+                      {comparisonVersion1.language} • {comparisonVersion1.type}
+                    </div>
+                  </div>
+                  <div className="flex-1 overflow-y-auto p-4 bg-gray-50 dark:bg-gray-900">
+                    <pre className="text-sm font-mono whitespace-pre-wrap break-words">
+                      <code className={`language-${comparisonVersion1.language}`}>
+                        {comparisonVersion1.content}
+                      </code>
+                    </pre>
+                  </div>
+                </div>
+
+                {/* Version 2 */}
+                <div className="flex-1 flex flex-col border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+                  <div className="px-4 py-2 bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700">
+                    <div className="text-sm font-semibold">Version {comparisonVersion2.version}</div>
+                    <div className="text-xs text-gray-500 dark:text-gray-400">
+                      {comparisonVersion2.language} • {comparisonVersion2.type}
+                    </div>
+                  </div>
+                  <div className="flex-1 overflow-y-auto p-4 bg-gray-50 dark:bg-gray-900">
+                    <pre className="text-sm font-mono whitespace-pre-wrap break-words">
+                      <code className={`language-${comparisonVersion2.language}`}>
+                        {comparisonVersion2.content}
+                      </code>
+                    </pre>
+                  </div>
+                </div>
+              </div>
+
+              {/* Modal Footer */}
+              <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-700 flex justify-end">
+                <button
+                  onClick={closeVersionComparison}
+                  className="px-4 py-2 bg-claude-orange hover:bg-claude-orange-hover text-white rounded-lg transition-colors"
+                >
+                  Close
                 </button>
               </div>
             </div>

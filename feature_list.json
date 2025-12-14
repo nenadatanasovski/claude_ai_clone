@@ -2001,7 +2001,7 @@
       "Step 13: Share conversation link",
       "Step 14: Verify shared link shows artifacts in read-only mode"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
