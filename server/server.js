@@ -3373,8 +3373,99 @@ app.get('/api/export/full-data', (req, res) => {
 export { db, dbHelpers };
 
 // Start server
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   console.log(`🚀 Server running on http://localhost:${PORT}`);
   console.log(`📊 Database: ${dbPath}`);
   console.log(`🤖 Anthropic API: ${anthropic ? 'Configured' : 'Not configured'}`);
+});
+
+// ============================================================================
+// GLOBAL ERROR HANDLERS - Production Readiness
+// ============================================================================
+
+// Handle uncaught exceptions
+process.on('uncaughtException', (error) => {
+  console.error('❌ UNCAUGHT EXCEPTION! Shutting down gracefully...');
+  console.error('Error name:', error.name);
+  console.error('Error message:', error.message);
+  console.error('Stack trace:', error.stack);
+
+  // Save database before exit
+  try {
+    saveDatabase();
+    console.log('✅ Database saved successfully');
+  } catch (dbError) {
+    console.error('❌ Failed to save database:', dbError);
+  }
+
+  // Exit process after cleanup
+  process.exit(1);
+});
+
+// Handle unhandled promise rejections
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('❌ UNHANDLED PROMISE REJECTION! Details:');
+  console.error('Promise:', promise);
+  console.error('Reason:', reason);
+
+  // Log but don't exit - let the process continue for now
+  // In production, you might want to exit after logging to a service like Sentry
+  console.warn('⚠️  Process continuing, but this should be investigated');
+});
+
+// Handle SIGTERM (graceful shutdown from process managers like PM2)
+process.on('SIGTERM', () => {
+  console.log('👋 SIGTERM signal received: closing HTTP server');
+
+  server.close(() => {
+    console.log('✅ HTTP server closed');
+
+    // Save database
+    try {
+      saveDatabase();
+      console.log('✅ Database saved successfully');
+    } catch (error) {
+      console.error('❌ Failed to save database:', error);
+    }
+
+    console.log('👋 Process terminated gracefully');
+    process.exit(0);
+  });
+
+  // Force shutdown after 10 seconds if graceful shutdown fails
+  setTimeout(() => {
+    console.error('❌ Forced shutdown after timeout');
+    process.exit(1);
+  }, 10000);
+});
+
+// Handle SIGINT (Ctrl+C in terminal)
+process.on('SIGINT', () => {
+  console.log('\n👋 SIGINT signal received: closing HTTP server');
+
+  server.close(() => {
+    console.log('✅ HTTP server closed');
+
+    // Save database
+    try {
+      saveDatabase();
+      console.log('✅ Database saved successfully');
+    } catch (error) {
+      console.error('❌ Failed to save database:', error);
+    }
+
+    console.log('👋 Process terminated gracefully');
+    process.exit(0);
+  });
+
+  // Force shutdown after 10 seconds if graceful shutdown fails
+  setTimeout(() => {
+    console.error('❌ Forced shutdown after timeout');
+    process.exit(1);
+  }, 10000);
+});
+
+// Log when process exits normally
+process.on('exit', (code) => {
+  console.log(`👋 Process exiting with code: ${code}`);
 });
