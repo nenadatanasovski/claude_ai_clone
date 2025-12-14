@@ -442,6 +442,8 @@ function App() {
   const [expandedFolders, setExpandedFolders] = useState(new Set())
   const [showFolderModal, setShowFolderModal] = useState(false)
   const [newFolderName, setNewFolderName] = useState('')
+  const [showMoveToFolderModal, setShowMoveToFolderModal] = useState(false)
+  const [moveToFolderConversationId, setMoveToFolderConversationId] = useState(null)
   const [contextMenuType, setContextMenuType] = useState('conversation') // 'conversation' or 'sidebar'
   const [draggedConversationId, setDraggedConversationId] = useState(null)
   const [folderConversations, setFolderConversations] = useState({}) // Map of folder ID to conversation IDs
@@ -3983,6 +3985,35 @@ function App() {
     }
   }
 
+  const openMoveToFolderModal = (conversationId) => {
+    setMoveToFolderConversationId(conversationId)
+    setShowMoveToFolderModal(true)
+    closeContextMenu()
+  }
+
+  const closeMoveToFolderModal = () => {
+    setShowMoveToFolderModal(false)
+    setMoveToFolderConversationId(null)
+  }
+
+  const moveConversationToFolder = async (folderId) => {
+    try {
+      const response = await fetch(`${API_BASE}/folders/${folderId}/items`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ conversation_id: moveToFolderConversationId })
+      })
+
+      if (response.ok) {
+        // Reload folder conversations to reflect the change
+        loadFolderConversations(folders)
+        closeMoveToFolderModal()
+      }
+    } catch (error) {
+      console.error('Error moving conversation to folder:', error)
+    }
+  }
+
   const openProjectSettings = async (projectId) => {
     try {
       const response = await fetch(`${API_BASE}/projects/${projectId}`)
@@ -6183,6 +6214,16 @@ function App() {
             </button>
             <button
               onClick={() => {
+                openMoveToFolderModal(contextMenu.conversationId)
+              }}
+              className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700
+                flex items-center gap-2"
+            >
+              <span>🗂️</span>
+              <span>Move to Folder</span>
+            </button>
+            <button
+              onClick={() => {
                 openExportModal(contextMenu.conversationId)
               }}
               className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700
@@ -6435,6 +6476,47 @@ function App() {
               </div>
               <button
                 onClick={closeMoveToProjectModal}
+                className="w-full mt-4 px-4 py-2 border border-gray-300 dark:border-gray-600
+                  rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Move to Folder Modal */}
+        {showMoveToFolderModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md w-full mx-4">
+              <h2 className="text-xl font-semibold mb-4">Move to Folder</h2>
+              <p className="text-gray-600 dark:text-gray-400 mb-6">
+                Select a folder to move this conversation to:
+              </p>
+              <div className="space-y-2 max-h-64 overflow-y-auto">
+                {folders.length === 0 ? (
+                  <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                    <p>No folders available.</p>
+                    <p className="text-sm mt-2">Create a folder first from the sidebar.</p>
+                  </div>
+                ) : (
+                  folders.map((folder) => (
+                    <button
+                      key={folder.id}
+                      onClick={() => moveConversationToFolder(folder.id)}
+                      className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600
+                        rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-left"
+                    >
+                      <div className="flex items-center gap-2">
+                        <span>🗂️</span>
+                        <div className="font-medium">{folder.name}</div>
+                      </div>
+                    </button>
+                  ))
+                )}
+              </div>
+              <button
+                onClick={closeMoveToFolderModal}
                 className="w-full mt-4 px-4 py-2 border border-gray-300 dark:border-gray-600
                   rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
               >
