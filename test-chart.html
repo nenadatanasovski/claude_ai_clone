@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Chart</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+            background: white;
+        }
+        .chart-container {
+            width: 600px;
+            height: 400px;
+            background: white;
+            border: 2px solid #333;
+            padding: 20px;
+        }
+        h2 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 20px;
+        }
+        .bar-chart {
+            display: flex;
+            align-items: flex-end;
+            justify-content: space-around;
+            height: 300px;
+            border-bottom: 2px solid #333;
+            border-left: 2px solid #333;
+            padding: 20px;
+        }
+        .bar {
+            width: 80px;
+            background: linear-gradient(to top, #4CAF50, #81C784);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            padding-top: 10px;
+            color: white;
+            font-weight: bold;
+            border-radius: 5px 5px 0 0;
+        }
+        .label {
+            margin-top: 10px;
+            text-align: center;
+            color: #333;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="chart-container">
+        <h2>Sales Data Q1-Q4 2024</h2>
+        <div class="bar-chart">
+            <div style="display: flex; flex-direction: column; align-items: center;">
+                <div class="bar" style="height: 150px;">$45K</div>
+                <div class="label">Q1</div>
+            </div>
+            <div style="display: flex; flex-direction: column; align-items: center;">
+                <div class="bar" style="height: 200px;">$62K</div>
+                <div class="label">Q2</div>
+            </div>
+            <div style="display: flex; flex-direction: column; align-items: center;">
+                <div class="bar" style="height: 250px;">$78K</div>
+                <div class="label">Q3</div>
+            </div>
+            <div style="display: flex; flex-direction: column; align-items: center;">
+                <div class="bar" style="height: 180px;">$55K</div>
+                <div class="label">Q4</div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

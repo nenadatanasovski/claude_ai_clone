@@ -2040,7 +2040,7 @@
       "Step 11: Export conversation",
       "Step 12: Verify images are included in export"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
