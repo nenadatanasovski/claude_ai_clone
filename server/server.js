@@ -1012,16 +1012,66 @@ $$\\sum_{i=1}^{n} i = \\frac{n(n+1)}{2}$$`;
 
     // Get conversation history
     const history = dbHelpers.prepare(`
-      SELECT role, content FROM messages
+      SELECT role, content, images FROM messages
       WHERE conversation_id = ?
       ORDER BY created_at ASC
     `).all(conversationId);
 
-    // Prepare messages for Claude
-    const messages = history.map(msg => ({
-      role: msg.role,
-      content: msg.content
-    }));
+    // Prepare messages for Claude with image support
+    const messages = history.map(msg => {
+      // Parse images if present
+      let messageImages = null;
+      if (msg.images) {
+        try {
+          messageImages = JSON.parse(msg.images);
+        } catch (e) {
+          console.error('Error parsing images:', e);
+        }
+      }
+
+      // If there are images, format content as an array with image blocks
+      if (messageImages && messageImages.length > 0) {
+        const contentBlocks = [];
+
+        // Add images first
+        messageImages.forEach(img => {
+          // Extract base64 data from data URL (remove "data:image/png;base64," prefix)
+          const base64Match = img.data.match(/^data:image\/(png|jpeg|jpg|gif|webp);base64,(.+)$/);
+          if (base64Match) {
+            const mediaType = base64Match[1] === 'jpg' ? 'jpeg' : base64Match[1];
+            const base64Data = base64Match[2];
+
+            contentBlocks.push({
+              type: 'image',
+              source: {
+                type: 'base64',
+                media_type: `image/${mediaType}`,
+                data: base64Data
+              }
+            });
+          }
+        });
+
+        // Add text content
+        if (msg.content && msg.content.trim()) {
+          contentBlocks.push({
+            type: 'text',
+            text: msg.content
+          });
+        }
+
+        return {
+          role: msg.role,
+          content: contentBlocks
+        };
+      }
+
+      // No images, just return text content
+      return {
+        role: msg.role,
+        content: msg.content
+      };
+    });
 
     // Parse conversation settings
     let conversationSettings = {};
