@@ -2021,7 +2021,7 @@
       "Step 12: Send a message and verify custom instruction is applied",
       "Step 13: View a code block and verify Monokai theme"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
