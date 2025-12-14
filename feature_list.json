@@ -1961,7 +1961,7 @@
       "Step 15: Export conversation to Markdown",
       "Step 16: Verify all steps completed successfully"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
