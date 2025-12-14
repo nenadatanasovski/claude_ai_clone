@@ -1051,6 +1051,10 @@ function App() {
       if (e.key === 'Escape' && showKeyboardShortcutsModal) {
         setShowKeyboardShortcutsModal(false)
       }
+      // Handle Escape to close settings modal
+      if (e.key === 'Escape' && showSettingsModal) {
+        setShowSettingsModal(false)
+      }
       // Handle ? to open keyboard shortcuts modal
       if (e.key === '?' && !showCommandPalette && !showKeyboardShortcutsModal) {
         // Only if not typing in an input or textarea
@@ -1099,7 +1103,7 @@ function App() {
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [showCommandPalette, showKeyboardShortcutsModal, conversations, currentConversationId, showArchived, searchQuery])
+  }, [showCommandPalette, showKeyboardShortcutsModal, showSettingsModal, conversations, currentConversationId, showArchived, searchQuery])
 
   // Reload conversations when project changes
   useEffect(() => {
