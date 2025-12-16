@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useLayoutEffect, useRef } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import remarkMath from 'remark-math'
@@ -46,6 +46,30 @@ function CodeBlock({ node, inline, className, children, ...props }) {
       </pre>
     </div>
   )
+}
+
+// Custom paragraph component to prevent DOM nesting issues
+// React-markdown sometimes wraps block elements (like code blocks) in <p> tags
+// This causes invalid HTML: <p><div>...</div></p> or <p><pre>...</pre></p>
+function MarkdownParagraph({ children, ...props }) {
+  // Check if children contain block-level elements
+  const hasBlockChild = Array.isArray(children)
+    ? children.some(child =>
+        child?.type === 'div' ||
+        child?.type === 'pre' ||
+        child?.type?.name === 'CodeBlock' ||
+        (typeof child === 'object' && child?.props?.className?.includes('relative'))
+      )
+    : children?.type === 'div' ||
+      children?.type === 'pre' ||
+      children?.type?.name === 'CodeBlock'
+
+  // If contains block elements, render as div instead of p
+  if (hasBlockChild) {
+    return <div {...props}>{children}</div>
+  }
+
+  return <p {...props}>{children}</p>
 }
 
 // Artifact code component with syntax highlighting
@@ -422,7 +446,7 @@ function SharedConversationView({ token }) {
               className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
             >
               <div
-                className={`max-w-[80%] rounded-lg px-4 py-3 ${
+                className={`rounded-lg px-4 py-3 ${
                   message.role === 'user'
                     ? 'bg-gray-100 dark:bg-gray-800'
                     : 'bg-transparent'
@@ -436,7 +460,8 @@ function SharedConversationView({ token }) {
                     remarkPlugins={[remarkGfm, remarkMath]}
                     rehypePlugins={[rehypeKatex, rehypeHighlight]}
                     components={{
-                      code: CodeBlock
+                      code: CodeBlock,
+                      p: MarkdownParagraph
                     }}
                   >
                     {message.content}
@@ -665,6 +690,10 @@ function App() {
   const projectDropdownRef = useRef(null)
   const settingsModalRef = useRef(null)
   const previousFocusRef = useRef(null)
+  const isSwitchingBranchRef = useRef(false) // Track branch switching to prevent scroll reset
+  const isCreatingConversationRef = useRef(false) // Track conversation creation to prevent race condition
+  const currentBranchIdRef = useRef(null) // Track current branch for correct parent chain in messages
+  const savedScrollPositionRef = useRef(null) // Save scroll position during branch operations
 
   // Model options with context window limits
   const models = [
@@ -831,11 +860,28 @@ function App() {
     }
   ]
 
-  // Scroll to bottom when messages change
-  useEffect(() => {
-    if (chatContainerRef.current) {
-      chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight
+  // SYNCHRONOUS scroll restoration during branch operations
+  // useLayoutEffect runs synchronously after DOM mutations but before browser paint
+  useLayoutEffect(() => {
+    if (isSwitchingBranchRef.current && savedScrollPositionRef.current !== null && chatContainerRef.current) {
+      // Set scroll position immediately, synchronously, before browser paints
+      chatContainerRef.current.scrollTop = savedScrollPositionRef.current
     }
+  }, [messages])
+
+  // Scroll to bottom when messages change (but not when switching branches)
+  useEffect(() => {
+    // Skip scroll if we're in a branch operation - useLayoutEffect handles restoration
+    if (isSwitchingBranchRef.current) {
+      return
+    }
+    // Small delay to ensure React has finished batching state updates
+    const timeoutId = setTimeout(() => {
+      if (chatContainerRef.current && !isSwitchingBranchRef.current) {
+        chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight
+      }
+    }, 50)
+    return () => clearTimeout(timeoutId)
   }, [messages])
 
   // Close model dropdown when clicking outside
@@ -1258,6 +1304,27 @@ function App() {
 
   // Load messages when conversation changes
   useEffect(() => {
+    // Skip loading messages if we're in the middle of creating a new conversation
+    // This prevents the race condition where loadMessages overwrites optimistic updates
+    if (isCreatingConversationRef.current) {
+      return
+    }
+
+    // CRITICAL: Stop any ongoing generation when switching conversations
+    if (streamReaderRef.current) {
+      streamReaderRef.current.cancel()
+      streamReaderRef.current = null
+    }
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort()
+      abortControllerRef.current = null
+    }
+    setIsStreaming(false)
+    setIsLoading(false)
+
+    // Reset branch when switching conversations (start fresh on default branch)
+    currentBranchIdRef.current = null
+
     if (currentConversationId) {
       loadMessages(currentConversationId)
     } else {
@@ -1490,10 +1557,14 @@ function App() {
     }
   }
 
-  const loadMessages = async (conversationId) => {
+  const loadMessages = async (conversationId, branchId = null) => {
     try {
-      setIsLoadingMessages(true)
-      setMessages([]) // Clear messages immediately to show skeleton
+      // Only show loading skeleton for new conversations, not branch switches
+      // Showing skeleton during branch operations causes scroll to reset
+      if (!branchId && !isSwitchingBranchRef.current) {
+        setIsLoadingMessages(true)
+        setMessages([]) // Clear messages immediately to show skeleton
+      }
 
       // Load conversation details to get the model and settings
       const convResponse = await fetch(`${API_BASE}/conversations/${conversationId}`)
@@ -1514,12 +1585,22 @@ function App() {
         }
       }
 
-      // Load messages
-      const response = await fetch(`${API_BASE}/conversations/${conversationId}/messages`)
+      // Load messages (with optional branch parameter to follow a specific branch path)
+      const messagesUrl = branchId
+        ? `${API_BASE}/conversations/${conversationId}/messages?branch=${branchId}`
+        : `${API_BASE}/conversations/${conversationId}/messages`
+      console.log('[loadMessages] Fetching:', messagesUrl, 'branchId:', branchId)
+      const response = await fetch(messagesUrl)
       const data = await response.json()
       // Ensure data is an array before setting messages
       const messagesArray = Array.isArray(data) ? data : []
       setMessages(messagesArray)
+
+      // Immediately restore scroll position if we're in a branch operation
+      // This provides an additional layer of protection beyond useLayoutEffect
+      if (isSwitchingBranchRef.current && savedScrollPositionRef.current !== null && chatContainerRef.current) {
+        chatContainerRef.current.scrollTop = savedScrollPositionRef.current
+      }
 
       // Calculate total tokens from messages for context window indicator
       const totalTokens = messagesArray.reduce((sum, msg) => sum + (msg.tokens || 0), 0)
@@ -1563,8 +1644,12 @@ function App() {
 
       // Load branches for this conversation
       loadBranches(conversationId)
+
+      // Return the messages array so callers can use it directly (avoids React batching issues)
+      return messagesArray
     } catch (error) {
       console.error('Error loading messages:', error)
+      return []
     } finally {
       setIsLoadingMessages(false)
     }
@@ -2572,6 +2657,8 @@ function App() {
     try {
       // Create conversation if none exists
       if (!conversationId) {
+        // Set flag to prevent useEffect from overwriting optimistic updates
+        isCreatingConversationRef.current = true
         const response = await fetch(`${API_BASE}/conversations`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -2597,11 +2684,14 @@ function App() {
       abortControllerRef.current = new AbortController()
 
       // Prepare message payload with images
+      // CRITICAL: Include parentMessageId from the current view to maintain correct branch chain
+      const lastMessageInView = messages.length > 0 ? messages[messages.length - 1] : null
       const messagePayload = {
         content: messageText,
         role: 'user',
         temperature: temperature,
-        maxTokens: maxTokens
+        maxTokens: maxTokens,
+        parentMessageId: lastMessageInView?.id || null
       }
 
       if (selectedImages.length > 0) {
@@ -2669,10 +2759,18 @@ function App() {
                     const oldId = assistantMessage.id
                     assistantMessage.id = data.messageId
 
-                    // Update the messages state with the new ID
+                    // Update the messages state with the new IDs (both user and assistant)
                     setMessages(prev => {
                       const newMessages = [...prev]
+                      // Update assistant message ID
                       newMessages[newMessages.length - 1] = { ...assistantMessage }
+                      // Update user message ID (second to last)
+                      if (data.userMessageId && newMessages.length >= 2) {
+                        newMessages[newMessages.length - 2] = {
+                          ...newMessages[newMessages.length - 2],
+                          id: data.userMessageId
+                        }
+                      }
                       return newMessages
                     })
 
@@ -2718,6 +2816,8 @@ function App() {
           setIsStreaming(false)
           streamReaderRef.current = null
           abortControllerRef.current = null
+          // Reset the creation flag now that streaming is complete
+          isCreatingConversationRef.current = false
 
           // Load artifacts after streaming completes
           try {
@@ -2765,8 +2865,11 @@ function App() {
       } else {
         // Handle regular JSON response
         const data = await response.json()
+        // Reset the creation flag before loading messages
+        isCreatingConversationRef.current = false
         // Reload all messages from the database to ensure consistency
-        await loadMessages(conversationId)
+        // CRITICAL: Pass currentBranchIdRef to maintain branch isolation
+        await loadMessages(conversationId, currentBranchIdRef.current)
       }
 
       // Reload conversations to update the list
@@ -2803,6 +2906,8 @@ function App() {
       setIsStreaming(false)
       streamReaderRef.current = null
       abortControllerRef.current = null
+      // Ensure creation flag is always reset (safety net)
+      isCreatingConversationRef.current = false
 
       // Focus management: Return focus to textarea after message is sent
       setTimeout(() => {
@@ -2914,10 +3019,18 @@ function App() {
                     const oldId = assistantMessage.id
                     assistantMessage.id = data.messageId
 
-                    // Update the messages state with the new ID
+                    // Update the messages state with the new IDs (both user and assistant)
                     setMessages(prev => {
                       const newMessages = [...prev]
+                      // Update assistant message ID
                       newMessages[newMessages.length - 1] = { ...assistantMessage }
+                      // Update user message ID (second to last)
+                      if (data.userMessageId && newMessages.length >= 2) {
+                        newMessages[newMessages.length - 2] = {
+                          ...newMessages[newMessages.length - 2],
+                          id: data.userMessageId
+                        }
+                      }
                       return newMessages
                     })
 
@@ -2967,7 +3080,8 @@ function App() {
       } else {
         // Handle regular JSON response
         const data = await response.json()
-        await loadMessages(conversationId)
+        // CRITICAL: Pass currentBranchIdRef to maintain branch isolation
+        await loadMessages(conversationId, currentBranchIdRef.current)
       }
 
       // Reload conversations to update the list
@@ -3093,10 +3207,18 @@ function App() {
                     const oldId = assistantMessage.id
                     assistantMessage.id = data.messageId
 
-                    // Update the messages state with the new ID
+                    // Update the messages state with the new IDs (both user and assistant)
                     setMessages(prev => {
                       const newMessages = [...prev]
+                      // Update assistant message ID
                       newMessages[newMessages.length - 1] = { ...assistantMessage }
+                      // Update user message ID (second to last)
+                      if (data.userMessageId && newMessages.length >= 2) {
+                        newMessages[newMessages.length - 2] = {
+                          ...newMessages[newMessages.length - 2],
+                          id: data.userMessageId
+                        }
+                      }
                       return newMessages
                     })
 
@@ -3155,7 +3277,8 @@ function App() {
       } else {
         // Handle regular JSON response
         const data = await response.json()
-        await loadMessages(currentConversationId)
+        // CRITICAL: Pass currentBranchIdRef to maintain branch isolation
+        await loadMessages(currentConversationId, currentBranchIdRef.current)
       }
 
       // Reload conversations to update the list
@@ -3396,23 +3519,132 @@ function App() {
       setEditedMessageContent('')
 
       if (data.branched) {
-        // If branching occurred, we need to:
-        // 1. Remove all messages after the edited one
-        // 2. Add the new branch message
-        // 3. Trigger a new AI response
-        const messagesBeforeEdit = messages.slice(0, messageIndex)
-        setMessages([...messagesBeforeEdit, data.message])
+        // Branching occurred - load the new branch path from server for consistency
+        const newBranchMessageId = data.message.id
+        console.log('[Branch Edit] Created branch message with ID:', newBranchMessageId, 'data:', data)
 
         // If it was a user message, trigger a new AI response
         if (data.message.role === 'user') {
-          // Send the edited message to get a new response
-          await sendMessageWithContent(data.message.content, data.message.id)
+          setIsLoading(true)
+          setIsStreaming(true)
+
+          // Save current scroll position BEFORE any state changes
+          savedScrollPositionRef.current = chatContainerRef.current?.scrollTop || 0
+
+          // Set flag BEFORE any state changes to prevent scroll reset
+          isSwitchingBranchRef.current = true
+
+          // CRITICAL: Track the new branch for future message parent chain
+          currentBranchIdRef.current = newBranchMessageId
+
+          // DON'T clear messages to empty array - this causes scroll to reset to 0
+          // Instead, loadMessages will atomically replace the messages
+
+          // Load the new branch messages from server
+          console.log('[Branch Edit] Loading messages with branchId:', newBranchMessageId)
+          const branchMessages = await loadMessages(currentConversationId, newBranchMessageId)
+          console.log('[Branch Edit] Loaded branch messages:', branchMessages?.length, 'messages')
+
+          try {
+            // Use the new respond endpoint to generate AI response for the branch message
+            const respondResponse = await fetch(`${API_BASE}/messages/${newBranchMessageId}/respond`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' }
+            })
+
+            if (respondResponse.ok && respondResponse.headers.get('content-type')?.includes('text/event-stream')) {
+              const reader = respondResponse.body.getReader()
+              const decoder = new TextDecoder()
+              let assistantContent = ''
+              let assistantMessageId = null
+
+              // Add placeholder for assistant message using the returned messages directly
+              const tempAssistantId = Date.now()
+              const tempAssistantMessage = {
+                id: tempAssistantId,
+                role: 'assistant',
+                content: '',
+                created_at: new Date().toISOString()
+              }
+              // Use the messages we got from loadMessages, not functional update
+              setMessages([...branchMessages, tempAssistantMessage])
+
+              while (true) {
+                const { done, value } = await reader.read()
+                if (done) break
+
+                const chunk = decoder.decode(value)
+                const lines = chunk.split('\n')
+
+                for (const line of lines) {
+                  if (line.startsWith('data: ')) {
+                    try {
+                      const eventData = JSON.parse(line.slice(6))
+                      if (eventData.type === 'content') {
+                        assistantContent += eventData.text
+                        setMessages(prev => prev.map(msg =>
+                          msg.id === tempAssistantId || msg.id === assistantMessageId
+                            ? { ...msg, content: assistantContent }
+                            : msg
+                        ))
+                      } else if (eventData.type === 'done') {
+                        assistantMessageId = eventData.messageId
+                        // Update with real ID
+                        setMessages(prev => prev.map(msg =>
+                          msg.id === tempAssistantId
+                            ? { ...msg, id: assistantMessageId, content: assistantContent }
+                            : msg
+                        ))
+
+                        // Load artifacts for the new assistant message
+                        try {
+                          const artifactsResponse = await fetch(`${API_BASE}/conversations/${currentConversationId}/artifacts`)
+                          const artifactsData = await artifactsResponse.json()
+                          setArtifacts(Array.isArray(artifactsData) ? artifactsData : [])
+
+                          const msgArtResponse = await fetch(`${API_BASE}/messages/${assistantMessageId}/artifacts`)
+                          const msgArtData = await msgArtResponse.json()
+                          if (msgArtData.length > 0) {
+                            setMessageArtifacts(prev => ({
+                              ...prev,
+                              [assistantMessageId]: msgArtData
+                            }))
+                            setCurrentArtifact(msgArtData[msgArtData.length - 1])
+                            setShowArtifactPanel(true)
+                          }
+                        } catch (err) {
+                          console.error('Error loading artifacts after branch:', err)
+                        }
+                      }
+                    } catch (e) {
+                      // Skip invalid JSON
+                    }
+                  }
+                }
+              }
+            }
+          } catch (error) {
+            console.error('Error generating response for branch:', error)
+          } finally {
+            setIsLoading(false)
+            setIsStreaming(false)
+          }
         }
 
-        // Load branches for this conversation
-        loadBranches(currentConversationId)
+        // Refresh branches to update the branch UI
+        await loadBranches(currentConversationId)
+
+        // Delay resetting the flag and clearing saved position
+        setTimeout(() => {
+          isSwitchingBranchRef.current = false
+          savedScrollPositionRef.current = null
+        }, 150)
       } else {
         // Normal update without branching
+        // Save scroll position and set flag to prevent scroll reset
+        savedScrollPositionRef.current = chatContainerRef.current?.scrollTop || 0
+        isSwitchingBranchRef.current = true
+
         setMessages(prev => prev.map(msg =>
           msg.id === messageId
             ? { ...msg, content: editedMessageContent }
@@ -3420,9 +3652,16 @@ function App() {
         ))
 
         // Reload the conversation to ensure consistency
+        // CRITICAL: Pass currentBranchIdRef to maintain branch isolation
         if (currentConversationId) {
-          loadMessages(currentConversationId)
+          await loadMessages(currentConversationId, currentBranchIdRef.current)
         }
+
+        // Reset flag and clear saved position after a delay
+        setTimeout(() => {
+          isSwitchingBranchRef.current = false
+          savedScrollPositionRef.current = null
+        }, 150)
       }
     } catch (error) {
       console.error('Error updating message:', error)
@@ -4731,7 +4970,7 @@ function App() {
 
           {/* Sidebar */}
           <aside
-            className={`border-r ${
+            className={`border-r flex-shrink-0 ${
               highContrast
                 ? 'border-black dark:border-white'
                 : 'border-gray-200 dark:border-gray-800'
@@ -5241,10 +5480,10 @@ function App() {
           </button>
 
           {/* Chat Area */}
-          <main className="flex-1 flex flex-col min-h-0">
+          <main className="flex-1 flex flex-col min-h-0 min-w-0">
             {/* Messages */}
-            <div ref={chatContainerRef} className="flex-1 overflow-y-auto min-h-0 px-4 py-8">
-              <div className="max-w-3xl mx-auto">
+            <div ref={chatContainerRef} className="flex-1 overflow-y-auto min-h-0 px-4 py-8" style={{ overflowAnchor: 'none' }}>
+              <div className="max-w-4xl mx-auto">
                 {/* Success Message Display */}
                 {successMessage && (
                   <div className="flex justify-center mb-4 animate-fadeIn">
@@ -5315,7 +5554,7 @@ function App() {
                         className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'} animate-fadeIn`}
                       >
                         <div
-                          className={`max-w-[80%] rounded-lg px-4 py-3 ${
+                          className={`rounded-lg px-4 py-3 ${
                             message.role === 'user'
                               ? 'bg-gray-100 dark:bg-gray-800'
                               : 'bg-transparent'
@@ -5327,42 +5566,58 @@ function App() {
                             </div>
                             {/* Branch indicator */}
                             {(() => {
+                              // Only show branch indicator if this message IS one of multiple branches
+                              // (i.e., it's one of several children of the same parent)
                               const messageBranch = branches.find(b =>
-                                b.branches.some(branch => branch.messageId === message.id) ||
-                                (b.parentId && idx > 0 && messages[idx - 1]?.id === b.parentId)
+                                b.branches.some(branch => branch.messageId === message.id)
                               )
                               if (messageBranch && messageBranch.branches.length > 1) {
                                 const currentBranchIndex = messageBranch.branches.findIndex(b => b.messageId === message.id)
+                                // Safety check: don't show if message isn't actually in the branches
+                                if (currentBranchIndex === -1) return null
                                 return (
                                   <div className="flex items-center gap-1 text-xs">
                                     <span className="text-gray-500 dark:text-gray-400">
                                       Branch {currentBranchIndex + 1}/{messageBranch.branches.length}
                                     </span>
                                     <div className="flex gap-0.5">
-                                      {messageBranch.branches.map((branch, branchIdx) => (
-                                        <button
-                                          key={branch.messageId}
-                                          onClick={async () => {
-                                            // Switch to this branch by reloading messages up to this point
-                                            // and then following this branch
-                                            const messagesBeforeBranch = messages.slice(0, idx)
-                                            const branchMessage = await fetch(`${API_BASE}/conversations/${currentConversationId}/messages`).then(r => r.json())
-                                            const targetMessage = branchMessage.find(m => m.id === branch.messageId)
-                                            if (targetMessage) {
-                                              // Reload conversation to show this branch
-                                              loadMessages(currentConversationId)
+                                      {messageBranch.branches.map((branch, branchIdx) => {
+                                        const isCurrentBranch = branchIdx === currentBranchIndex
+                                        return (
+                                          <button
+                                            key={branch.messageId}
+                                            onClick={async () => {
+                                              // Don't do anything if clicking the currently selected branch
+                                              if (isCurrentBranch) return
+                                              // Save current scroll position BEFORE any state changes
+                                              savedScrollPositionRef.current = chatContainerRef.current?.scrollTop || 0
+                                              // Set flag to prevent scroll reset when switching branches
+                                              isSwitchingBranchRef.current = true
+                                              // CRITICAL: Track the new branch for future message parent chain
+                                              currentBranchIdRef.current = branch.messageId
+                                              // Switch to this branch by reloading messages with the branch parameter
+                                              await loadMessages(currentConversationId, branch.messageId)
+                                              // Delay resetting the flag and clearing saved position
+                                              setTimeout(() => {
+                                                isSwitchingBranchRef.current = false
+                                                savedScrollPositionRef.current = null
+                                              }, 150)
+                                            }}
+                                            disabled={isCurrentBranch}
+                                            className={`w-6 h-6 rounded text-xs font-medium transition-colors ${
+                                              isCurrentBranch
+                                                ? 'bg-[#CC785C] text-white cursor-default'
+                                                : 'bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-300 dark:hover:bg-gray-600 cursor-pointer'
+                                            }`}
+                                            title={isCurrentBranch
+                                              ? `Current branch: ${branch.content.substring(0, 50)}...`
+                                              : `Switch to branch ${branchIdx + 1}: ${branch.content.substring(0, 50)}...`
                                             }
-                                          }}
-                                          className={`w-6 h-6 rounded text-xs font-medium transition-colors ${
-                                            branchIdx === currentBranchIndex
-                                              ? 'bg-[#CC785C] text-white'
-                                              : 'bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-300 dark:hover:bg-gray-600'
-                                          }`}
-                                          title={`Switch to branch ${branchIdx + 1}: ${branch.content.substring(0, 50)}...`}
-                                        >
-                                          {branchIdx + 1}
-                                        </button>
-                                      ))}
+                                          >
+                                            {branchIdx + 1}
+                                          </button>
+                                        )
+                                      })}
                                     </div>
                                   </div>
                                 )
@@ -5425,7 +5680,8 @@ function App() {
                                 remarkPlugins={[remarkGfm, remarkMath]}
                                 rehypePlugins={[rehypeKatex, rehypeHighlight]}
                                 components={{
-                                  code: CodeBlock
+                                  code: CodeBlock,
+                                  p: MarkdownParagraph
                                 }}
                               >
                                 {message.content}
@@ -5792,12 +6048,12 @@ function App() {
 
           {/* Artifact Panel */}
           {showArtifactPanel && currentArtifact && (
-            <aside className={`border-l border-gray-200 dark:border-gray-800 flex flex-col bg-white dark:bg-[#1A1A1A] transition-all duration-300 ${
+            <aside className={`border-l border-gray-200 dark:border-gray-800 flex flex-col flex-shrink-0 bg-white dark:bg-[#1A1A1A] transition-all duration-300 ${
               isArtifactFullscreen
                 ? 'fixed inset-0 z-50 w-full'
                 : isArtifactCollapsed
                   ? 'w-12 fixed right-0 top-[60px] h-[calc(100vh-60px)] z-30 lg:relative lg:top-0 lg:h-auto'
-                  : 'w-[512px] fixed right-0 top-[60px] h-[calc(100vh-60px)] z-30 lg:relative lg:top-0 lg:h-auto'
+                  : 'w-[400px] lg:w-[512px] fixed right-0 top-[60px] h-[calc(100vh-60px)] z-30 lg:relative lg:top-0 lg:h-auto'
             }`}>
               {/* Collapsed state - just show expand button */}
               {isArtifactCollapsed && !isArtifactFullscreen ? (
@@ -5869,6 +6125,19 @@ function App() {
                       </svg>
                     </button>
                   )}
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(currentArtifact.content);
+                      // Could add a toast notification here
+                    }}
+                    className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                    title="Copy to clipboard"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                        d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                    </svg>
+                  </button>
                   <button
                     onClick={() => {
                       // Create download function
@@ -6112,7 +6381,15 @@ function App() {
                   </div>
                 ) : currentArtifact.type === 'html' ? (
                   // HTML Preview
-                  <div className="h-full bg-white">
+                  <div className="h-full bg-white relative group">
+                    <button
+                      onClick={() => navigator.clipboard.writeText(currentArtifact.content)}
+                      className="absolute right-4 top-4 px-3 py-1.5 text-xs bg-gray-700 hover:bg-gray-600
+                        text-white rounded opacity-0 group-hover:opacity-100 transition-all duration-200 z-10"
+                      title="Copy HTML"
+                    >
+                      Copy
+                    </button>
                     <iframe
                       srcDoc={currentArtifact.content}
                       className="w-full h-full border-0"
@@ -6122,23 +6399,47 @@ function App() {
                   </div>
                 ) : currentArtifact.type === 'svg' ? (
                   // SVG Preview
-                  <div className="h-full bg-white flex items-center justify-center p-4">
+                  <div className="h-full bg-white flex items-center justify-center p-4 relative group">
+                    <button
+                      onClick={() => navigator.clipboard.writeText(currentArtifact.content)}
+                      className="absolute right-4 top-4 px-3 py-1.5 text-xs bg-gray-700 hover:bg-gray-600
+                        text-white rounded opacity-0 group-hover:opacity-100 transition-all duration-200 z-10"
+                      title="Copy SVG"
+                    >
+                      Copy
+                    </button>
                     <div dangerouslySetInnerHTML={{ __html: currentArtifact.content }} />
                   </div>
                 ) : currentArtifact.type === 'mermaid' ? (
                   // Mermaid Diagram Preview
-                  <div className="h-full bg-white dark:bg-gray-50 flex items-center justify-center p-4 overflow-auto">
+                  <div className="h-full bg-white dark:bg-gray-50 flex items-center justify-center p-4 overflow-auto relative group">
+                    <button
+                      onClick={() => navigator.clipboard.writeText(currentArtifact.content)}
+                      className="absolute right-4 top-4 px-3 py-1.5 text-xs bg-gray-700 hover:bg-gray-600
+                        text-white rounded opacity-0 group-hover:opacity-100 transition-all duration-200 z-10"
+                      title="Copy Mermaid"
+                    >
+                      Copy
+                    </button>
                     <div
                       id={`mermaid-diagram-${currentArtifact.id}`}
                       className="mermaid-diagram"
                       key={currentArtifact.id}
                     >
-                      {currentArtifact.content}
+                      {/* Content is set by useEffect to preserve newlines */}
                     </div>
                   </div>
                 ) : currentArtifact.type === 'react' ? (
                   // React Component Preview
-                  <div className="h-full bg-white">
+                  <div className="h-full bg-white relative group">
+                    <button
+                      onClick={() => navigator.clipboard.writeText(currentArtifact.content)}
+                      className="absolute right-4 top-4 px-3 py-1.5 text-xs bg-gray-700 hover:bg-gray-600
+                        text-white rounded opacity-0 group-hover:opacity-100 transition-all duration-200 z-10"
+                      title="Copy React"
+                    >
+                      Copy
+                    </button>
                     <iframe
                       srcDoc={`
 <!DOCTYPE html>
@@ -6193,13 +6494,28 @@ function App() {
                     />
                   </div>
                 ) : currentArtifact.type === 'text' ? (
-                  // Text Document Preview
-                  <div className="h-full bg-white dark:bg-gray-50 overflow-auto">
+                  // Text Document Preview - always light background with dark text for readability
+                  <div className="h-full bg-white overflow-auto text-gray-900 relative group">
+                    <button
+                      onClick={() => navigator.clipboard.writeText(currentArtifact.content)}
+                      className="absolute right-4 top-4 px-3 py-1.5 text-xs bg-gray-700 hover:bg-gray-600
+                        text-white rounded opacity-0 group-hover:opacity-100 transition-all duration-200 z-10"
+                      title="Copy Text"
+                    >
+                      Copy
+                    </button>
                     <div className="max-w-4xl mx-auto p-8">
-                      <div className="prose prose-lg max-w-none">
+                      <div className="prose prose-lg max-w-none
+                        prose-headings:text-gray-900 prose-p:text-gray-800
+                        prose-strong:text-gray-900 prose-li:text-gray-800
+                        prose-code:text-gray-800 prose-blockquote:text-gray-700
+                        prose-a:text-blue-700">
                         <ReactMarkdown
                           remarkPlugins={[remarkGfm, remarkMath]}
                           rehypePlugins={[rehypeKatex, rehypeHighlight]}
+                          components={{
+                            p: MarkdownParagraph
+                          }}
                         >
                           {currentArtifact.content}
                         </ReactMarkdown>
@@ -9614,5 +9930,6 @@ function App() {
     </div>
   )
 }
+
 
 export default App

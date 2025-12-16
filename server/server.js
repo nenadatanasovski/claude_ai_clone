@@ -125,6 +125,10 @@ const dbHelpers = {
   }
 };
 
+// Helper to normalize ID to Number (handles BigInt, string, number from SQLite)
+// This is critical for Set.has() and object key lookups which use strict equality
+const normalizeId = (id) => id != null ? Number(id) : null;
+
 // Initialize database schema
 dbHelpers.exec(`
   CREATE TABLE IF NOT EXISTS users (
@@ -315,6 +319,30 @@ if (userCount && userCount.count === 0) {
   `).run('user@example.com', 'Default User', '{}', '');
 }
 
+// Migration: Fix existing messages to have proper parent_message_id chain
+// This only runs once - it fixes legacy data where messages don't have parent links
+try {
+  const conversations = db.exec('SELECT DISTINCT conversation_id FROM messages WHERE parent_message_id IS NULL');
+  if (conversations.length > 0 && conversations[0].values.length > 0) {
+    console.log('Migrating message parent links for legacy conversations...');
+    conversations[0].values.forEach(([convId]) => {
+      // Get all messages in this conversation ordered by ID
+      const messagesResult = db.exec(`SELECT id FROM messages WHERE conversation_id = ${convId} ORDER BY id ASC`);
+      if (messagesResult.length > 0) {
+        const messageIds = messagesResult[0].values.map(v => v[0]);
+        // Link each message to the previous one (skip the first message - it has no parent)
+        for (let i = 1; i < messageIds.length; i++) {
+          db.exec(`UPDATE messages SET parent_message_id = ${messageIds[i-1]} WHERE id = ${messageIds[i]} AND parent_message_id IS NULL`);
+        }
+      }
+    });
+    saveDatabase();
+    console.log('Message parent links migration completed');
+  }
+} catch (error) {
+  console.error('Migration error (non-fatal):', error.message);
+}
+
 // Initialize Anthropic client
 let anthropic;
 try {
@@ -386,10 +414,15 @@ function detectArtifacts(content) {
     let type = 'code';
     let title = `Code ${index + 1}`;
 
-    if (language.toLowerCase() === 'html') {
+    // Check content-based detection first (for when language hint is missing or wrong)
+    const trimmedCode = code.trim();
+    const isSvgContent = trimmedCode.startsWith('<svg') || trimmedCode.match(/^<\?xml[^>]*>\s*<svg/i);
+
+    if (language.toLowerCase() === 'html' && !isSvgContent) {
       type = 'html';
       title = `HTML ${index + 1}`;
-    } else if (language.toLowerCase() === 'svg') {
+    } else if (language.toLowerCase() === 'svg' || isSvgContent) {
+      // Detect SVG by language OR by content starting with <svg
       type = 'svg';
       title = `SVG ${index + 1}`;
     } else if (language.toLowerCase() === 'mermaid') {
@@ -578,11 +611,69 @@ app.get('/api/conversations/:id', (req, res) => {
 // Get messages for a conversation
 app.get('/api/conversations/:id/messages', (req, res) => {
   try {
-    const messages = dbHelpers.prepare(`
+    // Get optional branch parameter - if provided, follow path that includes this message
+    const targetBranchId = req.query.branch ? parseInt(req.query.branch) : null;
+
+    // Get all messages for this conversation
+    const allMessages = dbHelpers.prepare(`
       SELECT * FROM messages
       WHERE conversation_id = ?
-      ORDER BY created_at ASC
+      ORDER BY id ASC
     `).all(req.params.id);
+
+    // Build message tree with normalized IDs (fixes type coercion issues)
+    const messageById = {};
+    const childrenByParent = {};
+    const parentById = {};
+
+    allMessages.forEach(msg => {
+      const id = normalizeId(msg.id);
+      const parentId = normalizeId(msg.parent_message_id);
+      messageById[id] = msg;
+      parentById[id] = parentId;
+      const parentKey = parentId !== null ? parentId : 'root';
+      if (!childrenByParent[parentKey]) {
+        childrenByParent[parentKey] = [];
+      }
+      childrenByParent[parentKey].push(msg);
+    });
+
+    // If a target branch is specified, find the path that includes it
+    let targetPath = null;
+    const normalizedTargetBranchId = normalizeId(targetBranchId);
+    if (normalizedTargetBranchId && messageById[normalizedTargetBranchId]) {
+      // Build path from target back to root
+      targetPath = new Set();
+      let current = normalizedTargetBranchId;
+      while (current !== null) {
+        targetPath.add(current);
+        current = parentById[current];
+      }
+    }
+
+    // Follow the path from root
+    const activePath = [];
+    let currentParent = 'root';
+
+    while (childrenByParent[currentParent] && childrenByParent[currentParent].length > 0) {
+      const children = childrenByParent[currentParent];
+      let nextMessage;
+
+      if (targetPath) {
+        // If we have a target path, prefer the child that's in the target path
+        nextMessage = children.find(msg => targetPath.has(normalizeId(msg.id)));
+      }
+
+      if (!nextMessage) {
+        // Default: choose the child with the highest ID (most recent branch)
+        nextMessage = children.reduce((latest, msg) =>
+          normalizeId(msg.id) > normalizeId(latest.id) ? msg : latest
+        );
+      }
+
+      activePath.push(nextMessage);
+      currentParent = normalizeId(nextMessage.id);
+    }
 
     // Mark conversation as read when messages are fetched
     dbHelpers.prepare(`
@@ -592,7 +683,7 @@ app.get('/api/conversations/:id/messages', (req, res) => {
     `).run(req.params.id);
 
     // Parse images JSON field
-    const parsedMessages = messages.map(msg => ({
+    const parsedMessages = activePath.map(msg => ({
       ...msg,
       images: msg.images ? JSON.parse(msg.images) : null
     }));
@@ -640,11 +731,28 @@ app.post('/api/conversations/:id/messages', async (req, res) => {
       systemPrompt = projectInstructions;
     }
 
-    // Save user message
+    // Use parentMessageId from request if provided (for correct branch chaining)
+    // Otherwise fall back to finding the last message (for backwards compatibility)
+    let parentMessageId = req.body.parentMessageId || null;
+    console.log('[POST /messages] parentMessageId from request:', req.body.parentMessageId, '-> using:', parentMessageId);
+
+    if (!parentMessageId) {
+      // Fallback: get the last message by ID (only used if frontend doesn't send parentMessageId)
+      const lastMessage = dbHelpers.prepare(`
+        SELECT id FROM messages
+        WHERE conversation_id = ?
+        ORDER BY id DESC
+        LIMIT 1
+      `).get(conversationId);
+      parentMessageId = lastMessage ? lastMessage.id : null;
+      console.log('[POST /messages] No parentMessageId provided, falling back to last message:', parentMessageId);
+    }
+
+    // Save user message with parent link
     const userMessageResult = dbHelpers.prepare(`
-      INSERT INTO messages (conversation_id, role, content, images)
-      VALUES (?, ?, ?, ?)
-    `).run(conversationId, role, content, images ? JSON.stringify(images) : null);
+      INSERT INTO messages (conversation_id, role, content, images, parent_message_id)
+      VALUES (?, ?, ?, ?, ?)
+    `).run(conversationId, role, content, images ? JSON.stringify(images) : null, parentMessageId);
 
     const userMessage = dbHelpers.prepare('SELECT * FROM messages WHERE id = ?').get(userMessageResult.lastInsertRowid);
 
@@ -961,11 +1069,11 @@ $$\\sum_{i=1}^{n} i = \\frac{n(n+1)}{2}$$`;
       const mockOutputTokens = Math.floor(mockResponse.length / 4);
       const mockTotalTokens = mockInputTokens + mockOutputTokens;
 
-      // Save assistant message
+      // Save assistant message (parent is the user message we just saved)
       const assistantMessageResult = dbHelpers.prepare(`
-        INSERT INTO messages (conversation_id, role, content, tokens)
-        VALUES (?, ?, ?, ?)
-      `).run(conversationId, 'assistant', mockResponse, mockTotalTokens);
+        INSERT INTO messages (conversation_id, role, content, tokens, parent_message_id)
+        VALUES (?, ?, ?, ?, ?)
+      `).run(conversationId, 'assistant', mockResponse, mockTotalTokens, userMessage.id);
 
       const assistantMessage = dbHelpers.prepare('SELECT * FROM messages WHERE id = ?').get(assistantMessageResult.lastInsertRowid);
 
@@ -1007,18 +1115,47 @@ $$\\sum_{i=1}^{n} i = \\frac{n(n+1)}{2}$$`;
         `).run(autoTitle, conversationId);
       }
 
-      // Send completion message with token count
-      res.write(`data: ${JSON.stringify({ type: 'done', messageId: assistantMessage.id, tokens: mockTotalTokens })}\n\n`);
+      // Send completion message with token count and both message IDs
+      res.write(`data: ${JSON.stringify({ type: 'done', messageId: assistantMessage.id, userMessageId: userMessage.id, tokens: mockTotalTokens })}\n\n`);
       res.end();
       return;
     }
 
-    // Get conversation history
-    const history = dbHelpers.prepare(`
-      SELECT role, content, images FROM messages
+    // Get conversation history - ONLY messages in the current branch path
+    // First, get all messages to build the parent chain
+    const allMessages = dbHelpers.prepare(`
+      SELECT * FROM messages
       WHERE conversation_id = ?
-      ORDER BY created_at ASC
+      ORDER BY id ASC
     `).all(conversationId);
+
+    // Build parent lookup with normalized IDs (fixes type coercion issues)
+    const messageById = {};
+    const parentById = {};
+    allMessages.forEach(msg => {
+      const id = normalizeId(msg.id);
+      messageById[id] = msg;
+      parentById[id] = normalizeId(msg.parent_message_id);
+    });
+
+    // Build path from the new user message back to root
+    const pathIds = new Set();
+    let current = normalizeId(userMessage.id);
+    while (current !== null) {
+      pathIds.add(current);
+      current = parentById[current];
+    }
+    console.log('[History] Built pathIds from message', normalizeId(userMessage.id), ':', Array.from(pathIds));
+
+    // Filter to only messages in the path, maintaining order
+    const history = allMessages
+      .filter(msg => pathIds.has(normalizeId(msg.id)))
+      .map(msg => ({
+        role: msg.role,
+        content: msg.content,
+        images: msg.images
+      }));
+    console.log('[History] Filtered history length:', history.length, 'roles:', history.map(h => h.role));
 
     // Prepare messages for Claude with image support
     const messages = history.map(msg => {
@@ -1127,11 +1264,11 @@ $$\\sum_{i=1}^{n} i = \\frac{n(n+1)}{2}$$`;
     const outputTokens = finalMessage.usage?.output_tokens || 0;
     const totalTokens = inputTokens + outputTokens;
 
-    // Save assistant message
+    // Save assistant message (parent is the user message)
     const assistantMessageResult = dbHelpers.prepare(`
-      INSERT INTO messages (conversation_id, role, content, tokens)
-      VALUES (?, ?, ?, ?)
-    `).run(conversationId, 'assistant', fullResponse, totalTokens);
+      INSERT INTO messages (conversation_id, role, content, tokens, parent_message_id)
+      VALUES (?, ?, ?, ?, ?)
+    `).run(conversationId, 'assistant', fullResponse, totalTokens, userMessage.id);
 
     const assistantMessageId = assistantMessageResult.lastInsertRowid;
 
@@ -1172,7 +1309,7 @@ $$\\sum_{i=1}^{n} i = \\frac{n(n+1)}{2}$$`;
       `).run(autoTitle, conversationId);
     }
 
-    res.write(`data: ${JSON.stringify({ type: 'done', messageId: assistantMessageResult.lastInsertRowid, tokens: totalTokens })}\n\n`);
+    res.write(`data: ${JSON.stringify({ type: 'done', messageId: assistantMessageResult.lastInsertRowid, userMessageId: userMessage.id, tokens: totalTokens })}\n\n`);
     res.end();
 
   } catch (error) {
@@ -1784,7 +1921,8 @@ app.put('/api/messages/:id', (req, res) => {
 
       if (hasMessagesAfter) {
         // This is a branch point - create a new message instead of updating
-        // The new message will have the same parent as the original
+        // Set parent_message_id to NULL to give this branch a fresh start
+        // This disconnects the branch from ancestor history entirely
         const now = new Date().toISOString();
         const newMessage = dbHelpers.prepare(`
           INSERT INTO messages (conversation_id, role, content, created_at, parent_message_id)
@@ -1794,7 +1932,7 @@ app.put('/api/messages/:id', (req, res) => {
           message.role,
           content,
           now,
-          message.parent_message_id
+          null  // Fresh start - no ancestor connection
         );
 
         const createdMessage = dbHelpers.prepare('SELECT * FROM messages WHERE id = ?').get(newMessage.lastInsertRowid);
@@ -1822,6 +1960,108 @@ app.put('/api/messages/:id', (req, res) => {
   } catch (error) {
     console.error('Error updating message:', error);
     res.status(500).json({ error: 'Failed to update message' });
+  }
+});
+
+// POST generate AI response for an existing user message
+app.post('/api/messages/:id/respond', async (req, res) => {
+  try {
+    const messageId = req.params.id;
+
+    // Get the user message
+    const userMessage = dbHelpers.prepare('SELECT * FROM messages WHERE id = ?').get(messageId);
+    if (!userMessage) {
+      return res.status(404).json({ error: 'Message not found' });
+    }
+    if (userMessage.role !== 'user') {
+      return res.status(400).json({ error: 'Can only generate response for user messages' });
+    }
+
+    // Get conversation details
+    const conversation = dbHelpers.prepare('SELECT * FROM conversations WHERE id = ?').get(userMessage.conversation_id);
+    if (!conversation) {
+      return res.status(404).json({ error: 'Conversation not found' });
+    }
+
+    // IMPORTANT: The /respond endpoint is used for BRANCH EDITS only.
+    // For branch edits, the user expects a "fresh start" - the AI should only see
+    // the edited message, NOT the entire ancestor history.
+    // This is different from normal messages where context is preserved.
+    const history = [{
+      role: userMessage.role,
+      content: userMessage.content
+    }];
+    console.log('[Respond] Fresh start for branch edit - history contains only:', userMessage.content.substring(0, 50) + '...');
+
+    // Set up SSE for streaming
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+
+    // Use mock or real API
+    if (!anthropic) {
+      // Mock response
+      const mockResponse = "This is a response to your edited message. Please configure your Anthropic API key to get real responses.";
+      const words = mockResponse.split(' ');
+      let sentContent = '';
+
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      for (let i = 0; i < words.length; i++) {
+        const word = words[i] + (i < words.length - 1 ? ' ' : '');
+        sentContent += word;
+        res.write(`data: ${JSON.stringify({ type: 'content', text: word })}\n\n`);
+        await new Promise(resolve => setTimeout(resolve, 50));
+      }
+
+      // Save assistant message
+      const assistantResult = dbHelpers.prepare(`
+        INSERT INTO messages (conversation_id, role, content, tokens, parent_message_id)
+        VALUES (?, ?, ?, ?, ?)
+      `).run(userMessage.conversation_id, 'assistant', mockResponse, 0, parseInt(messageId));
+
+      res.write(`data: ${JSON.stringify({ type: 'done', messageId: assistantResult.lastInsertRowid })}\n\n`);
+      res.end();
+      return;
+    }
+
+    // Real API call
+    const stream = await anthropic.messages.stream({
+      model: conversation.model || 'claude-sonnet-4-20250514',
+      max_tokens: 4096,
+      messages: history
+    });
+
+    let fullResponse = '';
+
+    for await (const event of stream) {
+      if (event.type === 'content_block_delta' && event.delta?.text) {
+        fullResponse += event.delta.text;
+        res.write(`data: ${JSON.stringify({ type: 'content', text: event.delta.text })}\n\n`);
+      }
+    }
+
+    const finalMessage = await stream.finalMessage();
+    const totalTokens = (finalMessage.usage?.input_tokens || 0) + (finalMessage.usage?.output_tokens || 0);
+
+    // Save assistant message
+    const assistantResult = dbHelpers.prepare(`
+      INSERT INTO messages (conversation_id, role, content, tokens, parent_message_id)
+      VALUES (?, ?, ?, ?, ?)
+    `).run(userMessage.conversation_id, 'assistant', fullResponse, totalTokens, parseInt(messageId));
+
+    // Detect and save artifacts
+    const artifacts = detectArtifacts(fullResponse);
+    if (artifacts.length > 0) {
+      saveArtifacts(artifacts, assistantResult.lastInsertRowid, userMessage.conversation_id);
+    }
+
+    res.write(`data: ${JSON.stringify({ type: 'done', messageId: assistantResult.lastInsertRowid })}\n\n`);
+    res.end();
+
+  } catch (error) {
+    console.error('Error generating response:', error);
+    res.status(500).json({ error: 'Failed to generate response' });
   }
 });
 

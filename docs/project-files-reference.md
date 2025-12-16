@@ -77,14 +77,14 @@ graph TB
 
     HTML --> Main
     Main --> EB --> App
-    CSS -.styles.-> App
+    CSS -.-> App
 
-    App <-->|HTTP/SSE| Server
-    Server <--> DB
-    Server <-->|Streaming| Claude
+    App -->|HTTP/SSE| Server
+    Server --> DB
+    Server -->|Streaming| Claude
 
-    SW -.caches.-> HTML
-    SW -.caches.-> App
+    SW -.-> HTML
+    SW -.-> App
 ```
 
 ---
@@ -357,19 +357,19 @@ graph TB
     end
 
     subgraph "Routes"
-        Auth[/api/auth/*]
-        Conv[/api/conversations/*]
-        Msg[/api/messages/*]
-        Art[/api/artifacts/*]
-        Proj[/api/projects/*]
-        Share[/api/share/*]
-        Settings[/api/settings/*]
+        Auth["Auth Routes"]
+        Conv["Conversations"]
+        Msg["Messages"]
+        Art["Artifacts"]
+        Proj["Projects"]
+        Share["Share"]
+        Settings["Settings"]
     end
 
     Env --> Express --> Middleware --> SQLjs
     SQLjs --> Schema --> Helpers
-    Helpers --> Routes
-    Routes --> Services
+    Helpers --> Auth & Conv & Msg & Art & Proj & Share & Settings
+    Auth & Conv & Msg --> Anthropic
 ```
 
 #### server.js Sections Reference
@@ -542,8 +542,8 @@ graph TB
     end
 
     subgraph "Communication"
-        App <-->|HTTP REST| Server
-        App <--|SSE Stream| Server
+        App -->|HTTP REST| Server
+        Server -->|SSE Stream| App
     end
 ```
 
