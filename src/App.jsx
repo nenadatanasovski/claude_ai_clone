@@ -3545,6 +3545,11 @@ function App() {
           const branchMessages = await loadMessages(currentConversationId, newBranchMessageId)
           console.log('[Branch Edit] Loaded branch messages:', branchMessages?.length, 'messages')
 
+          // Reset scroll prevention flags AFTER branch load completes
+          // This allows auto-scroll during AI streaming
+          isSwitchingBranchRef.current = false
+          savedScrollPositionRef.current = null
+
           try {
             // Use the new respond endpoint to generate AI response for the branch message
             const respondResponse = await fetch(`${API_BASE}/messages/${newBranchMessageId}/respond`, {
@@ -3633,12 +3638,7 @@ function App() {
 
         // Refresh branches to update the branch UI
         await loadBranches(currentConversationId)
-
-        // Delay resetting the flag and clearing saved position
-        setTimeout(() => {
-          isSwitchingBranchRef.current = false
-          savedScrollPositionRef.current = null
-        }, 150)
+        // Note: Scroll flags are already reset after loadMessages (before streaming)
       } else {
         // Normal update without branching
         // Save scroll position and set flag to prevent scroll reset
