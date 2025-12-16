@@ -370,6 +370,7 @@ function generateTitleFromMessage(message) {
 
 // Helper function to detect and extract artifacts from response
 function detectArtifacts(content) {
+  console.log('[detectArtifacts] Analyzing content length:', content?.length || 0);
   const artifacts = [];
   // Match code blocks: ```language\ncode\n```
   const codeBlockRegex = /```(\w+)?\n([\s\S]*?)```/g;
@@ -379,6 +380,7 @@ function detectArtifacts(content) {
   while ((match = codeBlockRegex.exec(content)) !== null) {
     const language = match[1] || 'text';
     const code = match[2];
+    console.log('[detectArtifacts] Found code block:', { language, codeLength: code.length });
 
     // Determine artifact type based on language
     let type = 'code';
@@ -418,6 +420,7 @@ function detectArtifacts(content) {
     index++;
   }
 
+  console.log('[detectArtifacts] Total artifacts found:', artifacts.length);
   return artifacts;
 }
 

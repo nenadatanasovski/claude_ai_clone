@@ -4,7 +4,8 @@ import remarkGfm from 'remark-gfm'
 import remarkMath from 'remark-math'
 import rehypeKatex from 'rehype-katex'
 import rehypeHighlight from 'rehype-highlight'
-import 'highlight.js/styles/github-dark.css'
+import hljs from 'highlight.js'
+// Note: highlight.js CSS is loaded via CDN in index.html
 
 const API_BASE = 'http://localhost:3001/api'
 
@@ -42,6 +43,65 @@ function CodeBlock({ node, inline, className, children, ...props }) {
         <code ref={codeRef} className={className} {...props}>
           {children}
         </code>
+      </pre>
+    </div>
+  )
+}
+
+// Artifact code component with syntax highlighting
+function ArtifactCodeBlock({ content, language }) {
+  const [copied, setCopied] = useState(false)
+  const [highlightedCode, setHighlightedCode] = useState('')
+
+  useEffect(() => {
+    if (content) {
+      try {
+        // Use hljs.highlight() to get highlighted HTML
+        const lang = language || 'plaintext'
+        let result
+
+        // Check if language is supported
+        if (hljs.getLanguage(lang)) {
+          result = hljs.highlight(content, { language: lang })
+        } else {
+          // Fallback to auto-detection
+          result = hljs.highlightAuto(content)
+        }
+
+        setHighlightedCode(result.value)
+      } catch (err) {
+        console.error('Error highlighting code:', err)
+        // Fallback to plain text (escape HTML)
+        setHighlightedCode(content.replace(/</g, '&lt;').replace(/>/g, '&gt;'))
+      }
+    }
+  }, [content, language])
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(content)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch (err) {
+      console.error('Failed to copy:', err)
+    }
+  }
+
+  return (
+    <div className="relative group h-full prose dark:prose-invert prose-sm max-w-none">
+      <button
+        onClick={handleCopy}
+        className="absolute right-4 top-4 px-3 py-1.5 text-xs bg-gray-700 hover:bg-gray-600
+          text-white rounded opacity-0 group-hover:opacity-100 transition-all duration-200 z-10"
+        title="Copy code"
+      >
+        {copied ? 'Copied!' : 'Copy'}
+      </button>
+      <pre className="!m-0 h-full overflow-auto">
+        <code
+          className={`language-${language || 'plaintext'} hljs`}
+          dangerouslySetInnerHTML={{ __html: highlightedCode }}
+        />
       </pre>
     </div>
   )
@@ -451,6 +511,9 @@ function App() {
   const [currentArtifact, setCurrentArtifact] = useState(null)
   const [showArtifactPanel, setShowArtifactPanel] = useState(false)
   const [isArtifactFullscreen, setIsArtifactFullscreen] = useState(false)
+  const [isArtifactCollapsed, setIsArtifactCollapsed] = useState(false)
+  const [isArtifactContentExpanded, setIsArtifactContentExpanded] = useState(true)
+  const [artifactZoom, setArtifactZoom] = useState(100) // Zoom percentage (50-200)
   const [isEditingArtifact, setIsEditingArtifact] = useState(false)
   const [editedArtifactContent, setEditedArtifactContent] = useState('')
   const [showRepromptModal, setShowRepromptModal] = useState(false)
@@ -941,18 +1004,45 @@ function App() {
       const elementId = `mermaid-diagram-${currentArtifact.id}`;
       const element = document.getElementById(elementId);
       if (element) {
-        // Clear previous content
-        element.innerHTML = currentArtifact.content;
+        // Sanitize the Mermaid content
+        let sanitizedContent = currentArtifact.content
+          .trim()
+          // Remove any markdown code fence markers that might have been included
+          .replace(/^```mermaid\s*/i, '')
+          .replace(/```\s*$/, '')
+          .trim()
+          // Normalize line endings
+          .replace(/\r\n/g, '\n')
+          // Remove excessive blank lines
+          .replace(/\n{3,}/g, '\n\n');
+
+        // Clear previous content and set sanitized version
+        element.innerHTML = sanitizedContent;
+
         // Render the diagram
         window.mermaid.run({
           nodes: [element]
         }).catch(err => {
           console.error('Mermaid rendering error:', err);
-          element.innerHTML = `<div class="text-red-500 p-4">Error rendering diagram: ${err.message}</div>`;
+          console.error('Mermaid content that failed:', sanitizedContent);
+          element.innerHTML = `<div class="text-red-500 p-4">
+            <p class="font-semibold">Error rendering diagram</p>
+            <p class="text-sm mt-2">${err.message}</p>
+            <pre class="mt-4 p-2 bg-gray-100 rounded text-xs overflow-auto">${sanitizedContent.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</pre>
+          </div>`;
         });
       }
     }
   }, [currentArtifact])
+
+  // Set zoom to 50% when entering fullscreen, reset to 100% when exiting
+  useEffect(() => {
+    if (isArtifactFullscreen) {
+      setArtifactZoom(50)
+    } else {
+      setArtifactZoom(100)
+    }
+  }, [isArtifactFullscreen])
 
   // Swipe gesture handling for mobile sidebar navigation
   useEffect(() => {
@@ -1439,6 +1529,7 @@ function App() {
       // Load artifacts for this conversation
       const artifactsResponse = await fetch(`${API_BASE}/conversations/${conversationId}/artifacts`)
       const artifactsData = await artifactsResponse.json()
+      console.log('[loadMessages] Artifacts for conversation:', artifactsData)
       // Ensure artifacts is an array
       setArtifacts(Array.isArray(artifactsData) ? artifactsData : [])
 
@@ -1449,6 +1540,7 @@ function App() {
           try {
             const msgArtResponse = await fetch(`${API_BASE}/messages/${message.id}/artifacts`)
             const msgArtData = await msgArtResponse.json()
+            console.log(`[loadMessages] Artifacts for message ${message.id}:`, msgArtData)
             if (msgArtData.length > 0) {
               msgArtifacts[message.id] = msgArtData
             }
@@ -1457,6 +1549,7 @@ function App() {
           }
         }
       }
+      console.log('[loadMessages] Setting messageArtifacts:', msgArtifacts)
       setMessageArtifacts(msgArtifacts)
 
       // If there are artifacts, show the panel and select the first one
@@ -2473,9 +2566,11 @@ function App() {
     setInputValue('')
     setIsLoading(true)
 
+    // Declare conversationId outside try block so it's accessible in catch block
+    let conversationId = currentConversationId
+
     try {
       // Create conversation if none exists
-      let conversationId = currentConversationId
       if (!conversationId) {
         const response = await fetch(`${API_BASE}/conversations`, {
           method: 'POST',
@@ -4166,14 +4261,14 @@ function App() {
   }
 
   return (
-    <div className={`${isDark ? 'dark' : ''} ${highContrast ? 'high-contrast' : ''} ${reducedMotion ? 'reduce-motion' : ''}`}>
-      <div className={`min-h-screen ${
+    <div className={`h-screen overflow-hidden ${isDark ? 'dark' : ''} ${highContrast ? 'high-contrast' : ''} ${reducedMotion ? 'reduce-motion' : ''}`}>
+      <div className={`h-full flex flex-col ${
         highContrast
           ? 'bg-white dark:bg-black text-black dark:text-white'
           : 'bg-white dark:bg-[#1A1A1A] text-gray-900 dark:text-gray-100'
       }`}>
         {/* Header */}
-        <header className={`border-b px-4 py-3 ${
+        <header className={`shrink-0 border-b px-4 py-3 ${
           highContrast
             ? 'border-black dark:border-white'
             : 'border-gray-200 dark:border-gray-800'
@@ -4615,7 +4710,7 @@ function App() {
         </header>
 
         {/* Main Content */}
-        <div className="flex h-[calc(100vh-60px)] relative">
+        <div className="flex flex-1 min-h-0 relative">
           {/* Sidebar backdrop overlay for mobile */}
           {!isSidebarCollapsed && (
             <div
@@ -4640,14 +4735,14 @@ function App() {
               highContrast
                 ? 'border-black dark:border-white'
                 : 'border-gray-200 dark:border-gray-800'
-            } transition-all duration-300 ease-in-out overflow-hidden relative ${
+            } transition-all duration-300 ease-in-out overflow-y-auto relative ${
               isSidebarCollapsed ? 'p-0' : 'p-4'
             } bg-white dark:bg-[#1A1A1A]
             sm:relative fixed left-0 top-0 h-full z-50
             ${isSidebarCollapsed ? '-translate-x-full sm:translate-x-0' : 'translate-x-0'}`}
             style={{
               width: isSidebarCollapsed ? '0px' : `${sidebarWidth}px`,
-              marginTop: 'var(--header-height, 60px)'
+              marginTop: 0
             }}
             onContextMenu={handleSidebarContextMenu}
             role="navigation"
@@ -5146,9 +5241,9 @@ function App() {
           </button>
 
           {/* Chat Area */}
-          <main className="flex-1 flex flex-col">
+          <main className="flex-1 flex flex-col min-h-0">
             {/* Messages */}
-            <div ref={chatContainerRef} className="flex-1 overflow-y-auto px-4 py-8">
+            <div ref={chatContainerRef} className="flex-1 overflow-y-auto min-h-0 px-4 py-8">
               <div className="max-w-3xl mx-auto">
                 {/* Success Message Display */}
                 {successMessage && (
@@ -5569,7 +5664,7 @@ function App() {
             </div>
 
             {/* Input Area */}
-            <div className="border-t border-gray-200 dark:border-gray-800 p-4">
+            <div className="shrink-0 border-t border-gray-200 dark:border-gray-800 p-4">
               <div className="max-w-3xl mx-auto">
                 {/* Image Previews */}
                 {selectedImages.length > 0 && (
@@ -5697,11 +5792,28 @@ function App() {
 
           {/* Artifact Panel */}
           {showArtifactPanel && currentArtifact && (
-            <aside className={`border-l border-gray-200 dark:border-gray-800 flex flex-col bg-white dark:bg-[#1A1A1A] ${
+            <aside className={`border-l border-gray-200 dark:border-gray-800 flex flex-col bg-white dark:bg-[#1A1A1A] transition-all duration-300 ${
               isArtifactFullscreen
                 ? 'fixed inset-0 z-50 w-full'
-                : 'w-96 fixed right-0 top-[60px] h-[calc(100vh-60px)] z-30 lg:relative lg:top-0 lg:h-auto'
+                : isArtifactCollapsed
+                  ? 'w-12 fixed right-0 top-[60px] h-[calc(100vh-60px)] z-30 lg:relative lg:top-0 lg:h-auto'
+                  : 'w-[512px] fixed right-0 top-[60px] h-[calc(100vh-60px)] z-30 lg:relative lg:top-0 lg:h-auto'
             }`}>
+              {/* Collapsed state - just show expand button */}
+              {isArtifactCollapsed && !isArtifactFullscreen ? (
+                <div className="h-full flex flex-col items-center pt-4">
+                  <button
+                    onClick={() => setIsArtifactCollapsed(false)}
+                    className="p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                    title="Expand artifact panel"
+                  >
+                    <svg className="w-5 h-5 text-gray-600 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
+                    </svg>
+                  </button>
+                </div>
+              ) : (
+              <>
               {/* Artifact Header */}
               <div className="border-b border-gray-200 dark:border-gray-800 p-4 flex items-center justify-between">
                 <div className="flex items-center gap-2">
@@ -5715,6 +5827,18 @@ function App() {
                   )}
                 </div>
                 <div className="flex items-center gap-2">
+                  {/* Collapse button - always visible when not fullscreen */}
+                  {!isArtifactFullscreen && (
+                    <button
+                      onClick={() => setIsArtifactCollapsed(true)}
+                      className="p-1.5 rounded hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                      title="Collapse panel"
+                    >
+                      <svg className="w-5 h-5 text-gray-600 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 5l7 7-7 7M5 5l7 7-7 7" />
+                      </svg>
+                    </button>
+                  )}
                   {!isEditingArtifact && currentArtifact.type === 'code' && (
                     <button
                       onClick={() => {
@@ -5816,6 +5940,34 @@ function App() {
                         d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                     </svg>
                   </button>
+                  {/* Zoom Controls */}
+                  <div className="flex items-center gap-1 border-l border-gray-200 dark:border-gray-700 pl-2 ml-1">
+                    <button
+                      onClick={() => setArtifactZoom(prev => Math.max(25, prev - 25))}
+                      className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                      title="Zoom out"
+                      disabled={artifactZoom <= 25}
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                          d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM13 10H7" />
+                      </svg>
+                    </button>
+                    <span className="text-xs font-medium text-gray-600 dark:text-gray-400 min-w-[3rem] text-center">
+                      {artifactZoom}%
+                    </span>
+                    <button
+                      onClick={() => setArtifactZoom(prev => Math.min(200, prev + 25))}
+                      className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                      title="Zoom in"
+                      disabled={artifactZoom >= 200}
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                          d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v6m3-3H7" />
+                      </svg>
+                    </button>
+                  </div>
                   <Tooltip text={isArtifactFullscreen ? "Exit fullscreen" : "Fullscreen"} position="bottom">
                     <button
                       onClick={() => setIsArtifactFullscreen(!isArtifactFullscreen)}
@@ -5832,19 +5984,6 @@ function App() {
                           d="M3.75 3.75v4.5m0-4.5h4.5m-4.5 0L9 9M3.75 20.25v-4.5m0 4.5h4.5m-4.5 0L9 15M20.25 3.75h-4.5m4.5 0v4.5m0-4.5L15 9m5.25 11.25h-4.5m4.5 0v-4.5m0 4.5L15 15" />
                       </svg>
                     )}
-                    </button>
-                  </Tooltip>
-                  <Tooltip text="Close artifact panel" position="bottom">
-                    <button
-                      onClick={() => {
-                        setShowArtifactPanel(false)
-                        setIsArtifactFullscreen(false)
-                      }}
-                      className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-                    >
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                      </svg>
                     </button>
                   </Tooltip>
                 </div>
@@ -5875,7 +6014,21 @@ function App() {
               {/* Artifact Title */}
               <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-800">
                 <div className="flex items-center justify-between">
-                  <div className="text-sm font-semibold">{currentArtifact.title}</div>
+                  <button
+                    onClick={() => setIsArtifactContentExpanded(!isArtifactContentExpanded)}
+                    className="flex items-center gap-2 text-sm font-semibold hover:text-[#CC785C] transition-colors"
+                    title={isArtifactContentExpanded ? "Collapse content" : "Expand content"}
+                  >
+                    <svg
+                      className={`w-4 h-4 transition-transform duration-200 ${isArtifactContentExpanded ? 'rotate-90' : ''}`}
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                    {currentArtifact.title}
+                  </button>
                   {artifactVersions.length > 1 && (
                     <div className="relative">
                       <button
@@ -5937,7 +6090,15 @@ function App() {
               </div>
 
               {/* Artifact Content */}
-              <div className="flex-1 overflow-y-auto">
+              {isArtifactContentExpanded && (
+              <div className="flex-1 overflow-auto">
+                <div
+                  className="min-h-full transition-transform duration-200 origin-top-left"
+                  style={{
+                    transform: `scale(${artifactZoom / 100})`,
+                    width: `${100 / (artifactZoom / 100)}%`,
+                  }}
+                >
                 {isEditingArtifact ? (
                   // Edit Mode - Textarea
                   <div className="h-full flex flex-col">
@@ -6046,14 +6207,15 @@ function App() {
                     </div>
                   </div>
                 ) : (
-                  // Code View
-                  <pre className="p-4 text-sm font-mono">
-                    <code className={`language-${currentArtifact.language}`}>
-                      {currentArtifact.content}
-                    </code>
-                  </pre>
+                  // Code View with syntax highlighting
+                  <ArtifactCodeBlock
+                    content={currentArtifact.content}
+                    language={currentArtifact.language}
+                  />
                 )}
+                </div>
               </div>
+              )}
 
               {/* Artifact Actions */}
               {isEditingArtifact ? (
@@ -6135,6 +6297,8 @@ function App() {
                   </button>
                 </div>
               ) : null}
+              </>
+              )}
             </aside>
           )}
         </div>
